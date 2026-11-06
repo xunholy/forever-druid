@@ -857,5 +857,21 @@ do
 	noErrors(W, "no errors")
 end
 
+---------------------------------------------------------------------------
+do
+	section("performance: ForeverDruid's CPU cost in the probe and /fd status")
+	local W, ns = fresh()
+	login(W)
+	check(ns.CpuUsage() == nil, "no profiler data: nothing claimed")
+	W.state.cpu = { [1] = 0.042, [0] = 0.03, [4] = 0.9, [5] = 0, [6] = 0, overall = { [1] = 0.84 } }
+	local cpu = ns.CpuUsage()
+	check(cpu and cpu.recentMs == 0.042 and cpu.peakMs == 0.9, "reads recent and peak time")
+	check(ns.CpuSummary():find("5% of all addons", 1, true), "summary gives the share of all addons (" .. tostring(ns.CpuSummary()) .. ")")
+	local snap = ns.TakeSnapshot("test")
+	check(snap.cpu and snap.cpu.recentMs == 0.042, "probe snapshot records CPU")
+	W.Slash("status")
+	noErrors(W, "no errors")
+end
+
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))
 os.exit(failures == 0 and 0 or 1)

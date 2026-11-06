@@ -182,6 +182,45 @@ local function ReagentSnapshot()
 	return out
 end
 
+-- ForeverDruid's own CPU cost from the client's addon profiler (the same numbers as the AddOns
+-- list's CPU readout). Milliseconds per frame; nil when the profiler is off or unavailable.
+function ns.CpuUsage()
+	local profiler = C_AddOnProfiler
+	local metric = Enum and Enum.AddOnProfilerMetric
+	if not (profiler and profiler.GetAddOnMetric and metric) then
+		return nil
+	end
+	if profiler.IsEnabled and not ns.SafeReadable(profiler.IsEnabled) then
+		return nil
+	end
+	local function Get(which)
+		return tonumber(ns.SafeReadable(profiler.GetAddOnMetric, "ForeverDruid", which))
+	end
+	local function Overall(which)
+		return profiler.GetOverallMetric and tonumber(ns.SafeReadable(profiler.GetOverallMetric, which))
+	end
+	return {
+		recentMs = Get(metric.RecentAverageTime),
+		sessionMs = Get(metric.SessionAverageTime),
+		peakMs = Get(metric.PeakTime),
+		ticksOver1Ms = Get(metric.CountTimeOver1Ms),
+		ticksOver5Ms = Get(metric.CountTimeOver5Ms),
+		allAddonsRecentMs = Overall(metric.RecentAverageTime),
+	}
+end
+
+function ns.CpuSummary()
+	local cpu = ns.CpuUsage()
+	if not (cpu and cpu.recentMs) then
+		return nil
+	end
+	local share = ""
+	if cpu.allAddonsRecentMs and cpu.allAddonsRecentMs > 0 then
+		share = (" (%d%% of all addons)"):format(math.floor(cpu.recentMs / cpu.allAddonsRecentMs * 100 + 0.5))
+	end
+	return ("CPU %.3f ms/frame recently%s, peak %.2f ms"):format(cpu.recentMs, share, cpu.peakMs or 0)
+end
+
 function ns.TakeSnapshot(tag)
 	local version, build, buildDate, interface = GetBuildInfo()
 	local _, classFile = UnitClass("player")
@@ -210,6 +249,9 @@ function ns.TakeSnapshot(tag)
 		moduleStats = ModuleStats(),
 		api = ApiSnapshot(),
 		profile = ns.profileName,
+		cpu = ns.CpuUsage(),
+		tints = ns.tintStats and Copy(ns.tintStats),
+		layout = ns.db and { stack = ns.db.layout.stack, detached = Copy(ns.db.layout.detached), style = ns.db.style.icons },
 	}
 	if not snapshot.inCombat then
 		snapshot.spellbook = ns.KnownSpellList()
@@ -248,6 +290,10 @@ function ns.PrintSnapshot(s)
 	end
 	table.sort(secretAuras)
 	ns.Print("  auras secret in combat: " .. (#secretAuras > 0 and table.concat(secretAuras, ", ") or "none reported"))
+	local cpu = ns.CpuSummary()
+	if cpu then
+		ns.Print("  " .. cpu)
+	end
 	ns.Print("Saved. /reload or log out to write it to disk.")
 end
 

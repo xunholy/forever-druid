@@ -666,6 +666,20 @@ C_RestrictedActions = {
 }
 
 Enum.StatusBarInterpolation = { Immediate = 0, ExponentialEaseOut = 1 }
+Enum.AddOnProfilerMetric = { SessionAverageTime = 0, RecentAverageTime = 1, EncounterAverageTime = 2, LastTime = 3,
+	PeakTime = 4, CountTimeOver1Ms = 5, CountTimeOver5Ms = 6 }
+-- Profiler numbers in ms; the test sets W.state.cpu.
+C_AddOnProfiler = {
+	IsEnabled = function()
+		return S.cpu ~= nil
+	end,
+	GetAddOnMetric = function(_, metric)
+		return S.cpu and S.cpu[metric]
+	end,
+	GetOverallMetric = function(metric)
+		return S.cpu and S.cpu.overall and S.cpu.overall[metric]
+	end,
+}
 
 C_Spell = {
 	IsSpellUsable = function()

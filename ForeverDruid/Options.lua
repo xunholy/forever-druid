@@ -15,6 +15,10 @@ local function Status()
 		ns.Print(L["Not a druid: modules are off. /fd probe still works."])
 		return
 	end
+	local cpu = ns.CpuSummary and ns.CpuSummary()
+	if cpu then
+		ns.Print("  " .. cpu)
+	end
 	for _, key in ipairs(ns.moduleOrder) do
 		ns.Print(("  %s: %s"):format(key, ns.db.modules[key].enabled and L["on"] or L["off"]))
 	end
