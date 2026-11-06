@@ -27,10 +27,12 @@ local function Help()
 	ns.Print("  /fd reset - " .. L["default positions"])
 	ns.Print("  /fd stack on | off - " .. L["stack the HUD into one column automatically"])
 	ns.Print("  /fd minimap - " .. L["show or hide the minimap button"])
+	ns.Print("  /fd grid - " .. L["alignment grid while unlocked"])
+	ns.Print("  /fd tour | whatsnew - " .. L["the welcome tour, or what changed recently"])
 	ns.Print("  /fd toggle <module> - manabar, energytick, combopoints, cooldowns, buffs, targetauras, reminders")
 	ns.Print("  /fd cd add|remove <role|all> <spell> - " .. L["track extra cooldowns"])
 	ns.Print("  /fd cd list")
-	ns.Print("  /fd profile [list | use <name> | copy <name> | reset | delete <name>]")
+	ns.Print("  /fd profile [list | use <name> | copy <name> | reset | delete <name> | export | import]")
 	ns.Print("  /fd status - " .. L["form, talents, role and modules"])
 	ns.Print("  /fd probe - " .. L["record what this client exposes"])
 end
@@ -50,6 +52,10 @@ local function ProfileCommand(rest)
 		else
 			ns.Print(L["no profile named"] .. " " .. name)
 		end
+	elseif action == "export" then
+		ns.ShowShareWindow("export")
+	elseif action == "import" then
+		ns.ShowShareWindow("import")
 	elseif action == "reset" then
 		ns.ResetProfile()
 		ns.Print(L["profile reset"] .. " - /reload " .. L["to apply"])
@@ -76,6 +82,28 @@ local function CooldownCommand(rest)
 	if ns.modules.cooldowns.enabled then
 		ns.modules.cooldowns:Refresh()
 	end
+end
+
+-- Key Bindings > AddOns > ForeverDruid (Bindings.xml calls these).
+BINDING_HEADER_FOREVERDRUID = "ForeverDruid"
+BINDING_NAME_FOREVERDRUID_UNLOCK = L["Unlock / lock the HUD"]
+BINDING_NAME_FOREVERDRUID_MENU = L["Quick settings menu"]
+BINDING_NAME_FOREVERDRUID_OPTIONS = L["All settings"]
+
+function ForeverDruid_ToggleUnlock()
+	if ns.db and ns.isDruid and ns.SetUnlocked(not ns.db.unlocked) then
+		ns.Print(ns.db.unlocked and L["unlocked: drag any green box to move the whole HUD, shift-drag one to give it its own spot, then /fd lock"] or L["locked"])
+	end
+end
+
+function ForeverDruid_OpenQuickMenu()
+	if ns.db and ns.isDruid and ns.OpenQuickMenu then
+		ns.OpenQuickMenu()
+	end
+end
+
+function ForeverDruid_OpenOptions()
+	ns.OpenOptions()
 end
 
 SLASH_FOREVERDRUID1 = "/fd"
@@ -107,6 +135,14 @@ SlashCmdList.FOREVERDRUID = function(input)
 		end
 		ns.SetStackEnabled(enabled)
 		ns.Print(L["automatic stack"] .. " " .. (ns.db.layout.stack and L["on"] or L["off"]))
+	elseif command == "grid" then
+		ns.db.grid = not ns.db.grid
+		ns.UpdateGrid()
+		ns.Print(L["alignment grid"] .. " " .. (ns.db.grid and L["on"] or L["off"]) .. (ns.db.unlocked and "" or (" - " .. L["shows while unlocked"])))
+	elseif command == "tour" then
+		ns.ShowTour()
+	elseif command == "whatsnew" or command == "news" then
+		ns.ShowWhatsNew()
 	elseif command == "minimap" then
 		if not ns.isDruid then
 			ns.Print(L["Not a druid: modules are off. /fd probe still works."])
@@ -160,14 +196,34 @@ function ns.OpenOptions()
 	ns.Print(L["Open Options > AddOns > ForeverDruid."])
 end
 
--- Layout helper: widgets stack top to bottom inside a scroll child.
+-- Layout helper: widgets stack top to bottom inside a scroll child. Every widget takes an
+-- optional tooltip as its last argument.
 local Builder = {}
 Builder.__index = Builder
 
-local sliderCount = 0
+local widgetCount = 0
 
 local function NewBuilder(content)
 	return setmetatable({ content = content, y = -16, refreshers = {} }, Builder)
+end
+
+local function Tip(widget, label, text)
+	if not text then
+		return
+	end
+	widget:SetScript("OnEnter", function(self)
+		if GameTooltip then
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetText(label, 1, 0.82, 0)
+			GameTooltip:AddLine(text, 1, 1, 1, true)
+			GameTooltip:Show()
+		end
+	end)
+	widget:SetScript("OnLeave", function()
+		if GameTooltip then
+			GameTooltip:Hide()
+		end
+	end)
 end
 
 function Builder:Space(amount)
@@ -195,17 +251,19 @@ function Builder:Note(text)
 	-- Long notes wrap; leave room for every line.
 	local height = note.GetStringHeight and note:GetStringHeight()
 	self.y = self.y - math.max(18, (tonumber(height) or 0) + 6)
+	return note
 end
 
-function Builder:Check(label, get, set, indent)
+function Builder:Check(label, get, set, tip)
 	local check = CreateFrame("CheckButton", nil, self.content, "UICheckButtonTemplate")
-	check:SetPoint("TOPLEFT", 16 + (indent or 0), self.y)
+	check:SetPoint("TOPLEFT", 16, self.y)
 	local text = self.content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	text:SetPoint("LEFT", check, "RIGHT", 4, 0)
 	text:SetText(label)
 	check:SetScript("OnClick", function(widget)
 		set(widget:GetChecked() and true or false)
 	end)
+	Tip(check, label, tip)
 	self.refreshers[#self.refreshers + 1] = function()
 		check:SetChecked(get() and true or false)
 	end
@@ -213,11 +271,11 @@ function Builder:Check(label, get, set, indent)
 	return check
 end
 
-function Builder:Slider(label, minValue, maxValue, step, get, set, indent)
-	sliderCount = sliderCount + 1
-	local name = "ForeverDruidOptionsSlider" .. sliderCount
+function Builder:Slider(label, minValue, maxValue, step, get, set, tip)
+	widgetCount = widgetCount + 1
+	local name = "ForeverDruidOptionsSlider" .. widgetCount
 	local slider = CreateFrame("Slider", name, self.content, "OptionsSliderTemplate")
-	slider:SetPoint("TOPLEFT", 24 + (indent or 0), self.y - 14)
+	slider:SetPoint("TOPLEFT", 24, self.y - 14)
 	slider:SetWidth(240)
 	slider:SetMinMaxValues(minValue, maxValue)
 	slider:SetValueStep(step)
@@ -240,6 +298,7 @@ function Builder:Slider(label, minValue, maxValue, step, get, set, indent)
 			set(value)
 		end
 	end)
+	Tip(slider, label, tip)
 	self.refreshers[#self.refreshers + 1] = function()
 		local value = get()
 		slider:SetValue(value)
@@ -249,19 +308,20 @@ function Builder:Slider(label, minValue, maxValue, step, get, set, indent)
 	return slider
 end
 
-function Builder:Button(label, width, onClick)
+function Builder:Button(label, width, onClick, tip)
 	local button = CreateFrame("Button", nil, self.content, "UIPanelButtonTemplate")
-	button:SetSize(width or 140, 22)
+	button:SetSize(width or 160, 22)
 	button:SetPoint("TOPLEFT", 20, self.y)
 	button:SetText(label)
 	button:SetScript("OnClick", onClick)
+	Tip(button, label, tip)
 	self.y = self.y - 28
 	return button
 end
 
-function Builder:Cycle(label, values, get, set)
+function Builder:Cycle(label, values, get, set, tip)
 	local button = CreateFrame("Button", nil, self.content, "UIPanelButtonTemplate")
-	button:SetSize(200, 22)
+	button:SetSize(220, 22)
 	button:SetPoint("TOPLEFT", 20, self.y)
 	local function Render()
 		button:SetText(("%s: %s"):format(label, L[get()]))
@@ -277,8 +337,10 @@ function Builder:Cycle(label, values, get, set)
 		set(values[index])
 		Render()
 	end)
+	Tip(button, label, tip)
 	self.refreshers[#self.refreshers + 1] = Render
 	self.y = self.y - 28
+	return button
 end
 
 function Builder:Refresh()
@@ -318,7 +380,6 @@ local MODULE_TITLES = {
 	targetauras = "My effects on target",
 	reminders = "Reminders",
 }
-
 ns.MODULE_TITLES = MODULE_TITLES
 
 local MODULE_NOTES = {
@@ -331,9 +392,220 @@ local MODULE_NOTES = {
 	reminders = "Out of combat only. Click a buff reminder to cast it.",
 }
 
-local function ModuleSection(b, key, extra)
-	b:Header(L[MODULE_TITLES[key]])
-	b:Note(L[MODULE_NOTES[key]])
+---------------------------------------------------------------------------
+-- Pages
+---------------------------------------------------------------------------
+
+local pageCount = 0
+
+-- One scrolling page. Returns its frame and a builder; call Finish(builder) when it's filled.
+local function NewPage(name, title, subtitle)
+	pageCount = pageCount + 1
+	local panel = CreateFrame("Frame")
+	panel.name = name
+	local scroll = CreateFrame("ScrollFrame", "ForeverDruidOptionsScroll" .. pageCount, panel, "UIPanelScrollFrameTemplate")
+	scroll:SetPoint("TOPLEFT", 0, -8)
+	scroll:SetPoint("BOTTOMRIGHT", -28, 8)
+	local content = CreateFrame("Frame", nil, scroll)
+	content:SetSize(600, 1)
+	scroll:SetScrollChild(content)
+	local b = NewBuilder(content)
+	local heading = content:CreateFontString(nil, "ARTWORK", "GameFontNormalHuge")
+	heading:SetPoint("TOPLEFT", 16, b.y)
+	heading:SetText(title)
+	b.y = b.y - 34
+	if subtitle then
+		b:Note(subtitle)
+	end
+	b.panel = panel
+	return panel, b
+end
+
+local function Finish(b)
+	b.content:SetHeight(-b.y + 20)
+	b.panel:SetScript("OnShow", function()
+		b:Refresh()
+	end)
+end
+
+local function ConfirmReset()
+	ns.Confirm(L["Put every piece of the HUD back in its default place?"], function()
+		if ns.ResetPositions() then
+			ns.Print(L["positions reset"])
+		end
+	end)
+end
+ns.ConfirmResetPositions = ConfirmReset
+
+local function MainPage()
+	local panel, b = NewPage("ForeverDruid", "ForeverDruid |cffffffff" .. ns.VERSION .. "|r",
+		L["A druid HUD for WoW Forever. Each part of the HUD has its own page in the list on the left."])
+
+	b:Header(L["Moving things"])
+	b:Button(L["Unlock / lock"], 160, function()
+		ns.SetUnlocked(not ns.db.unlocked)
+	end, L["Unlocked, every piece shows a green box you can drag. Arrow keys nudge the piece under your mouse by one pixel (Shift: ten)."])
+	b:Button(L["Reset positions"], 160, ConfirmReset, L["Puts every piece back in its default place and back in the stack. Asks first."])
+	b:Check(L["Stack the HUD automatically"], function()
+		return ns.db.layout.stack
+	end, function(value)
+		ns.SetStackEnabled(value)
+	end, L["One column under your character that closes up when a piece is hidden. Drag any piece to move it all; shift-drag a piece to give it its own spot."])
+	b:Slider(L["Space between stacked pieces"], 0, 20, 1, function()
+		return ns.db.layout.gap
+	end, function(value)
+		ns.db.layout.gap = value
+		ns.LayoutStack()
+	end, L["Gap in pixels between the pieces of the stack."])
+	b:Check(L["Sample icons while unlocked"], function()
+		return ns.db.preview
+	end, function(value)
+		ns.db.preview = value
+		ns.Fire("FD_LOCK_CHANGED", ns.db.unlocked)
+	end, L["Fills empty rows with example buffs, DoTs, combo points and reminders while unlocked, so you can see what you're arranging."])
+	b:Check(L["Alignment grid while unlocked"], function()
+		return ns.db.grid
+	end, function(value)
+		ns.db.grid = value
+		ns.UpdateGrid()
+	end, L["Shows a grid with the screen centre marked while the HUD is unlocked."])
+
+	b:Header(L["Look"])
+	b:Cycle(L["Icon style"], ns.ICON_STYLES, function()
+		return ns.db.style.icons
+	end, function(value)
+		ns.db.style.icons = value
+		ns.RestyleAll()
+	end, L["minimal: icons cropped with a thin black frame. blizzard: the icon's own border, like action bars."])
+	b:Slider(L["Overall scale"], 0.5, 2, 0.05, function()
+		return ns.db.scale
+	end, function(value)
+		ns.db.scale = value
+		ns.ApplyScales()
+	end, L["Size of the whole HUD. Each part also has its own scale on its page."])
+	b:Slider(L["Opacity out of combat"], 0, 1, 0.05, function()
+		return ns.db.fadeOutOfCombat
+	end, function(value)
+		ns.db.fadeOutOfCombat = value
+		ns.UpdateVisibility()
+	end, L["How visible the HUD is outside a fight. It's always fully visible in combat."])
+	b:Check(L["Hide while mounted"], function()
+		return ns.db.hideWhenMounted
+	end, function(value)
+		ns.db.hideWhenMounted = value
+		ns.UpdateVisibility()
+	end, L["Hides the HUD and reminders while you're mounted. It's also hidden while dead, on a taxi or in a vehicle."])
+	b:Check(L["Show the minimap button"], function()
+		return not ns.db.minimap.hide
+	end, function(value)
+		if ns.SetMinimapButtonShown then
+			ns.SetMinimapButtonShown(value)
+		else
+			ns.db.minimap.hide = not value
+		end
+	end, L["The cat icon on the minimap: left-click for quick settings, right-click to unlock, shift-click for this panel. ForeverDruid is also in the minimap addon menu."]) -- luacheck: no max line length
+
+	b:Header(L["Profiles"])
+	b:Note(L["Current profile:"] .. " |cffffd100" .. tostring(ns.profileName) .. "|r. " .. L["Switch or create profiles with /fd profile use <name>."])
+	b:Button(L["Share this profile..."], 180, function()
+		ns.ShowShareWindow("export")
+	end, L["Gives you a text string of this profile to paste on another character, another account or for a friend."])
+	b:Button(L["Import a profile..."], 180, function()
+		ns.ShowShareWindow("import")
+	end, L["Paste a profile string from someone else. It's added as a new profile; yours isn't changed."])
+	b:Button(L["Reset this profile"], 180, function()
+		ns.Confirm(L["Reset every ForeverDruid setting in this profile to its default? This reloads your interface."], function()
+			ns.ResetProfile()
+			ReloadUI()
+		end)
+	end, L["Puts every setting in the current profile back to its default. Asks first."])
+
+	b:Header(L["Help"])
+	b:Button(L["Show the welcome tour"], 180, function()
+		ns.ShowTour()
+	end)
+	b:Button(L["What's new"], 180, function()
+		ns.ShowWhatsNew()
+	end)
+	b:Note(L["Key bindings for unlock, quick settings and this panel are under Key Bindings > AddOns > ForeverDruid."])
+
+	b:Header(L["Diagnostics"])
+	b:Check(L["Record probe snapshots automatically"], function()
+		return ns.db.probe.auto
+	end, function(value)
+		ns.db.probe.auto = value
+	end, L["At login and at the start of your first fight, saves what the game lets addons see. Helps tune ForeverDruid to Forever."])
+	b:Button(L["Take a snapshot now"], 180, function()
+		ns.PrintSnapshot(ns.TakeSnapshot("manual"))
+	end)
+	Finish(b)
+	return panel
+end
+
+local MODULE_PAGES = {
+	manabar = function(s)
+		s:Cycle(L["Text"], ns.modules.manabar.TEXT_MODES, ModuleGetter("manabar", "text"), ModuleSetter("manabar", "text"),
+			L["What the bar's text shows: your mana, a percentage, both, or nothing."])
+		s:Check(L["Colour by mana level"], ModuleGetter("manabar", "colorByLevel"), ModuleSetter("manabar", "colorByLevel"),
+			L["Blue when you're fine, orange under a quarter, red when you're nearly out."])
+		s:Check(L["Mark the cost of one shift"], ModuleGetter("manabar", "shiftMarker"), ModuleSetter("manabar", "shiftMarker"),
+			L["A line on the bar at the mana one shift back into your form costs."])
+		s:Check(L["Smooth"], ModuleGetter("manabar", "smooth"), ModuleSetter("manabar", "smooth"),
+			L["The bar glides to its new value instead of jumping."])
+		s:Check(L["Show in every form"], ModuleGetter("manabar", "alwaysShow"), ModuleSetter("manabar", "alwaysShow"),
+			L["Also show it in caster form, where the game's own frame already shows mana."])
+		s:Slider(L["Width"], 80, 400, 5, ModuleGetter("manabar", "width"), ModuleSetter("manabar", "width"))
+		s:Slider(L["Height"], 4, 30, 1, ModuleGetter("manabar", "height"), ModuleSetter("manabar", "height"))
+	end,
+	energytick = function(s)
+		s:Note(L["Needs a few fights in Cat Form to learn Forever's tick timing; until then it stays hidden."])
+		s:Slider(L["Width"], 80, 400, 5, ModuleGetter("energytick", "width"), ModuleSetter("energytick", "width"))
+		s:Slider(L["Height"], 2, 20, 1, ModuleGetter("energytick", "height"), ModuleSetter("energytick", "height"))
+	end,
+	combopoints = function(s)
+		s:Check(L["Only in Cat Form"], ModuleGetter("combopoints", "catOnly"), ModuleSetter("combopoints", "catOnly"),
+			L["Hide the pips in other forms, where you can't use combo points."])
+		s:Slider(L["Pip size"], 6, 30, 1, ModuleGetter("combopoints", "size"), ModuleSetter("combopoints", "size"))
+	end,
+	cooldowns = function(s)
+		s:Check(L["Flash when ready"], ModuleGetter("cooldowns", "pulse"), ModuleSetter("cooldowns", "pulse"),
+			L["A quick flash on the icon when a cooldown comes back."])
+		s:Check(L["Dim when unusable"], ModuleGetter("cooldowns", "usableTint"), ModuleSetter("cooldowns", "usableTint"),
+			L["Grey when you can't use it right now, blue when you're short on mana, rage or energy."])
+		s:Check(L["Red when out of range"], ModuleGetter("cooldowns", "rangeTint"), ModuleSetter("cooldowns", "rangeTint"),
+			L["Red when your target is out of range for that spell."])
+		s:Check(L["Countdown numbers"], ModuleGetter("cooldowns", "showNumbers"), ModuleSetter("cooldowns", "showNumbers"))
+		s:Check(L["Tooltips on mouseover"], ModuleGetter("cooldowns", "tooltips"), ModuleSetter("cooldowns", "tooltips"),
+			L["Show the spell tooltip when you hover an icon. Off by default so the icons don't catch your mouse."])
+		s:Check(L["Include Skyborne racials"], ModuleGetter("cooldowns", "racials"), ModuleSetter("cooldowns", "racials"),
+			L["Read Leyline and Walk on Air."])
+		s:Check(L["Hide out of combat"], ModuleGetter("cooldowns", "hideOutOfCombat"), ModuleSetter("cooldowns", "hideOutOfCombat"))
+		s:Slider(L["Icon size"], 16, 64, 1, ModuleGetter("cooldowns", "size"), ModuleSetter("cooldowns", "size"))
+		s:Note(L["Add your own: /fd cd add <role|all> <spell name>"])
+	end,
+	buffs = function(s)
+		s:Note(L["Forever hides buffs from addons during combat. Buffs that were up when the fight started stay, dimmed, until they'd have run out."])
+		s:Slider(L["Icon size"], 16, 64, 1, ModuleGetter("buffs", "size"), ModuleSetter("buffs", "size"))
+	end,
+	targetauras = function(s)
+		s:Slider(L["Icon size"], 16, 64, 1, ModuleGetter("targetauras", "size"), ModuleSetter("targetauras", "size"))
+		s:Slider(L["Most shown"], 1, 16, 1, ModuleGetter("targetauras", "max"), ModuleSetter("targetauras", "max"))
+	end,
+	reminders = function(s)
+		s:Check(L["Click a reminder to cast it"], ModuleGetter("reminders", "clickToCast"), ModuleSetter("reminders", "clickToCast"))
+		s:Check(L["Mark of the Wild"], ModuleGetter("reminders", "markOfTheWild"), ModuleSetter("reminders", "markOfTheWild"))
+		s:Check(L["Omen of Clarity (only where it's a castable buff)"], ModuleGetter("reminders", "omenOfClarity"), ModuleSetter("reminders", "omenOfClarity"))
+		s:Check(L["Thorns (always)"], ModuleGetter("reminders", "thorns"), ModuleSetter("reminders", "thorns"))
+		s:Check(L["Thorns in Bear Form"], ModuleGetter("reminders", "thornsInBear"), ModuleSetter("reminders", "thornsInBear"))
+		s:Check(L["Low Rebirth / Gift of the Wild reagents"], ModuleGetter("reminders", "reagents"), ModuleSetter("reminders", "reagents"),
+			L["Warns when you have fewer than two of the reagent."])
+		s:Check(L["Skyborne: not attuned to a ley line"], ModuleGetter("reminders", "attuned"), ModuleSetter("reminders", "attuned"))
+	end,
+}
+
+local function ModulePage(key)
+	local title = L[MODULE_TITLES[key]]
+	local panel, b = NewPage(title, title, L[MODULE_NOTES[key]])
 	b:Check(L["Enabled"], ModuleGetter(key, "enabled"), function(value)
 		ns.SetModuleEnabled(key, value)
 	end)
@@ -343,141 +615,30 @@ local function ModuleSection(b, key, extra)
 			return not ns.db.layout.detached[key]
 		end, function(value)
 			ns.SetStacked(key, value)
-		end)
+		end, L["Untick to give this piece its own spot instead of sitting in the column."])
 	end
-	if extra then
-		extra(b)
-	end
+	MODULE_PAGES[key](b)
+	Finish(b)
+	return panel
 end
 
 local function BuildPanel()
 	if not (Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory) then
 		return
 	end
-	local panel = CreateFrame("Frame")
-	panel.name = "ForeverDruid"
-
-	local scroll = CreateFrame("ScrollFrame", "ForeverDruidOptionsScroll", panel, "UIPanelScrollFrameTemplate")
-	scroll:SetPoint("TOPLEFT", 0, -8)
-	scroll:SetPoint("BOTTOMRIGHT", -28, 8)
-	local content = CreateFrame("Frame", nil, scroll)
-	content:SetSize(600, 1)
-	scroll:SetScrollChild(content)
-
-	local b = NewBuilder(content)
-
-	local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalHuge")
-	title:SetPoint("TOPLEFT", 16, b.y)
-	title:SetText("ForeverDruid |cffffffff" .. ns.VERSION .. "|r")
-	b.y = b.y - 34
-	b:Note(L["A druid HUD for WoW Forever. Profile:"] .. " " .. tostring(ns.profileName) .. "  (/fd profile)")
-
-	-- General
-	b:Header(L["General"])
-	b:Button(L["Unlock / lock"], 140, function()
-		ns.SetUnlocked(not ns.db.unlocked)
-	end)
-	b:Button(L["Reset positions"], 140, function()
-		ns.ResetPositions()
-	end)
-	b:Check(L["Stack the HUD automatically"], function()
-		return ns.db.layout.stack
-	end, function(value)
-		ns.SetStackEnabled(value)
-	end)
-	b:Note(L["One column under your character that closes up when a piece is hidden. Drag any piece to move it all; shift-drag a piece to give it its own spot."])
-	b:Slider(L["Space between stacked pieces"], 0, 20, 1, function()
-		return ns.db.layout.gap
-	end, function(value)
-		ns.db.layout.gap = value
-		ns.LayoutStack()
-	end)
-	b:Slider(L["Overall scale"], 0.5, 2, 0.05, function()
-		return ns.db.scale
-	end, function(value)
-		ns.db.scale = value
-		ns.ApplyScales()
-	end)
-	b:Slider(L["Opacity out of combat"], 0, 1, 0.05, function()
-		return ns.db.fadeOutOfCombat
-	end, function(value)
-		ns.db.fadeOutOfCombat = value
-		ns.UpdateVisibility()
-	end)
-	b:Check(L["Show the minimap button"], function()
-		return not ns.db.minimap.hide
-	end, function(value)
-		if ns.SetMinimapButtonShown then
-			ns.SetMinimapButtonShown(value)
-		else
-			ns.db.minimap.hide = not value
-		end
-	end)
-	b:Check(L["Hide while mounted"], function()
-		return ns.db.hideWhenMounted
-	end, function(value)
-		ns.db.hideWhenMounted = value
-		ns.UpdateVisibility()
-	end)
-
-	ModuleSection(b, "manabar", function(s)
-		s:Cycle(L["Text"], ns.modules.manabar.TEXT_MODES, ModuleGetter("manabar", "text"), ModuleSetter("manabar", "text"))
-		s:Check(L["Colour by mana level"], ModuleGetter("manabar", "colorByLevel"), ModuleSetter("manabar", "colorByLevel"))
-		s:Check(L["Mark the cost of one shift"], ModuleGetter("manabar", "shiftMarker"), ModuleSetter("manabar", "shiftMarker"))
-		s:Check(L["Show in every form"], ModuleGetter("manabar", "alwaysShow"), ModuleSetter("manabar", "alwaysShow"))
-		s:Slider(L["Width"], 80, 400, 5, ModuleGetter("manabar", "width"), ModuleSetter("manabar", "width"))
-		s:Slider(L["Height"], 4, 30, 1, ModuleGetter("manabar", "height"), ModuleSetter("manabar", "height"))
-	end)
-	ModuleSection(b, "energytick", function(s)
-		s:Slider(L["Width"], 80, 400, 5, ModuleGetter("energytick", "width"), ModuleSetter("energytick", "width"))
-		s:Slider(L["Height"], 2, 20, 1, ModuleGetter("energytick", "height"), ModuleSetter("energytick", "height"))
-	end)
-	ModuleSection(b, "combopoints", function(s)
-		s:Check(L["Only in Cat Form"], ModuleGetter("combopoints", "catOnly"), ModuleSetter("combopoints", "catOnly"))
-		s:Slider(L["Pip size"], 6, 30, 1, ModuleGetter("combopoints", "size"), ModuleSetter("combopoints", "size"))
-	end)
-	ModuleSection(b, "cooldowns", function(s)
-		s:Check(L["Countdown numbers"], ModuleGetter("cooldowns", "showNumbers"), ModuleSetter("cooldowns", "showNumbers"))
-		s:Check(L["Tooltips on mouseover"], ModuleGetter("cooldowns", "tooltips"), ModuleSetter("cooldowns", "tooltips"))
-		s:Check(L["Include Skyborne racials"], ModuleGetter("cooldowns", "racials"), ModuleSetter("cooldowns", "racials"))
-		s:Check(L["Hide out of combat"], ModuleGetter("cooldowns", "hideOutOfCombat"), ModuleSetter("cooldowns", "hideOutOfCombat"))
-		s:Slider(L["Icon size"], 16, 64, 1, ModuleGetter("cooldowns", "size"), ModuleSetter("cooldowns", "size"))
-		s:Note(L["Add your own: /fd cd add <role|all> <spell name>"])
-	end)
-	ModuleSection(b, "buffs", function(s)
-		s:Slider(L["Icon size"], 16, 64, 1, ModuleGetter("buffs", "size"), ModuleSetter("buffs", "size"))
-	end)
-	ModuleSection(b, "targetauras", function(s)
-		s:Slider(L["Icon size"], 16, 64, 1, ModuleGetter("targetauras", "size"), ModuleSetter("targetauras", "size"))
-		s:Slider(L["Most shown"], 1, 16, 1, ModuleGetter("targetauras", "max"), ModuleSetter("targetauras", "max"))
-	end)
-	ModuleSection(b, "reminders", function(s)
-		s:Check(L["Click a reminder to cast it"], ModuleGetter("reminders", "clickToCast"), ModuleSetter("reminders", "clickToCast"))
-		s:Check(L["Mark of the Wild"], ModuleGetter("reminders", "markOfTheWild"), ModuleSetter("reminders", "markOfTheWild"))
-		s:Check(L["Omen of Clarity (only where it's a castable buff)"], ModuleGetter("reminders", "omenOfClarity"), ModuleSetter("reminders", "omenOfClarity"))
-		s:Check(L["Thorns (always)"], ModuleGetter("reminders", "thorns"), ModuleSetter("reminders", "thorns"))
-		s:Check(L["Thorns in Bear Form"], ModuleGetter("reminders", "thornsInBear"), ModuleSetter("reminders", "thornsInBear"))
-		s:Check(L["Low Rebirth / Gift of the Wild reagents"], ModuleGetter("reminders", "reagents"), ModuleSetter("reminders", "reagents"))
-		s:Check(L["Skyborne: not attuned to a ley line"], ModuleGetter("reminders", "attuned"), ModuleSetter("reminders", "attuned"))
-	end)
-
-	b:Header(L["Diagnostics"])
-	b:Check(L["Record probe snapshots automatically"], function()
-		return ns.db.probe.auto
-	end, function(value)
-		ns.db.probe.auto = value
-	end)
-	b:Button(L["Take a snapshot now"], 180, function()
-		ns.PrintSnapshot(ns.TakeSnapshot("manual"))
-	end)
-
-	content:SetHeight(-b.y + 20)
-	panel:SetScript("OnShow", function()
-		b:Refresh()
-	end)
-
-	panelCategory = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
+	panelCategory = Settings.RegisterCanvasLayoutCategory(MainPage(), "ForeverDruid")
 	Settings.RegisterAddOnCategory(panelCategory)
+	if Settings.RegisterCanvasLayoutSubcategory then
+		for _, key in ipairs(ns.moduleOrder) do
+			local ok, err = pcall(function()
+				local page = ModulePage(key)
+				Settings.RegisterCanvasLayoutSubcategory(panelCategory, page, page.name)
+			end)
+			if not ok then
+				ns.ReportError(err)
+			end
+		end
+	end
 end
 
 ns.Listen("FD_LOGIN", function()

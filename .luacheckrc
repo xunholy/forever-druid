@@ -1,6 +1,7 @@
 -- luacheck config for ForeverDruid (WoW addon, Lua 5.1 runtime).
 std = "lua51"
 max_line_length = 160
+max_string_line_length = false -- player-facing sentences are allowed to run long
 self = false -- methods often ignore self (module:ShouldShow etc.)
 codes = true
 exclude_files = { "dist/" }
@@ -16,13 +17,14 @@ globals = {
 	"BINDING_NAME_FOREVERDRUID_OPTIONS",
 	"ForeverDruid_ToggleUnlock", "ForeverDruid_OpenQuickMenu", "ForeverDruid_OpenOptions",
 	"StaticPopupDialogs",
+	"UISpecialFrames", -- we add our windows so Esc closes them
 }
 
 -- WoW API and FrameXML the addon reads.
 read_globals = {
 	"C_AddOns", "C_CurveUtil", "C_Item", "C_RestrictedActions", "C_Secrets", "C_Spell", "C_SpellBook",
 	"C_SpecializationInfo", "C_ClassTalents", "C_Timer", "C_Traits", "C_UnitAuras", "C_AddOnProfiler", "C_Texture",
-	"CreateFrame", "UIParent", "GameTooltip", "Minimap", "MenuUtil", "Settings", "Enum",
+	"CreateFrame", "CreateColor", "UIParent", "GameTooltip", "Minimap", "MenuUtil", "Settings", "Enum",
 	"GetTime", "GetRealmName", "GetLocale", "GetBuildInfo", "GetCursorPosition", "GetMinimapShape",
 	"GetShapeshiftForm", "GetShapeshiftFormInfo", "GetNumShapeshiftForms", "GetComboPoints",
 	"GetSpellCooldown", "GetSpellInfo", "GetSpellTexture", "GetFramerate",

@@ -246,6 +246,9 @@ function Frame:GetPoint()
 	end
 	return p[1], p[2], p[3], p[4], p[5]
 end
+function Frame:EnableKeyboard(v)
+	self._keyboard = v and true or false
+end
 function Frame:StartMoving()
 	self._moving = true
 end
@@ -435,7 +438,26 @@ function CreateFrame(kind, name, parent, template)
 	if name then
 		_G[name] = f
 	end
+	if template == "InputScrollFrameTemplate" then
+		f.EditBox = NewObject("EditBox", f)
+	end
 	return f
+end
+
+-- Popups: recorded, and accepted or declined by the test.
+StaticPopupDialogs = {}
+UISpecialFrames = {}
+W.popups = {}
+function StaticPopup_Show(which, text, _, data)
+	W.popups[#W.popups + 1] = { which = which, text = text, data = data }
+end
+function W.AcceptPopup()
+	local popup = table.remove(W.popups)
+	if popup then
+		StaticPopupDialogs[popup.which].OnAccept(nil, popup.data)
+		return true
+	end
+	return false
 end
 
 ---------------------------------------------------------------------------
@@ -757,10 +779,20 @@ C_Item = {
 }
 
 C_AddOns = {
+	-- Reads the real TOC, like the client.
 	GetAddOnMetadata = function(_, field)
-		if field == "Version" then
-			return "0.2.0-test"
+		local toc = io.open("ForeverDruid/ForeverDruid.toc")
+		if not toc then
+			return nil
 		end
+		for line in toc:lines() do
+			local key, value = line:match("^## ([%w%-]+):%s*(.-)%s*$")
+			if key == field then
+				toc:close()
+				return value
+			end
+		end
+		toc:close()
 	end,
 }
 
@@ -792,14 +824,25 @@ C_Traits = {
 	end,
 }
 
+W.settingsPages = {}
+local function Category(frame, name)
+	local id = #W.settingsPages + 1
+	W.settingsPages[id] = { frame = frame, name = name }
+	return { ID = id, name = name, GetID = function()
+		return id
+	end }
+end
 Settings = {
-	RegisterCanvasLayoutCategory = function(_, name)
-		return { ID = 1, name = name, GetID = function()
-			return 1
-		end }
+	RegisterCanvasLayoutCategory = function(frame, name)
+		return Category(frame, name)
+	end,
+	RegisterCanvasLayoutSubcategory = function(_, frame, name)
+		return Category(frame, name)
 	end,
 	RegisterAddOnCategory = function() end,
-	OpenToCategory = function() end,
+	OpenToCategory = function(id)
+		W.openedCategory = id
+	end,
 }
 
 SlashCmdList = {}
@@ -884,17 +927,20 @@ function W.Slash(text)
 end
 
 -- Show the options panel once so every widget's refresher runs.
+-- Shows every registered settings page (main and sub-pages); true if at least one exists.
 function W.ShowOptionsPanel()
-	for _, f in ipairs(W.frames) do
-		if rawget(f, "name") == "ForeverDruid" and f._scripts.OnShow then
-			local ok, err = pcall(f._scripts.OnShow, f)
+	local shown = 0
+	for _, page in ipairs(W.settingsPages) do
+		local onShow = page.frame._scripts.OnShow
+		if onShow then
+			local ok, err = pcall(onShow, page.frame)
 			if not ok then
-				W.errors[#W.errors + 1] = "options OnShow: " .. tostring(err)
+				W.errors[#W.errors + 1] = "options OnShow (" .. tostring(page.name) .. "): " .. tostring(err)
 			end
-			return true
+			shown = shown + 1
 		end
 	end
-	return false
+	return shown > 0, shown
 end
 
 function W.LoadAddon(dir, name)

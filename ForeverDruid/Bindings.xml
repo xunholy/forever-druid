@@ -1,0 +1,5 @@
+<Bindings>
+	<Binding name="FOREVERDRUID_UNLOCK" header="FOREVERDRUID" category="ADDONS">ForeverDruid_ToggleUnlock()</Binding>
+	<Binding name="FOREVERDRUID_MENU" category="ADDONS">ForeverDruid_OpenQuickMenu()</Binding>
+	<Binding name="FOREVERDRUID_OPTIONS" category="ADDONS">ForeverDruid_OpenOptions()</Binding>
+</Bindings>

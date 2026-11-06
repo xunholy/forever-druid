@@ -69,6 +69,19 @@ function ns.BuildQuickMenu(root)
 	end, function()
 		ns.SetStackEnabled(not ns.db.layout.stack)
 	end)
+	local arrange = root:CreateButton(L["While unlocked"])
+	arrange:CreateCheckbox(L["Sample icons"], function()
+		return ns.db.preview
+	end, function()
+		ns.db.preview = not ns.db.preview
+		ns.Fire("FD_LOCK_CHANGED", ns.db.unlocked)
+	end)
+	arrange:CreateCheckbox(L["Alignment grid"], function()
+		return ns.db.grid
+	end, function()
+		ns.db.grid = not ns.db.grid
+		ns.UpdateGrid()
+	end)
 
 	local show = root:CreateButton(L["Show"])
 	for _, key in ipairs(ns.moduleOrder) do
@@ -86,6 +99,16 @@ function ns.BuildQuickMenu(root)
 		end, function()
 			ns.db.scale = value
 			ns.ApplyScales()
+		end)
+	end
+
+	local look = root:CreateButton(L["Icon style"])
+	for _, style in ipairs(ns.ICON_STYLES) do
+		look:CreateRadio(L[style], function()
+			return ns.db.style.icons == style
+		end, function()
+			ns.db.style.icons = style
+			ns.RestyleAll()
 		end)
 	end
 
@@ -147,6 +170,12 @@ function ns.BuildQuickMenu(root)
 			end
 		end)
 	end
+	profiles:CreateButton(L["Share this profile..."], function()
+		ns.ShowShareWindow("export")
+	end)
+	profiles:CreateButton(L["Import a profile..."], function()
+		ns.ShowShareWindow("import")
+	end)
 	if ReloadUI then
 		profiles:CreateButton(L["Reload now"], function()
 			ReloadUI()
@@ -155,9 +184,7 @@ function ns.BuildQuickMenu(root)
 
 	root:CreateDivider()
 	root:CreateButton(L["Reset positions"], function()
-		if ns.ResetPositions() then
-			ns.Print(L["positions reset"])
-		end
+		ns.ConfirmResetPositions()
 	end)
 	root:CreateButton(L["All settings..."], function()
 		ns.OpenOptions()

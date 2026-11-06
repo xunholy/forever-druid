@@ -699,5 +699,163 @@ do
 	noErrors(W, "no errors or blocked actions")
 end
 
+---------------------------------------------------------------------------
+do
+	section("onboarding: welcome tour on first install, What's new after an update")
+	local W, ns = fresh()
+	login(W)
+	W.Advance(5)
+	local tour = _G.ForeverDruidTour
+	check(tour and tour:IsShown(), "first install shows the welcome tour")
+	tour:Hide()
+	tour:GetScript("OnHide")(tour)
+	check(ns.global.tourSeen, "closing the tour marks it seen")
+	check(ns.CompareVersions("0.10.0", "0.9.9") == 1 and ns.CompareVersions("0.4.0", "0.4.0") == 0
+		and ns.CompareVersions("0.3.0", "0.5.0") == -1, "version compare handles multi-digit parts")
+	noErrors(W, "no errors")
+
+	_G.ForeverDruidTour, _G.ForeverDruidWhatsNew = nil, nil
+	local W2, ns2 = fresh(function()
+		ForeverDruidDB = { profiles = { Default = {} }, chars = {}, lastVersion = "0.3.0" }
+	end)
+	login(W2)
+	W2.Advance(5)
+	local news = _G.ForeverDruidWhatsNew
+	check(news and news:IsShown(), "updating shows What's new")
+	local versions = {}
+	for _, release in ipairs(news.releases or {}) do
+		versions[#versions + 1] = release.version
+	end
+	check(table.concat(versions, ",") == ns2.VERSION .. ",0.4.0", "only versions newer than the last one seen (" .. table.concat(versions, ",") .. ")")
+	check(_G.ForeverDruidTour == nil, "no tour for someone upgrading")
+	noErrors(W2, "no errors")
+
+	_G.ForeverDruidWhatsNew = nil
+	local W3 = fresh(function()
+		ForeverDruidDB = { profiles = { Default = {} }, chars = {}, lastVersion = "0.3.0" }
+	end)
+	W3.Fire("ADDON_LOADED", "ForeverDruid")
+	W3.Fire("PLAYER_LOGIN")
+	W3.Fire("PLAYER_REGEN_DISABLED")
+	W3.state.inCombat = true
+	W3.Advance(5)
+	check(_G.ForeverDruidWhatsNew == nil, "never pops up in combat")
+	W3.state.inCombat = false
+	W3.Fire("PLAYER_REGEN_ENABLED")
+	W3.Advance(2)
+	check(_G.ForeverDruidWhatsNew and _G.ForeverDruidWhatsNew:IsShown(), "shows once the fight is over")
+	noErrors(W3, "no errors")
+end
+
+---------------------------------------------------------------------------
+do
+	section("arranging: arrow-key nudge, alignment grid, confirmations, keybindings")
+	local W, ns = fresh()
+	login(W)
+	W.Advance(5)
+	if _G.ForeverDruidTour then
+		_G.ForeverDruidTour:Hide()
+	end
+	W.Slash("unlock")
+	local anchor = ns.anchors.cooldowns
+	anchor:GetScript("OnEnter")(anchor)
+	local _, _, _, x0, y0 = ns.stackHead:GetPoint()
+	anchor:GetScript("OnKeyDown")(anchor, "UP")
+	local _, _, _, x1, y1 = ns.stackHead:GetPoint()
+	check(y1 == y0 + 1 and x1 == x0, "arrow up nudges the stack one pixel")
+	W.state.shift = true
+	anchor:GetScript("OnKeyDown")(anchor, "LEFT")
+	W.state.shift = false
+	local _, _, _, x2 = ns.stackHead:GetPoint()
+	check(x2 == x0 - 10, "shift-arrow nudges ten")
+	check(ns.db.positions.stack and ns.db.positions.stack[4] == y1, "nudged position is saved")
+	check(not ns.Nudge(anchor, "W"), "other keys pass through to the game")
+
+	W.Slash("grid")
+	check(_G.ForeverDruidGrid and _G.ForeverDruidGrid:IsShown(), "grid shows while unlocked")
+	W.Slash("lock")
+	check(not _G.ForeverDruidGrid:IsShown(), "grid hides when locked")
+
+	ns.ConfirmResetPositions()
+	check(#W.popups == 1, "reset positions asks first")
+	check(ns.db.positions.stack ~= nil, "nothing reset before answering")
+	W.AcceptPopup()
+	check(next(ns.db.positions) == nil, "accepting resets")
+
+	ForeverDruid_ToggleUnlock()
+	check(ns.db.unlocked, "unlock keybinding")
+	ForeverDruid_ToggleUnlock()
+	ForeverDruid_OpenQuickMenu()
+	check(W.lastMenu and W.lastMenu:Find("Show"), "quick-menu keybinding")
+	check(BINDING_NAME_FOREVERDRUID_UNLOCK and BINDING_HEADER_FOREVERDRUID == "ForeverDruid", "keybinding names defined")
+	local f = io.open("ForeverDruid/Bindings.xml")
+	local xml = f and f:read("*a") or ""
+	if f then
+		f:close()
+	end
+	for _, fn in ipairs({ "ForeverDruid_ToggleUnlock", "ForeverDruid_OpenQuickMenu", "ForeverDruid_OpenOptions" }) do
+		check(xml:find(fn .. "()", 1, true) and type(_G[fn]) == "function", "Bindings.xml calls " .. fn)
+	end
+
+	local ok, pages = W.ShowOptionsPanel()
+	check(ok and pages == 1 + #ns.moduleOrder, "settings: main page plus one per part of the HUD (" .. tostring(pages) .. ")")
+	noErrors(W, "no errors or blocked actions")
+
+	-- Keyboard capture never survives into combat.
+	W.Slash("unlock")
+	anchor:GetScript("OnEnter")(anchor)
+	W.Fire("PLAYER_REGEN_DISABLED")
+	check(rawget(anchor, "_keyboard") == false, "keyboard released as combat starts")
+	W.Slash("lock")
+end
+
+---------------------------------------------------------------------------
+do
+	section("profile sharing: export/import round trip, hostile strings rejected")
+	local W, ns = fresh()
+	login(W)
+	ns.db.scale = 1.25
+	ns.db.modules.cooldowns.extra = { all = { "Nature's Grasp" } }
+	ns.db.layout.detached = { buffs = true }
+	local text = ns.ExportProfile()
+	check(type(text) == "string" and text:sub(1, 5) == "!FD1!", "export gives a !FD1! string")
+	local name = ns.ImportProfile(text)
+	local copy = name and ns.global.profiles[name]
+	check(copy and copy.scale == 1.25 and copy.modules.cooldowns.extra.all[1] == "Nature's Grasp" and copy.layout.detached.buffs == true,
+		"import round-trips numbers, strings, nested tables and booleans")
+	check(name == "Imported", "imported under a new name (" .. tostring(name) .. ")")
+	check(ns.ImportProfile(text) == "Imported 2", "a second import doesn't overwrite the first")
+	check(ns.profileName == "Default", "importing doesn't switch profiles by itself")
+
+	for i = 0, 255 do
+		local raw = string.char(i, (i * 7) % 256, (i * 13) % 256)
+		assert(ns.Base64Decode(ns.Base64Encode(raw)) == raw)
+	end
+	check(true, "base64 round-trips every byte")
+
+	local function rejects(s)
+		local profile = ns.DecodeProfile(s)
+		return profile == nil
+	end
+	check(rejects("hello"), "rejects text without the prefix")
+	check(rejects("!FD1!@@@@"), "rejects damaged base64")
+	check(rejects("!FD1!" .. ns.Base64Encode("Tfunction() os.exit() end")), "rejects code; only data parses")
+	check(rejects("!FD1!" .. ns.Base64Encode("TS3:abcN1;")), "rejects an unterminated table")
+	check(rejects("!FD1!" .. ns.Base64Encode("S5:hello")), "rejects a profile that isn't a table")
+	check(rejects("!FD1!" .. ns.Base64Encode(string.rep("T", 40) .. string.rep("E", 40))), "rejects absurd nesting")
+	check(rejects("!FD1!" .. string.rep("A", 70000)), "rejects oversize text")
+
+	ns.ShowShareWindow("export")
+	local share = _G.ForeverDruidShare
+	check(share and share:IsShown() and share.edit:GetText() == ns.ExportProfile(), "share window shows the export string")
+	ns.ShowShareWindow("import")
+	share.edit:SetText(text)
+	share.action:GetScript("OnClick")(share.action)
+	check(ns.global.profiles["Imported 3"] and #W.popups == 1, "import button stores it and offers to switch")
+	W.AcceptPopup()
+	check(ns.global.chars[ns.charKey] == "Imported 3" and W.reloaded, "accepting switches and reloads")
+	noErrors(W, "no errors")
+end
+
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))
 os.exit(failures == 0 and 0 or 1)

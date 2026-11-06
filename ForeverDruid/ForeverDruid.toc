@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: ForeverDruid
 ## Notes: The druid one-stop HUD for WoW Forever: mana in forms, energy ticks, combo points, role-aware cooldowns, buffs and procs, your DoTs/HoTs on target, click-to-cast reminders and Skyborne ley lines.
-## Version: 0.4.0
+## Version: 0.5.0
 ## X-License: MIT
 ## IconTexture: Interface\Icons\Ability_Druid_CatForm
 ## AddonCompartmentFunc: ForeverDruid_OnAddonCompartmentClick
@@ -23,5 +23,7 @@ Modules\Buffs.lua
 Modules\TargetAuras.lua
 Modules\Reminders.lua
 Probe.lua
+Onboarding.lua
+Share.lua
 Options.lua
 MinimapButton.lua

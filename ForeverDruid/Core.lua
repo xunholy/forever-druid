@@ -382,6 +382,10 @@ end
 -- Registered before any module, so the flag is set before their handlers run.
 ns.On("PLAYER_REGEN_DISABLED", function()
 	ns.inCombat = true
+	-- Last moment keyboard capture may change before lockdown: let every key reach the game.
+	for _, anchor in pairs(ns.anchors) do
+		anchor:EnableKeyboard(false)
+	end
 	ns.UpdateVisibility()
 end)
 ns.On("PLAYER_REGEN_ENABLED", function()
@@ -436,6 +440,24 @@ function ns.CreateAnchor(key, width, height, defaultPoint, label, options)
 		moving:StopMovingOrSizing()
 		SavePosition(moving)
 	end)
+	-- Arrow keys nudge while hovering an unlocked piece; other keys pass through to the game.
+	anchor:SetScript("OnEnter", function(self)
+		if ns.db.unlocked and not InCombatLockdown() then
+			self:EnableKeyboard(true)
+			self:SetPropagateKeyboardInput(true)
+		end
+	end)
+	anchor:SetScript("OnLeave", function(self)
+		if not InCombatLockdown() then
+			self:EnableKeyboard(false)
+		end
+	end)
+	anchor:SetScript("OnKeyDown", function(self, pressed)
+		local handled = not InCombatLockdown() and ns.Nudge(self, pressed, IsShiftKeyDown and IsShiftKeyDown())
+		if not InCombatLockdown() then
+			self:SetPropagateKeyboardInput(not handled)
+		end
+	end)
 
 	local overlay = anchor:CreateTexture(nil, "OVERLAY")
 	overlay:SetAllPoints()
@@ -473,6 +495,7 @@ function ns.SetUnlocked(unlocked)
 		ns.ApplyLockState(anchor)
 	end
 	ns.LayoutStack() -- spacing grows while unlocked so each piece's name fits above it
+	ns.UpdateGrid()
 	ns.UpdateVisibility()
 	ns.Fire("FD_LOCK_CHANGED", ns.db.unlocked)
 	return true
@@ -630,6 +653,83 @@ function ns.SetStacked(key, stacked)
 	ns.db.layout.detached[key] = (not stacked) or nil
 	ns.ApplyLayout()
 	return true
+end
+
+local NUDGE = { UP = { 0, 1 }, DOWN = { 0, -1 }, LEFT = { -1, 0 }, RIGHT = { 1, 0 } }
+
+-- Moves what a drag would move (the stack's head for a stacked piece) by 1px, or 10 with Shift.
+-- Returns true when the key was an arrow.
+function ns.Nudge(anchor, key, big)
+	local dir = NUDGE[key]
+	if not dir or not ns.db.unlocked then
+		return false
+	end
+	local target = ns.IsStacked(anchor) and ns.stackHead or anchor
+	local point, relativeTo, relativePoint, x, y = target:GetPoint(1)
+	if not point then
+		return true
+	end
+	local step = big and 10 or 1
+	target:ClearAllPoints()
+	target:SetPoint(point, relativeTo, relativePoint, (x or 0) + dir[1] * step, (y or 0) + dir[2] * step)
+	SavePosition(target)
+	return true
+end
+
+---------------------------------------------------------------------------
+-- Alignment grid while unlocked
+---------------------------------------------------------------------------
+
+local grid
+local GRID_STEP = 32
+
+local function BuildGrid()
+	grid = CreateFrame("Frame", "ForeverDruidGrid", UIParent)
+	grid:SetAllPoints(UIParent)
+	grid:SetFrameStrata("BACKGROUND")
+	grid.lines = {}
+	local function Line(vertical, offset, centre)
+		local tex = grid:CreateTexture(nil, "BACKGROUND")
+		if centre then
+			tex:SetColorTexture(1, 0.3, 0.1, 0.55)
+		else
+			tex:SetColorTexture(1, 1, 1, 0.12)
+		end
+		if vertical then
+			tex:SetWidth(1)
+			tex:SetPoint("TOP", grid, "TOP", offset, 0)
+			tex:SetPoint("BOTTOM", grid, "BOTTOM", offset, 0)
+		else
+			tex:SetHeight(1)
+			tex:SetPoint("LEFT", grid, "LEFT", 0, offset)
+			tex:SetPoint("RIGHT", grid, "RIGHT", 0, offset)
+		end
+		grid.lines[#grid.lines + 1] = tex
+	end
+	local w = (tonumber(UIParent:GetWidth()) or 1920) / 2
+	local h = (tonumber(UIParent:GetHeight()) or 1080) / 2
+	for x = 0, w, GRID_STEP do
+		Line(true, x, x == 0)
+		if x > 0 then
+			Line(true, -x)
+		end
+	end
+	for y = 0, h, GRID_STEP do
+		Line(false, y, y == 0)
+		if y > 0 then
+			Line(false, -y)
+		end
+	end
+end
+
+function ns.UpdateGrid()
+	local show = ns.db and ns.db.unlocked and ns.db.grid
+	if show and not grid then
+		BuildGrid()
+	end
+	if grid then
+		grid:SetShown(show and true or false)
+	end
 end
 
 -- Secure anchors sit outside the root, so they take the global scale themselves.
