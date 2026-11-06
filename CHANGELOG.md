@@ -65,6 +65,9 @@
 - `/fd status` and the probe report ForeverDruid's own CPU use when the game's profiler is on.
 
 **Fixed**
+- Existing FD macros weren't being updated: the game stores macro text with a trailing line
+  break, so every saved FD macro looked "edited by you" and was left alone (FD Shift Cat kept the
+  old version that drops you to caster form). Text is now compared ignoring line endings.
 - Reminders can be dismissed. Trainer, class-quest and talent reminders clear with a click (the
   trainer one returns at the next even level, a quest at your next level, talents when the count
   changes); buff, reagent and ley line reminders hide for 30 minutes on right-click, which never

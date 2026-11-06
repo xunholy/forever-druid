@@ -1967,5 +1967,30 @@ do
 	noErrors(W, "no errors or blocked actions")
 end
 
+---------------------------------------------------------------------------
+do
+	section("upgrading existing FD macros (the game keeps a trailing line break)")
+	local old = "#showtooltip Cat Form\n/cancelform [form,nostealth]\n/cast !Cat Form"
+	local W, ns = fresh(function(W)
+		W.state.forms = { 5487, 1066, 768 }
+		W.state.extraNames[1066] = "Aquatic Form"
+		W.RebuildNames()
+		-- What a character had before the fix: the old FD Shift Cat, saved by the game, and
+		-- ForeverDruid's record of having written it.
+		W.macros.character[1] = { name = "FD Shift Cat", icon = 134400, body = old .. "\n" }
+		W.macros.character[2] = { name = "Power Cat", icon = 134400, body = old .. "\n" }
+		ForeverDruidDB = { profiles = { Default = { macros = { manage = true, enabled = {} } } }, chars = {},
+			macroBodies = { ["Testdruid - Testrealm"] = { shiftCat = old } } }
+	end)
+	login(W)
+	W.Advance(5)
+	local cat = W.CharacterMacro("FD Shift Cat").body
+	check(not cat:find("/cancelform", 1, true) and cat:find("/cast !Cat Form", 1, true),
+		"an old FD Shift Cat is rewritten to the fixed version (" .. cat:gsub("\n", " | ") .. ")")
+	check(ns.macros.Status("shiftCat") == "ready", "and counts as ForeverDruid's, not 'edited by you'")
+	check(W.CharacterMacro("Power Cat").body == old .. "\n", "your own macros (Power Cat) are never touched")
+	noErrors(W, "no errors")
+end
+
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))
 os.exit(failures == 0 and 0 or 1)

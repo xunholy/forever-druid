@@ -504,10 +504,15 @@ function GetMacroIndexByName(name)
 	end
 	return 0
 end
+-- Like the client, macro text comes back with a trailing line break.
 function GetMacroInfo(index)
 	local m = MacroLookup(index)
 	if m then
-		return m.name, m.icon, m.body
+		local body = m.body or ""
+		if body:sub(-1) ~= "\n" then
+			body = body .. "\n"
+		end
+		return m.name, m.icon, body
 	end
 end
 function CreateMacro(name, icon, body, perCharacter)

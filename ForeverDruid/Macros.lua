@@ -236,6 +236,20 @@ local function Body(def)
 end
 M.Body = Body
 
+-- The game stores macro text with its own line endings and a trailing line break, so compare
+-- text with those ignored. A strict == made every FD macro look "edited by you" once it had been
+-- saved, and ForeverDruid then never updated it.
+local function Norm(text)
+	if type(text) ~= "string" then
+		return text
+	end
+	return (text:gsub("\r\n", "\n"):gsub("%s+$", ""))
+end
+local function Same(a, b)
+	return Norm(a) == Norm(b)
+end
+M.SameText = Same
+
 local function Existing(def)
 	local index = GetMacroIndexByName and GetMacroIndexByName(def.name) or 0
 	if not index or index == 0 then
@@ -251,7 +265,7 @@ function M.Status(key)
 	local def = BY_KEY[key]
 	local index, body = Existing(def)
 	local written = Written()[key]
-	if index and written and body ~= written then
+	if index and written and not Same(body, written) then
 		return "edited"
 	end
 	if not M.IsWanted(key) then
@@ -294,7 +308,7 @@ function M.Sync()
 	local result = { created = 0, updated = 0, removed = 0, skipped = 0, full = false }
 	local function One(def)
 		local index, current = Existing(def)
-		local ours = index and written[def.key] and current == written[def.key]
+		local ours = index and written[def.key] and Same(current, written[def.key])
 		if index and written[def.key] and not ours then
 			result.skipped = result.skipped + 1 -- you edited it: hands off
 		elseif M.IsWanted(def.key) then
@@ -310,7 +324,7 @@ function M.Sync()
 					else
 						result.full = true
 					end
-				elseif current == body then
+				elseif Same(current, body) then
 					written[def.key] = body -- adopt an identical macro (e.g. after a reinstall)
 				elseif ours then
 					EditMacro(index, nil, nil, body)
@@ -389,7 +403,7 @@ function M.Restore()
 		local index, current = Existing(def)
 		-- Only macros ForeverDruid wrote: a macro of yours that shares a name is never touched.
 		local body = index and written[def.key] and M.IsWanted(def.key) and Body(def)
-		if body and current ~= body then
+		if body and not Same(current, body) then
 			EditMacro(index, nil, nil, body)
 			written[def.key] = body
 			restored = restored + 1
