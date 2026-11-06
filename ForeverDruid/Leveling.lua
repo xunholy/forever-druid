@@ -144,21 +144,27 @@ function M.Reminders(cfg)
 	local list = {}
 	local level = tonumber(ns.SafeReadable(UnitLevel, "player")) or 0
 	if cfg.trainer and TrainerState()[ns.charKey] then
-		list[#list + 1] = { label = L["Trainer"], sampleIcon = TRAINER_ICON,
+		list[#list + 1] = { id = "trainer", label = L["Trainer"], sampleIcon = TRAINER_ICON,
 			tip = L["You levelled up: new ranks may be waiting at your druid trainer. Clears when you visit one."] }
 	end
 	-- Before the first spellbook scan nothing looks known; don't flash quest reminders then.
 	if cfg.formQuests and ns.spellbookScanned then
 		if level >= 10 and not ns.HasBearForm() then
-			list[#list + 1] = { label = L["Bear Form"], sampleIcon = ns.SpellIcon(5487),
+			list[#list + 1] = { id = "bearQuest", label = L["Bear Form"], sampleIcon = ns.SpellIcon(5487),
 				tip = L["Bear Form comes from a class quest at level 10. Your druid trainer starts it."] }
 		end
 		if level >= 20 and not ns.IsKnown("catForm") then
-			list[#list + 1] = { label = L["Cat Form"], sampleIcon = ns.SpellIcon(768),
+			list[#list + 1] = { id = "catQuest", label = L["Cat Form"], sampleIcon = ns.SpellIcon(768),
 				tip = L["Cat Form comes from a class quest at level 20. Your druid trainer starts it."] }
 		end
 	end
 	return list
+end
+
+-- Acknowledge the trainer reminder without visiting (it returns at the next even level).
+function M.ClearTrainer()
+	TrainerState()[ns.charKey] = nil
+	ns.Fire("FD_REMINDERS_CHANGED")
 end
 
 ns.On("PLAYER_LEVEL_UP", function(_, level)

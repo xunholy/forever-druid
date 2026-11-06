@@ -217,7 +217,11 @@ Out of combat, icons above your character for:
 - **unspent talent points**
 - the **Bear Form** (level 10) and **Cat Form** (level 20) class quests, until you have the form
 
-Click a buff reminder to cast it. **Reagent restock** (off by default, because it spends gold):
+Click a buff reminder to cast it, or **right-click** to hide it for 30 minutes. The trainer,
+class-quest and talent reminders go away with **any click**: the trainer one until your next even
+level, a class quest until your next level, talent points until the number changes.
+
+**Reagent restock** (off by default, because it spends gold):
 opening a vendor that sells them tops up the seed for your Rebirth rank and your Gift of the Wild
 reagent to the amounts you set, only what you can afford.
 

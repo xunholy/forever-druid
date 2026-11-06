@@ -1885,5 +1885,87 @@ do
 	noErrors(W, "no errors")
 end
 
+---------------------------------------------------------------------------
+do
+	section("dismissing reminders: click info ones away, right-click to snooze the rest")
+	local W, ns = fresh(function(W)
+		W.state.level = 20
+		for i = #W.state.spellbook, 1, -1 do
+			if W.state.spellbook[i][2] == "Cat Form" then
+				table.remove(W.state.spellbook, i)
+			end
+		end
+	end)
+	login(W)
+	W.Advance(5)
+	local rem = ns.modules.reminders
+	local function buttonFor(label)
+		for i, item in ipairs(rem.active) do
+			if item.label == label then
+				return _G["ForeverDruidReminder" .. i]
+			end
+		end
+	end
+	local function click(button, mouse)
+		local post = button:GetScript("PostClick")
+		post(button, mouse, true) -- key down: nothing happens yet
+		post(button, mouse, false)
+	end
+
+	-- Trainer: one click acknowledges it; it's back at the next even level.
+	W.Fire("PLAYER_LEVEL_UP", 22)
+	W.Advance(1)
+	local trainer = buttonFor("Trainer")
+	check(trainer ~= nil, "levelling up shows the trainer reminder")
+	click(trainer, "LeftButton")
+	check(not labels(rem.active)["Trainer"], "one click dismisses it")
+	W.Fire("PLAYER_LEVEL_UP", 23)
+	W.Advance(1)
+	check(not labels(rem.active)["Trainer"], "stays gone at an odd level")
+	W.Fire("PLAYER_LEVEL_UP", 24)
+	W.Advance(1)
+	check(labels(rem.active)["Trainer"], "back at the next even level")
+
+	-- Class quest: dismissed until your next level.
+	check(labels(rem.active)["Cat Form"], "Cat Form quest reminder at 20+ without the form")
+	click(buttonFor("Cat Form"), "LeftButton")
+	check(not labels(rem.active)["Cat Form"], "click dismisses the quest reminder")
+	W.Fire("BAG_UPDATE_DELAYED")
+	W.Advance(1)
+	check(not labels(rem.active)["Cat Form"], "stays dismissed at the same level")
+	W.state.level = 25
+	W.Fire("PLAYER_LEVEL_UP", 25)
+	W.Advance(1)
+	check(labels(rem.active)["Cat Form"], "back at the next level if you still don't have the form")
+
+	-- Mark of the Wild: left-click casts (doesn't dismiss); right-click snoozes 30 minutes.
+	local mark = buttonFor("Mark")
+	check(mark and mark:GetAttribute("type") == "spell" and mark:GetAttribute("type2") == "", "right-click is set to never cast")
+	click(mark, "LeftButton")
+	check(labels(rem.active)["Mark"], "left-click is for casting: the reminder stays until you're buffed")
+	click(mark, "RightButton")
+	check(not labels(rem.active)["Mark"], "right-click hides it")
+	W.Advance(29 * 60)
+	W.Fire("BAG_UPDATE_DELAYED")
+	W.Advance(1)
+	check(not labels(rem.active)["Mark"], "still hidden after 29 minutes")
+	W.Advance(2 * 60)
+	W.Fire("BAG_UPDATE_DELAYED")
+	W.Advance(1)
+	check(labels(rem.active)["Mark"], "back after 30 minutes if you still need it")
+
+	-- Talent points: dismissed until the number changes.
+	W.state.unspentTalents = 1
+	W.Fire("TRAIT_CONFIG_UPDATED")
+	W.Advance(1)
+	click(buttonFor("Talents 1"), "LeftButton")
+	check(not labels(rem.active)["Talents 1"], "click dismisses the talent reminder")
+	W.state.unspentTalents = 2
+	W.Fire("TRAIT_CONFIG_UPDATED")
+	W.Advance(1)
+	check(labels(rem.active)["Talents 2"], "back when you get another point")
+	noErrors(W, "no errors or blocked actions")
+end
+
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))
 os.exit(failures == 0 and 0 or 1)

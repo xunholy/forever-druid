@@ -65,6 +65,10 @@
 - `/fd status` and the probe report ForeverDruid's own CPU use when the game's profiler is on.
 
 **Fixed**
+- Reminders can be dismissed. Trainer, class-quest and talent reminders clear with a click (the
+  trainer one returns at the next even level, a quest at your next level, talents when the count
+  changes); buff, reagent and ley line reminders hide for 30 minutes on right-click, which never
+  casts.
 - FD macros no longer depend on a form change taking effect within one key press, which Forever's
   client doesn't do reliably. FD Shift Cat / Bear only shift you in (they could leave you in
   caster form). Caster-spell macros drop your form and stop if you're still shifted (one press or

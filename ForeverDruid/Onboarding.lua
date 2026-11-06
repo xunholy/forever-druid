@@ -9,6 +9,7 @@ local L = ns.L
 
 ns.RELEASE_NOTES = {
 	{ version = "0.5.0", notes = {
+		"Reminders can be dismissed: click the trainer, class-quest or talent reminder to clear it, or right-click a buff reminder to hide it for 30 minutes.", -- luacheck: no max line length
 		"Druid macros fixed for Forever: shift macros no longer drop you out of your form, FD Prowl takes you into Cat Form and Prowl and back out of Prowl, and the new FD Powershift and FD Opener cover powershifting and the Ravage opener.", -- luacheck: no max line length
 		"Tell ForeverDruid how you play (levelling, Feral, tank, healer or Balance) and it sets itself up for it. Change it any time from the minimap menu.", -- luacheck: no max line length
 		"Right-click any piece while unlocked for its own menu, and the settings now open with an at-a-glance list of every part and how it's doing.", -- luacheck: no max line length
