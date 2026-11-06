@@ -151,7 +151,11 @@ function ns.ApplyTints(frame, spellID, usable, range)
 			frame.icon:SetVertexColor(1, 1, 1, 1)
 			frame.powerTint:SetVertexColor(0, 0, 0, 0)
 		end
-		local inRange = range and C_Spell.IsSpellInRange and C_Spell.IsSpellInRange(spellID) or nil
+		-- No and/or here: "out of range" is false, and `false or nil` would turn it into "no check".
+		local inRange
+		if range and C_Spell.IsSpellInRange then
+			inRange = C_Spell.IsSpellInRange(spellID)
+		end
 		-- nil means "no range to check" (self buffs, no target); a secret value is never nil.
 		if ns.IsSecret(inRange) or inRange ~= nil then
 			frame.rangeTint:SetVertexColorFromBoolean(inRange, c.clear, c.red)

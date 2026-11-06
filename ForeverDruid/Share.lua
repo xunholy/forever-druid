@@ -99,8 +99,9 @@ function ns.Deserialize(text)
 			end
 		elseif tag == "S" then
 			local colon = text:find(":", pos, true)
-			local len = colon and tonumber(text:sub(pos, colon - 1))
-			if not len or len < 0 or colon + len > #text then
+			local digits = colon and text:sub(pos, colon - 1)
+			local len = digits and digits:match("^%d+$") and tonumber(digits)
+			if not len or colon + len > #text then
 				Fail("bad string")
 			end
 			local s = text:sub(colon + 1, colon + len)
@@ -205,7 +206,11 @@ function ns.ExportProfile(name)
 	if not profile then
 		return nil
 	end
-	return PREFIX .. ns.Base64Encode(ns.Serialize(profile))
+	local text = PREFIX .. ns.Base64Encode(ns.Serialize(profile))
+	if #text > MAX_LENGTH then
+		return nil -- too big for the importer to accept
+	end
+	return text
 end
 
 -- Returns the decoded profile table, or nil and a reason.
@@ -228,12 +233,130 @@ function ns.DecodeProfile(text)
 	return profile
 end
 
+---------------------------------------------------------------------------
+-- Validation: an imported profile is rebuilt from the defaults, so only known settings of the
+-- right type survive, numbers stay inside the ranges the settings allow, and nothing in it can
+-- break the addon at login.
+---------------------------------------------------------------------------
+
+local RANGES = {
+	scale = { 0.5, 2 }, fadeOutOfCombat = { 0, 1 },
+	["layout.gap"] = { 0, 20 }, ["minimap.angle"] = { 0, 360 },
+	["modules.*.scale"] = { 0.5, 2 }, ["modules.*.spacing"] = { 0, 20 }, ["modules.*.size"] = { 6, 64 },
+	["modules.manabar.width"] = { 80, 400 }, ["modules.manabar.height"] = { 4, 30 },
+	["modules.energytick.width"] = { 80, 400 }, ["modules.energytick.height"] = { 2, 20 },
+	["modules.targetauras.max"] = { 1, 16 }, ["modules.reminders.reagentThreshold"] = { 0, 20 },
+}
+local CHOICES = {
+	["style.icons"] = "ICON_STYLES",
+}
+local ROLES = { all = true, cat = true, bear = true, balance = true, healer = true, feral = true, caster = true }
+local ANCHOR_KEYS = { stack = true, reminders = true }
+
+local function Finite(n)
+	return type(n) == "number" and n == n and n ~= math.huge and n ~= -math.huge
+end
+
+local function Range(path)
+	local generic = path:gsub("^modules%.[^.]+%.", "modules.*.")
+	return RANGES[path] or RANGES[generic]
+end
+
+local function Clean(value, default, path)
+	if type(default) == "table" then
+		if type(value) ~= "table" then
+			return nil
+		end
+		local out = {}
+		for key, d in pairs(default) do
+			local v = Clean(value[key], d, path == "" and key or (path .. "." .. key))
+			if v ~= nil then
+				out[key] = v
+			end
+		end
+		return out
+	end
+	if type(value) ~= type(default) then
+		return nil
+	end
+	if type(value) == "number" then
+		if not Finite(value) then
+			return nil
+		end
+		local range = Range(path)
+		if range then
+			value = math.max(range[1], math.min(range[2], value))
+		end
+	elseif type(value) == "string" then
+		local list = CHOICES[path] and ns[CHOICES[path]]
+		if path == "modules.manabar.text" then
+			list = ns.modules.manabar and ns.modules.manabar.TEXT_MODES
+		end
+		if list then
+			local allowed = false
+			for _, choice in ipairs(list) do
+				allowed = allowed or choice == value
+			end
+			if not allowed then
+				return nil
+			end
+		elseif #value > 200 then
+			return nil
+		end
+	end
+	return value
+end
+
+function ns.SanitizeProfile(raw)
+	local profile = Clean(raw, ns.defaults, "") or {}
+	profile.unlocked = false -- never arrive with the HUD unlocked
+
+	-- Free-form parts the defaults can't describe.
+	profile.positions = {}
+	for _, key in ipairs(ns.STACK_ORDER) do
+		ANCHOR_KEYS[key] = true
+	end
+	for key, p in pairs(type(raw.positions) == "table" and raw.positions or {}) do
+		if ANCHOR_KEYS[key] and type(p) == "table" and type(p[1]) == "string" and type(p[2]) == "string"
+			and #p[1] < 20 and #p[2] < 20 and Finite(p[3]) and Finite(p[4]) then
+			profile.positions[key] = { p[1], p[2], math.max(-4000, math.min(4000, p[3])), math.max(-4000, math.min(4000, p[4])) }
+		end
+	end
+	profile.layout = profile.layout or {}
+	profile.layout.detached = {}
+	local detached = type(raw.layout) == "table" and type(raw.layout.detached) == "table" and raw.layout.detached or {}
+	for key, value in pairs(detached) do
+		if ns.IsStackable(key) and value == true then
+			profile.layout.detached[key] = true
+		end
+	end
+	profile.modules = profile.modules or {}
+	profile.modules.cooldowns = profile.modules.cooldowns or {}
+	local extra = {}
+	local rawModules = type(raw.modules) == "table" and raw.modules or {}
+	local rawExtra = type(rawModules.cooldowns) == "table" and rawModules.cooldowns.extra
+	for role, names in pairs(type(rawExtra) == "table" and rawExtra or {}) do
+		if ROLES[role] and type(names) == "table" then
+			local list = {}
+			for _, name in ipairs(names) do
+				if type(name) == "string" and #name > 0 and #name <= 60 and #list < 50 then
+					list[#list + 1] = name
+				end
+			end
+			extra[role] = list
+		end
+	end
+	profile.modules.cooldowns.extra = extra
+	return profile
+end
+
 -- Stores the profile under a free name ("Imported", "Imported 2", ...) and returns that name.
 function ns.ImportProfile(text, wanted)
 	local profile, why = ns.DecodeProfile(text)
 	if not profile then
 		return nil, why
 	end
+	profile = ns.SanitizeProfile(profile)
 	local base = (wanted and wanted ~= "") and wanted or L["Imported"]
 	local name, n = base, 1
 	while ns.global.profiles[name] do
@@ -276,6 +399,7 @@ function ns.ShowShareWindow(mode)
 		window.action:SetPoint("BOTTOMRIGHT", -16, 14)
 	end
 	window.mode = mode
+	window:Show() -- before focusing: a hidden edit box can't take focus
 	if mode == "export" then
 		window.body:SetText(L["Copy this text (Ctrl+C) and paste it into ForeverDruid's import box on another character or account."])
 		window.edit:SetText(ns.ExportProfile() or "")
@@ -288,6 +412,5 @@ function ns.ShowShareWindow(mode)
 		window.edit:SetFocus()
 		window.action:Show()
 	end
-	window:Show()
 	return window
 end

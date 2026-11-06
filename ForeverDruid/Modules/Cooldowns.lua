@@ -44,7 +44,10 @@ local function CreateButton(parent, size)
 	local button = ns.CreateIcon(parent, size, { tints = true })
 	-- A cooldown that runs out on its own flashes the icon (Clear() doesn't count: see ApplyCooldown).
 	button.cooldown:SetScript("OnCooldownDone", function()
-		if button.fdClearing or not button.spellID or not button:IsVisible() then
+		-- Ignore "done" right after we set or cleared the cooldown ourselves (the client may report
+		-- that as finishing, possibly a frame later): only a cooldown running out on its own counts.
+		local touched = button.fdTouched
+		if (touched and GetTime() - touched < 0.15) or not button.spellID or not button:IsVisible() then
 			return
 		end
 		if ns.ModuleConfig("cooldowns").pulse then
@@ -57,9 +60,8 @@ local function CreateButton(parent, size)
 end
 
 local function ClearCooldown(button)
-	button.fdClearing = true
+	button.fdTouched = GetTime()
 	button.cooldown:Clear()
-	button.fdClearing = nil
 end
 
 -- Applies the spell's cooldown to the button's Cooldown frame without reading the numbers.
@@ -70,6 +72,7 @@ function M.ApplyCooldown(button)
 		M.stats.durationCalls = M.stats.durationCalls + 1
 		local ok, err = pcall(function()
 			local duration = C_Spell.GetSpellCooldownDuration(spellID, true) -- ignore the GCD
+			button.fdTouched = GetTime()
 			if duration then
 				cooldown:SetCooldownFromDurationObject(duration, true)
 			else
@@ -90,6 +93,7 @@ function M.ApplyCooldown(button)
 	end
 	local start, length = ns.Readable(info.startTime), ns.Readable(info.duration)
 	if start and length and length > 1.5 then
+		button.fdTouched = GetTime()
 		cooldown:SetCooldown(start, length)
 	elseif start and length then
 		ClearCooldown(button)
@@ -234,6 +238,7 @@ function M:UpdateCooldowns()
 		if button.spellID and button:IsShown() then
 			if previewing and i <= 2 then
 				-- Sample sweeps while unlocked, so the countdown text and spacing can be judged.
+				button.fdTouched = GetTime()
 				button.cooldown:SetCooldown(GetTime() - 3 * i, 12 * i)
 			else
 				M.ApplyCooldown(button)

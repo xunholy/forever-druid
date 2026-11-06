@@ -453,9 +453,14 @@ function ns.CreateAnchor(key, width, height, defaultPoint, label, options)
 		end
 	end)
 	anchor:SetScript("OnKeyDown", function(self, pressed)
-		local handled = not InCombatLockdown() and ns.Nudge(self, pressed, IsShiftKeyDown and IsShiftKeyDown())
-		if not InCombatLockdown() then
-			self:SetPropagateKeyboardInput(not handled)
+		if InCombatLockdown() then
+			return
+		end
+		-- Pass the key on unless it's an arrow we used, even if nudging fails.
+		self:SetPropagateKeyboardInput(true)
+		local ok, handled = pcall(ns.Nudge, self, pressed, IsShiftKeyDown and IsShiftKeyDown())
+		if ok and handled then
+			self:SetPropagateKeyboardInput(false)
 		end
 	end)
 
@@ -479,6 +484,9 @@ end
 
 function ns.ApplyLockState(anchor)
 	local unlocked = ns.db.unlocked
+	if not unlocked and not InCombatLockdown() then
+		anchor:EnableKeyboard(false) -- OnLeave may never fire once the mouse is turned off
+	end
 	anchor:EnableMouse(unlocked)
 	anchor.fdOverlay:SetShown(unlocked)
 	anchor.fdLabel:SetShown(unlocked)

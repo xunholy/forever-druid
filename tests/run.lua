@@ -655,13 +655,15 @@ do
 	local done = button.cooldown:GetScript("OnCooldownDone")
 	check(done ~= nil, "cooldown icons listen for their cooldown finishing")
 	local before = ns.pulseCount or 0
+	W.Advance(1) -- a real cooldown finishes well after the addon last set it
 	done(button.cooldown)
 	check((ns.pulseCount or 0) == before + 1, "a finished cooldown pulses")
-	button.fdClearing = true
+	cooldowns:UpdateCooldowns() -- the addon setting cooldowns itself...
 	done(button.cooldown)
-	button.fdClearing = nil
-	check((ns.pulseCount or 0) == before + 1, "clearing a cooldown doesn't pulse")
+	check((ns.pulseCount or 0) == before + 1, "a 'done' right after we set or cleared it doesn't pulse")
+	W.Advance(1)
 	ns.db.modules.cooldowns.pulse = false
+	W.Advance(1)
 	done(button.cooldown)
 	check((ns.pulseCount or 0) == before + 1, "pulse can be turned off")
 	ns.db.modules.cooldowns.pulse = true
@@ -677,6 +679,12 @@ do
 	W.state.spellInRange = nil
 	cooldowns:UpdateTints()
 	check(rawget(button.rangeTint, "_colorBool") == nil, "no range check (nil) clears the range tint")
+	W.state.spellInRange = false
+	cooldowns:UpdateTints()
+	check(rawget(button.rangeTint, "_colorBool") == false, "out of range (false) drives the red tint")
+	W.state.spellInRange = true
+	cooldowns:UpdateTints()
+	check(rawget(button.rangeTint, "_colorBool") == true, "in range (true) clears it")
 	W.state.inCombat = false
 	W.Fire("PLAYER_REGEN_ENABLED")
 	W.state.spellUsable, W.state.spellNoPower = true, false
@@ -889,6 +897,56 @@ do
 		noErrors(W, locale .. ": no errors")
 		W.locale = nil
 	end
+end
+
+---------------------------------------------------------------------------
+do
+	section("review fixes: imported profiles are validated, keyboard released on lock")
+	local W, ns = fresh()
+	login(W)
+	local hostile = {
+		unlocked = true, scale = 0, fadeOutOfCombat = "x", hideWhenMounted = 5,
+		positions = { manabar = {}, cooldowns = { "CENTER", "CENTER", 1e9, 12 }, bogus = { "CENTER", "CENTER", 0, 0 } },
+		layout = { gap = 999, detached = { buffs = true, reminders = true, cooldowns = "yes" } },
+		style = { icons = "neon" },
+		modules = {
+			manabar = { width = "wide", height = 1e6, text = "nonsense" },
+			cooldowns = { extra = { all = { 5, "Nature's Grasp", string.rep("x", 500) }, nope = { "Growl" } } },
+			newThing = { enabled = true },
+		},
+	}
+	local clean = ns.SanitizeProfile(hostile)
+	check(clean.unlocked == false, "imported profiles arrive locked")
+	check(clean.scale == 0.5 and clean.layout.gap == 20 and clean.modules.manabar.height == 30, "numbers clamped to the settings' ranges")
+	check(clean.fadeOutOfCombat == nil and clean.hideWhenMounted == nil and clean.modules.manabar.width == nil, "wrong types dropped (defaults fill in)")
+	check(clean.positions.manabar == nil and clean.positions.bogus == nil, "malformed or unknown positions dropped")
+	check(clean.positions.cooldowns and clean.positions.cooldowns[3] == 4000, "positions clamped on screen")
+	check(clean.layout.detached.buffs == true and clean.layout.detached.reminders == nil and clean.layout.detached.cooldowns == nil,
+		"only real stack pieces can be detached")
+	check(clean.style.icons == nil and clean.modules.manabar.text == nil, "unknown choices dropped")
+	local extra = clean.modules.cooldowns.extra
+	check(#extra.all == 1 and extra.all[1] == "Nature's Grasp" and extra.nope == nil, "custom cooldowns: only spell names, only real roles")
+	check(clean.modules.newThing == nil, "unknown settings dropped")
+
+	-- Locking with the mouse still over a piece releases the keyboard.
+	W.Slash("unlock")
+	local anchor = ns.anchors.cooldowns
+	anchor:GetScript("OnEnter")(anchor)
+	check(rawget(anchor, "_keyboard") == true, "hovering an unlocked piece captures arrow keys")
+	W.Slash("lock")
+	check(rawget(anchor, "_keyboard") == false, "locking releases the keyboard")
+	noErrors(W, "no errors")
+
+	-- A sanitized hostile profile loads cleanly.
+	ns.global.profiles.Hostile = clean
+	local W2, ns2 = fresh(function()
+		ForeverDruidDB = { profiles = { Hostile = clean }, chars = {} }
+	end)
+	ForeverDruidDB.chars = { [ns.charKey] = "Hostile" }
+	login(W2)
+	noErrors(W2, "a sanitized hostile profile logs in without errors")
+	check(ns2.profileName == "Hostile" and not ns2.db.unlocked, "and starts locked")
+
 end
 
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))
