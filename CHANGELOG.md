@@ -3,6 +3,15 @@
 ## 0.5.0
 
 **New**
+- Highest-rank action bars: when you learn a new rank, every button holding an older rank of
+  that spell switches to it (out of combat, never while you're dragging something).
+  `/fd ranks keep <spell>` leaves a spell downranked on purpose; `/fd ranks now` runs it by hand.
+- Energy bar in Cat Form and rage bar in Bear Form, with the energy tick spark on the bar.
+- Five-second-rule bar after every mana-costing cast.
+- Choose your caster-form role (auto, healer, Balance, Feral). A talent split within two points
+  now counts as Feral.
+- Reminders for a trainer visit after each even level and for the Bear Form (10) and Cat Form
+  (20) class quests. Optional reagent restock at vendors (off by default: it spends gold).
 - Macro manager: turn it on and ForeverDruid creates druid macros in your character's own slots
   (Rejuvenation, Regrowth and Healing Touch that drop your form first, mouseover Mark of the Wild,
   Thorns and Innervate, Maul and Claw with auto-attack, Cat and Bear powershifts, mouseover

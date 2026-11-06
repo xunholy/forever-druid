@@ -9,6 +9,11 @@ local L = ns.L
 
 ns.RELEASE_NOTES = {
 	{ version = "0.5.0", notes = {
+		"Your action bars now stay on your highest spell ranks: learn a new rank and every button with the old one switches to it. Downrank on purpose with /fd ranks keep <spell>.", -- luacheck: no max line length
+		"An energy bar in Cat Form and a rage bar in Bear Form, with the energy tick spark right on the bar.",
+		"A five-second-rule bar shows when your mana regeneration comes back after a cast.",
+		"Choose your caster-form role (healer, Balance or Feral), and a close talent split now counts as Feral.",
+		"Reminders for your trainer after levelling up and for the Bear Form and Cat Form class quests. Optional reagent restock at vendors.",
 		"Druid macros made for you: shift-out heals, mouseover buffs, Maul and Claw with auto-attack, powershifting, mouseover Roots and Rebirth. Turn them on in the new Macros settings page, then pick one up and drop it on your bar. New ones appear as you learn the spells, and any you edit are left alone.", -- luacheck: no max line length
 		"Unlocking now fills empty rows with sample icons, so you can see what you're arranging.",
 		"Cooldowns flash when they're ready again, dim when you can't use them, turn blue when you're short on mana, rage or energy, and red when your target is out of range.", -- luacheck: no max line length
