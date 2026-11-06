@@ -1,0 +1,35 @@
+name: Release
+
+# Push a tag like v0.5.0 to build the addon zip and attach it to a GitHub release.
+# CurseForge / Wago uploads switch on once their tokens are added as repository secrets and the
+# project IDs are in the TOC (see docs/PUBLISHING.md); until then this only makes the GitHub release.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Lua and luacheck
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lua5.4 lua-check
+      - name: Lint and test before packaging
+        run: luacheck . && lua5.4 tests/run.lua
+      - name: Package and upload
+        uses: BigWigsMods/packager@v2
+        env:
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
