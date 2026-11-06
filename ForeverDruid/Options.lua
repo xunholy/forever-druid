@@ -25,22 +25,92 @@ local function Status()
 end
 
 local function Help()
-	ns.Print(L["commands:"])
-	ns.Print("  /fd config - " .. L["options panel"])
-	ns.Print("  /fd unlock | lock - " .. L["move the HUD"])
-	ns.Print("  /fd reset - " .. L["default positions"])
-	ns.Print("  /fd stack on | off - " .. L["stack the HUD into one column automatically"])
-	ns.Print("  /fd minimap - " .. L["show or hide the minimap button"])
-	ns.Print("  /fd ranks [on | off | now | keep <spell> | unkeep <spell>] - " .. L["keep action bars on your highest spell ranks"])
-	ns.Print("  /fd grid - " .. L["alignment grid while unlocked"])
-	ns.Print("  /fd macros [on | off | sync | restore] - " .. L["create and manage druid macros"])
-	ns.Print("  /fd tour | whatsnew - " .. L["the welcome tour, or what changed recently"])
-	ns.Print("  /fd toggle <module> - " .. table.concat(ns.moduleOrder, ", "))
-	ns.Print("  /fd cd add|remove <role|all> <spell> - " .. L["track extra cooldowns"])
-	ns.Print("  /fd cd list")
-	ns.Print("  /fd profile [list | use <name> | copy <name> | reset | delete <name> | export | import]")
-	ns.Print("  /fd status - " .. L["form, talents, role and modules"])
-	ns.Print("  /fd probe - " .. L["record what this client exposes"])
+	local function Line(text)
+		ns.Print("  " .. text)
+	end
+	ns.Print(L["commands:"] .. " |cffaaaaaa(" .. L["/fd <part> opens that part's settings, e.g. /fd heal"] .. ")|r")
+	ns.Print("|cffffd100" .. L["Everyday"] .. "|r")
+	Line("/fd config - " .. L["all settings"] .. "   /fd style - " .. L["choose how you play"])
+	Line("/fd unlock | lock - " .. L["move the HUD"] .. "   /fd reset - " .. L["default positions"])
+	Line("/fd status - " .. L["what's on and how it's doing"])
+	ns.Print("|cffffd100" .. L["Layout"] .. "|r")
+	Line("/fd stack on | off   /fd grid   /fd minimap")
+	Line("/fd toggle <part> - " .. table.concat(ns.moduleOrder, ", "))
+	ns.Print("|cffffd100" .. L["Spells"] .. "|r")
+	Line("/fd macros [on | off | sync | restore]")
+	Line("/fd ranks [on | off | now | keep <spell> | unkeep <spell>]")
+	Line("/fd cd add|remove <role|all> <spell>   /fd cd list")
+	ns.Print("|cffffd100" .. L["Profiles and help"] .. "|r")
+	Line("/fd profile [list | use | copy | reset | delete | export | import]")
+	Line("/fd tour   /fd whatsnew   /fd probe")
+end
+
+-- Words that open a part's settings page: the part's key or a friendlier alias.
+local PAGE_ALIASES = {
+	heal = "healframes", heals = "healframes", healing = "healframes", frames = "healframes", click = "healframes",
+	hots = "party", hot = "party", tracker = "party",
+	mana = "manabar", energy = "powerbar", rage = "powerbar", power = "powerbar",
+	tick = "energytick", ticks = "energytick", combo = "combopoints", cp = "combopoints",
+	shift = "powershift", powershift = "powershift", pips = "powershift",
+	cooldown = "cooldowns", cds = "cooldowns", buff = "buffs", procs = "buffs",
+	target = "targetauras", dots = "targetauras", bleed = "targetauras", debuffs = "targetauras",
+	alert = "alerts", aggro = "alerts", next = "nextability", rotation = "nextability",
+	remind = "reminders", reminder = "reminders", forms = "formbar", fsr = "fsr", regen = "fsr",
+}
+
+local KNOWN_COMMANDS = { "config", "options", "unlock", "lock", "reset", "status", "probe", "profile", "toggle", "cd",
+	"stack", "grid", "minimap", "macros", "ranks", "tour", "whatsnew", "style", "help" }
+
+-- Edit distance where swapping two neighbouring letters ("rnaks") counts as one typo.
+local function Distance(a, b)
+	local la, lb = #a, #b
+	local rows = { [0] = {} }
+	for j = 0, lb do
+		rows[0][j] = j
+	end
+	for i = 1, la do
+		rows[i] = { [0] = i }
+		for j = 1, lb do
+			local cost = a:sub(i, i) == b:sub(j, j) and 0 or 1
+			local d = math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + cost)
+			if i > 1 and j > 1 and a:sub(i, i) == b:sub(j - 1, j - 1) and a:sub(i - 1, i - 1) == b:sub(j, j) then
+				d = math.min(d, rows[i - 2][j - 2] + 1)
+			end
+			rows[i][j] = d
+		end
+	end
+	return rows[la][lb]
+end
+
+-- The closest known command or part name, if it's a near miss.
+function ns.SuggestCommand(word)
+	local best, bestDistance
+	local candidates = {}
+	for _, c in ipairs(KNOWN_COMMANDS) do
+		candidates[#candidates + 1] = c
+	end
+	for alias in pairs(PAGE_ALIASES) do
+		candidates[#candidates + 1] = alias
+	end
+	for _, key in ipairs(ns.moduleOrder) do
+		candidates[#candidates + 1] = key
+	end
+	for _, c in ipairs(candidates) do
+		local d = Distance(word, c)
+		if not bestDistance or d < bestDistance or (d == bestDistance and c < best) then
+			best, bestDistance = c, d
+		end
+	end
+	if best and bestDistance <= (#word >= 5 and 2 or 1) then
+		return best
+	end
+end
+
+function ns.PageForWord(word)
+	if ns.modules[word] then
+		return word
+	end
+	return PAGE_ALIASES[word] or (word == "macro" and "macros") or nil
 end
 
 local function ProfileCommand(rest)
@@ -231,8 +301,19 @@ SlashCmdList.FOREVERDRUID = function(input)
 		ns.PrintSnapshot(ns.TakeSnapshot("manual"))
 	elseif command == "config" or command == "options" then
 		ns.OpenOptions()
-	else
+	elseif command == "style" or command == "playstyle" then
+		ns.ShowPlaystyle()
+	elseif command == "" or command == "help" then
 		Help()
+	elseif ns.PageForWord(command) then
+		ns.OpenModuleSettings(ns.PageForWord(command))
+	else
+		local guess = ns.SuggestCommand(command)
+		if guess then
+			ns.Print(L["unknown command"] .. " \"" .. command .. "\" - " .. L["did you mean"] .. " /fd " .. guess .. "?")
+		else
+			Help()
+		end
 	end
 end
 
@@ -252,6 +333,11 @@ function ns.OpenOptions(category)
 		end
 	end
 	ns.Print(L["Open Options > AddOns > ForeverDruid."])
+end
+
+-- Opens a part's own settings page (falls back to the main page).
+function ns.OpenModuleSettings(key)
+	ns.OpenOptions(ns.moduleCategories[key] or (key == "macros" and ns.macrosCategory) or nil)
 end
 
 -- Layout helper: widgets stack top to bottom inside a scroll child. Every widget takes an
@@ -433,10 +519,10 @@ end
 local MODULE_TITLES = {
 	powershift = "Powershift",
 	formbar = "Form bar",
-	healframes = "Heal frames",
+	healframes = "Click-to-heal frames",
 	nextability = "Next ability",
 	alerts = "Alerts",
-	party = "Party",
+	party = "HoT tracker",
 	powerbar = "Energy / rage",
 	fsr = "Five-second rule",
 	manabar = "Mana bar",
@@ -448,6 +534,15 @@ local MODULE_TITLES = {
 	reminders = "Reminders",
 }
 ns.MODULE_TITLES = MODULE_TITLES
+
+-- Settings pages in a sensible reading order, grouped: the HUD column, combat helpers, group, extras.
+ns.PAGE_ORDER = {
+	"targetauras", "powerbar", "manabar", "fsr", "energytick", "combopoints", "powershift", "cooldowns", "buffs",
+	"alerts", "nextability",
+	"party", "healframes",
+	"reminders", "formbar",
+}
+ns.moduleCategories = {}
 
 local MODULE_NOTES = {
 	powershift = "Pips for how many shifts your mana affords, and a Powershift cue in Cat or Bear Form when it's worth it (needs the Furor talent). The game checks your hidden mana and energy itself.", -- luacheck: no max line length
@@ -466,6 +561,7 @@ local MODULE_NOTES = {
 	targetauras = "Your DoTs on an enemy target or your HoTs on a friendly one.",
 	reminders = "Out of combat only. Click a buff reminder to cast it.",
 }
+ns.MODULE_NOTES = MODULE_NOTES
 
 ---------------------------------------------------------------------------
 -- Pages
@@ -512,9 +608,116 @@ local function ConfirmReset()
 end
 ns.ConfirmResetPositions = ConfirmReset
 
+-- One-line status for a part, for the overview and /fd status.
+function ns.ModuleStatus(key)
+	local cfg = ns.db.modules[key]
+	if not (cfg and cfg.enabled) then
+		return "|cff808080" .. L["off"] .. "|r"
+	end
+	local m = ns.modules[key]
+	local note
+	if key == "energytick" then
+		local stats = ns.energyTickStats or {}
+		if stats.mode == "tick" then
+			note = L["learned"] .. (" (%.1fs)"):format(stats.period or 2)
+		elseif stats.mode == "continuous" then
+			note = L["not needed: energy regenerates continuously"]
+		else
+			note = L["learning in Cat Form"]
+		end
+	elseif key == "nextability" and m and m.Available then
+		note = m.Available() and L["offered by this client"]
+			or (L["not offered by this client"] .. (m.stats.reason and (": " .. tostring(m.stats.reason)) or ""))
+	elseif key == "powershift" then
+		note = ns.IsKnown("furor") and L["Furor found: cue active"] or L["pips only (the cue needs Furor)"]
+	elseif key == "party" then
+		note = L["shows in a group"]
+	elseif key == "healframes" then
+		note = L["shows in a group"] .. (cfg.showSolo and (", " .. L["and solo"]) or "")
+	elseif key == "reminders" then
+		local count = ns.modules.reminders and ns.modules.reminders.active and #ns.modules.reminders.active or 0
+		note = count > 0 and (count .. " " .. L["showing now"]) or L["nothing to remind you about"]
+	end
+	return "|cff40ff40" .. L["on"] .. "|r" .. (note and ("  |cffaaaaaa" .. note .. "|r") or "")
+end
+
+local function MacroSummary()
+	if not (ns.db.macros.manage and ns.macros) then
+		return "|cff808080" .. L["off"] .. "|r"
+	end
+	local ready, edited = 0, 0
+	for _, def in ipairs(ns.macros.LIST) do
+		local status = ns.macros.Status(def.key)
+		if status == "ready" then
+			ready = ready + 1
+		elseif status == "edited" then
+			edited = edited + 1
+		end
+	end
+	return ("|cff40ff40%s|r  |cffaaaaaa%d %s%s|r"):format(L["on"], ready, L["created"],
+		edited > 0 and (", " .. edited .. " " .. L["edited by you"]) or "")
+end
+
+-- "At a glance": every part with an on/off box, its status and a link to its page.
+local function Overview(b)
+	b:Header(L["At a glance"])
+	local function Row(label, get, set, status, open)
+		local check = CreateFrame("CheckButton", nil, b.content, "UICheckButtonTemplate")
+		check:SetPoint("TOPLEFT", 16, b.y)
+		check:SetSize(22, 22)
+		local text = b.content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		text:SetPoint("LEFT", check, "RIGHT", 2, 0)
+		text:SetWidth(170)
+		text:SetJustifyH("LEFT")
+		text:SetText(label)
+		local info = b.content:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		info:SetPoint("LEFT", check, "LEFT", 200, 0)
+		info:SetWidth(270)
+		info:SetJustifyH("LEFT")
+		local go = CreateFrame("Button", nil, b.content, "UIPanelButtonTemplate")
+		go:SetSize(80, 20)
+		go:SetPoint("LEFT", check, "LEFT", 480, 0)
+		go:SetText(L["Settings"])
+		go:SetScript("OnClick", open)
+		check:SetScript("OnClick", function(widget)
+			set(widget:GetChecked() and true or false)
+			info:SetText(status())
+		end)
+		b.refreshers[#b.refreshers + 1] = function()
+			check:SetChecked(get() and true or false)
+			info:SetText(status())
+		end
+		b.y = b.y - 24
+	end
+	for _, key in ipairs(ns.PAGE_ORDER) do
+		if ns.modules[key] then
+			Row(L[MODULE_TITLES[key] or key], function()
+				return ns.db.modules[key].enabled
+			end, function(value)
+				ns.SetModuleEnabled(key, value)
+			end, function()
+				return ns.ModuleStatus(key)
+			end, function()
+				ns.OpenModuleSettings(key)
+			end)
+		end
+	end
+	Row(L["Macros"], function()
+		return ns.db.macros.manage
+	end, function(value)
+		ns.macros.SetManaged(value)
+	end, MacroSummary, function()
+		ns.OpenModuleSettings("macros")
+	end)
+end
+
 local function MainPage()
 	local panel, b = NewPage("ForeverDruid", "ForeverDruid |cffffffff" .. ns.VERSION .. "|r",
 		L["A druid HUD for WoW Forever. Each part of the HUD has its own page in the list on the left."])
+	b:Button(L["Choose how you play..."], 220, function()
+		ns.ShowPlaystyle()
+	end, L["Feral, tank, healer, Balance or levelling: switches on the parts that matter for it and off the rest. Change anything afterwards."])
+	Overview(b)
 
 	b:Header(L["Moving things"])
 	b:Button(L["Unlock / lock"], 160, function()
@@ -927,10 +1130,23 @@ local function BuildPanel()
 	panelCategory = Settings.RegisterCanvasLayoutCategory(MainPage(), "ForeverDruid")
 	Settings.RegisterAddOnCategory(panelCategory)
 	if Settings.RegisterCanvasLayoutSubcategory then
+		local listed = {}
+		local order = {}
+		for _, key in ipairs(ns.PAGE_ORDER) do
+			if ns.modules[key] then
+				order[#order + 1] = key
+				listed[key] = true
+			end
+		end
 		for _, key in ipairs(ns.moduleOrder) do
+			if not listed[key] then
+				order[#order + 1] = key
+			end
+		end
+		for _, key in ipairs(order) do
 			local ok, err = pcall(function()
 				local page = ModulePage(key)
-				Settings.RegisterCanvasLayoutSubcategory(panelCategory, page, page.name)
+				ns.moduleCategories[key] = Settings.RegisterCanvasLayoutSubcategory(panelCategory, page, page.name)
 			end)
 			if not ok then
 				ns.ReportError(err)

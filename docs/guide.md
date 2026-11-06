@@ -4,6 +4,7 @@ Everything ForeverDruid does, roughly in the order you'll meet it. Settings live
 **Options > AddOns > ForeverDruid**: a main page plus one page per feature. Hover any option for an
 explanation. The [commands page](commands.md) lists the slash commands.
 
+- [Getting started](#getting-started)
 - [The HUD column](#the-hud-column)
 - [Moving and arranging](#moving-and-arranging)
 - [Cat Form](#cat-form)
@@ -21,6 +22,18 @@ explanation. The [commands page](commands.md) lists the slash commands.
 - [Form bar](#form-bar)
 - [Profiles and sharing](#profiles-and-sharing)
 - [Look and feel](#look-and-feel)
+
+## Getting started
+
+On your first login ForeverDruid asks **how you play**: levelling, Feral damage, tank, healer or
+Balance. Your choice switches on the parts that matter for it and off the rest, sets your
+caster-form role and (if you leave the box ticked) creates the matching macros. Then a short tour
+shows where things are. Change your mind any time: **Play style** in the minimap menu, **Choose how
+you play...** in the settings, or `/fd style`.
+
+The main settings page opens with **At a glance**: every part with an on/off box, a one-line status
+("learning in Cat Form", "not offered by this client", "7 created") and a button to its own page.
+`/fd <part>` jumps straight to a part's page, for example `/fd heal` or `/fd macros`.
 
 ## The HUD column
 
@@ -42,7 +55,7 @@ A row that isn't showing takes no room, so the column closes up when you change 
 one piece bigger pushes the rest down rather than overlapping.
 
 Separate from the column: **reminders** above your character, **alerts** just above the column,
-**Next ability** to its left, and the **party panel** further left. The HUD can fade out of
+**Next ability** to its left, and the **HoT tracker** further left. The HUD can fade out of
 combat (off by default) and hides while you're mounted, dead, on a taxi or in a vehicle.
 
 ## Moving and arranging
@@ -56,11 +69,15 @@ filled with sample icons so empty rows have something to place.
 - **Hover a piece and use the arrow keys** to nudge it one pixel (Shift: ten).
 - **`/fd grid`** shows an alignment grid with the screen centre marked.
 
-Lock again with another right-click or `/fd lock`. You can't unlock or lock during combat. Key
+**Right-click a piece** (while unlocked) for its own menu: its settings, hide it, give it its own
+spot or put it back in the column, reset its position. Hovering a piece explains what it shows.
+
+Lock again with another right-click on the minimap icon or `/fd lock`. You can't unlock or lock during combat. Key
 bindings for unlock, the quick menu and the settings panel are under **Key Bindings > AddOns**.
 
-**Quick settings.** Left-click the minimap icon for a menu covering most day-to-day changes: which
-parts show, HUD size, fading, forms, reminders, macros, role, ranks and profiles. The same menu
+**Quick settings.** Left-click the minimap icon for a menu covering most day-to-day changes: play
+style, unlock and role at the top, then grouped submenus for HUD parts, look, forms, reminders,
+spells and macros, and profiles. The same menu
 opens from ForeverDruid's entry in the minimap addon menu. Shift-click the icon for the full
 settings. Drag the icon round the minimap to move it; hide it from its own menu and bring it back
 with `/fd minimap`.
@@ -117,7 +134,7 @@ their own role.
 bar fills over those five seconds after each mana-costing cast.
 
 **Healer:** Nature's Swiftness, Swiftmend, Tranquility, Innervate and Rebirth on the cooldown row,
-plus the [party panel](#group-play).
+plus the [HoT tracker](#group-play).
 
 **Balance:** Starfall, Force of Nature, Hurricane, Nature's Swiftness; Nature's Grace alerts;
 warnings when Faerie Fire, Moonfire or Insect Swarm are missing from your target.
@@ -167,12 +184,12 @@ says why. Buttons from other action bar addons aren't found.
 
 ## Group play
 
-**Party panel** (on in a group). One row per member and you, with your HoTs and their timers. A
+**HoT tracker** (on in a group). One row per member and you, with your HoTs and their timers. A
 Rebirth icon appears next to someone who's dead, and an Innervate icon fades in next to a healer
 under about a third of their mana. Their mana is hidden from the addon; the game applies the fade.
 
-**Heal frames** (off by default; turn on from the Heal frames settings page or the quick menu's
-"Show" list). You and your party as click-to-heal bars with health, your HoTs and an out-of-range
+**Click-to-heal frames** (off by default, on with the Healer play style; or turn on from their
+settings page or the quick menu's "HUD parts"). You and your party as click-to-heal bars with health, your HoTs and an out-of-range
 shade. Choose what each click casts:
 
 | Click | Default |

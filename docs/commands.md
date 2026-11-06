@@ -1,12 +1,15 @@
 # Commands and key bindings
 
-`/fd` and `/foreverdruid` do the same thing. `/fd` on its own prints this list in game.
+`/fd` and `/foreverdruid` do the same thing. `/fd` or `/fd help` prints a short list in game, and a
+mistyped command suggests the closest one.
 
 ## Everyday
 
 | Command | Does |
 |---|---|
 | `/fd config` | Open the settings (Options > AddOns > ForeverDruid) |
+| `/fd style` | Choose how you play (levelling, Feral, tank, healer, Balance) |
+| `/fd <part>` | Open that part's settings, e.g. `/fd heal`, `/fd macros`, `/fd cooldowns`, `/fd energy` |
 | `/fd unlock` / `/fd lock` | Unlock the HUD to move it, lock it again (not in combat) |
 | `/fd reset` | Every piece back to its default place and back in the column |
 | `/fd grid` | Alignment grid while unlocked, on or off |

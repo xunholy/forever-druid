@@ -9,6 +9,8 @@ local L = ns.L
 
 ns.RELEASE_NOTES = {
 	{ version = "0.5.0", notes = {
+		"Tell ForeverDruid how you play (levelling, Feral, tank, healer or Balance) and it sets itself up for it. Change it any time from the minimap menu.", -- luacheck: no max line length
+		"Right-click any piece while unlocked for its own menu, and the settings now open with an at-a-glance list of every part and how it's doing.", -- luacheck: no max line length
 		"Powershift helpers: pips for how many shifts your mana affords, and a Powershift cue in Cat or Bear Form when it's worth it (with Furor).",
 		"Click-to-heal party frames (turn on in settings): pick what each click casts, with health, your HoTs and range on every bar.",
 		"A form bar to click-shift, item tooltips with Cat and Bear attack power and healing compared with what you wear, and a warning when a Growl doesn't take.", -- luacheck: no max line length
@@ -184,6 +186,121 @@ function ns.ShowWhatsNew(since)
 end
 
 ---------------------------------------------------------------------------
+-- Play styles: one choice that switches on the parts that matter and off the rest
+---------------------------------------------------------------------------
+
+local ALL_PARTS = { "targetauras", "powerbar", "manabar", "fsr", "energytick", "combopoints", "powershift", "cooldowns",
+	"buffs", "reminders", "alerts", "nextability", "party", "healframes", "formbar" }
+
+ns.PLAYSTYLES = {
+	{ key = "leveling", label = "Levelling (a bit of everything)", role = "auto",
+		desc = "Cat and Bear tools, healing cooldowns in caster form, reminders and trainer prompts. The default.",
+		off = { "healframes", "formbar" },
+		macros = { "rejuv", "regrowth", "mark", "thorns", "maul", "claw", "shiftCat", "shiftBear", "faerie", "roots" } },
+	{ key = "feral", label = "Feral damage (Cat Form)", role = "feral",
+		desc = "Energy, combo points, ticks, powershifting, bleeds and Let it bleed. Healing extras off.",
+		off = { "party", "healframes", "fsr", "formbar" },
+		macros = { "claw", "shiftCat", "shiftBear", "faerie", "prowl", "rejuv", "mark", "thorns" } },
+	{ key = "bear", label = "Tank (Bear Form)", role = "feral",
+		desc = "Rage, tanking cooldowns, aggro and Growl warnings, Demoralizing Roar and Faerie Fire upkeep.",
+		off = { "healframes", "fsr", "energytick", "combopoints", "formbar" },
+		macros = { "maul", "shiftBear", "faerie", "barkskin", "mark", "thorns", "rejuv" } },
+	{ key = "healer", label = "Healer (Restoration)", role = "healer",
+		desc = "Click-to-heal frames, HoT tracker, Innervate and Rebirth hints, the five-second rule. Feral parts off.",
+		off = { "powerbar", "energytick", "combopoints", "powershift", "formbar" },
+		macros = { "rejuv", "regrowth", "healingTouch", "swiftHeal", "innervate", "rebirth", "mark", "thorns", "barkskin" } },
+	{ key = "balance", label = "Balance (caster damage)", role = "balance",
+		desc = "Nature's Grace and Clearcasting alerts, Moonfire and Insect Swarm upkeep, the five-second rule.",
+		off = { "powerbar", "energytick", "combopoints", "powershift", "healframes", "formbar" },
+		macros = { "faerie", "roots", "hibernate", "innervate", "rebirth", "rejuv", "mark", "thorns", "barkskin" } },
+}
+local PLAYSTYLE_BY_KEY = {}
+for _, style in ipairs(ns.PLAYSTYLES) do
+	PLAYSTYLE_BY_KEY[style.key] = style
+end
+
+-- Applies a play style. Returns false if it has to wait for combat to end (secure parts).
+function ns.ApplyPlaystyle(key, withMacros)
+	local style = PLAYSTYLE_BY_KEY[key]
+	if not style then
+		return false
+	end
+	if InCombatLockdown() then
+		ns.Print(L["play styles can't be changed during combat"])
+		return false
+	end
+	local off = {}
+	for _, part in ipairs(style.off) do
+		off[part] = true
+	end
+	for _, part in ipairs(ALL_PARTS) do
+		if ns.modules[part] then
+			ns.SetModuleEnabled(part, not off[part])
+		end
+	end
+	ns.db.role = style.role
+	ns.db.playstyle = key
+	if ns.UpdateRole then
+		ns.UpdateRole()
+	end
+	if withMacros and ns.macros then
+		local wanted = {}
+		for _, m in ipairs(style.macros) do
+			wanted[m] = true
+		end
+		for _, def in ipairs(ns.macros.LIST) do
+			ns.db.macros.enabled[def.key] = wanted[def.key] or false
+		end
+		ns.macros.SetManaged(true)
+	end
+	ns.Print(L["play style"] .. ": " .. L[style.label])
+	ns.Fire("FD_PLAYSTYLE_CHANGED", key)
+	return true
+end
+
+local chooser
+function ns.ShowPlaystyle(thenTour)
+	if not chooser then
+		chooser = Window("ForeverDruidPlaystyle", L["How do you play?"], 470, 410)
+		chooser.body:SetText(L["Pick the closest; it only decides which parts of the HUD are on. You can change any of it later, or pick again from the minimap menu."]) -- luacheck: no max line length
+		local macros = CreateFrame("CheckButton", nil, chooser, "UICheckButtonTemplate")
+		macros:SetPoint("BOTTOMLEFT", 14, 12)
+		macros:SetChecked(true)
+		local macroText = chooser:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		macroText:SetPoint("LEFT", macros, "RIGHT", 2, 0)
+		macroText:SetText(L["Also create the matching druid macros"])
+		chooser.macros = macros
+		chooser.buttons = {}
+		for i, style in ipairs(ns.PLAYSTYLES) do
+			local button = Button(chooser, L[style.label], 300, function()
+				chooser:Hide()
+				ns.ApplyPlaystyle(style.key, chooser.macros:GetChecked() and true or false)
+				if chooser.thenTour then
+					chooser.thenTour = nil
+					ns.ShowTour()
+				end
+			end)
+			button:SetPoint("TOP", chooser, "TOP", 0, -78 - (i - 1) * 56)
+			local desc = chooser:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+			desc:SetPoint("TOP", button, "BOTTOM", 0, -2)
+			desc:SetWidth(420)
+			desc:SetText(L[style.desc])
+			chooser.buttons[style.key] = button
+		end
+		chooser:SetScript("OnHide", function()
+			ns.global.playstyleSeen = true
+			if chooser.thenTour then
+				chooser.thenTour = nil
+				ns.ShowTour()
+			end
+		end)
+	end
+	chooser.thenTour = thenTour
+	chooser:Show()
+	return chooser
+end
+
+---------------------------------------------------------------------------
 -- Confirmation popup
 ---------------------------------------------------------------------------
 
@@ -228,7 +345,11 @@ local function ShowPending()
 	local what = pending
 	pending = nil
 	if what.tour then
-		ns.ShowTour()
+		if not ns.global.playstyleSeen then
+			ns.ShowPlaystyle(true) -- the tour follows once a style is picked or the window closed
+		else
+			ns.ShowTour()
+		end
 	elseif what.since then
 		ns.ShowWhatsNew(what.since)
 	end

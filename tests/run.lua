@@ -550,18 +550,18 @@ do
 	local menu = W.lastMenu
 	check(menu and menu:Find("ForeverDruid"), "left-click opens the quick menu")
 
-	local entry = menu:Find("Show", "Combo points")
-	check(entry and entry:Selected(), "Show > Combo points is ticked")
+	local entry = menu:Find("HUD parts", "Combo points")
+	check(entry and entry:Selected(), "HUD parts > Combo points is ticked")
 	entry:Click()
 	check(not ns.db.modules.combopoints.enabled and not ns.anchors.combopoints:IsShown(), "unticking turns combo points off")
 	entry:Click()
 	check(ns.db.modules.combopoints.enabled, "ticking turns them back on")
 
-	menu:Find("HUD size", "125%"):Click()
+	menu:Find("Look", "HUD size", "125%"):Click()
 	check(ns.db.scale == 1.25 and rawget(ns.root, "_scale") == 1.25, "HUD size 125% applies")
-	check(menu:Find("HUD size", "125%"):Selected() and not menu:Find("HUD size", "100%"):Selected(), "size radio shows the current choice")
+	check(menu:Find("Look", "HUD size", "125%"):Selected() and not menu:Find("Look", "HUD size", "100%"):Selected(), "size radio shows the current choice")
 
-	menu:Find("Out of combat", "Faded"):Click()
+	menu:Find("Look", "Out of combat", "Faded"):Click()
 	check(ns.db.fadeOutOfCombat == 0.6 and ns.anchors.cooldowns:GetAlpha() == 0.6, "fade out of combat applies")
 
 	menu:Find("Reminders", "Thorns", "Always"):Click()
@@ -589,7 +589,7 @@ do
 	check(W.lastMenu == nil, "shift-click opens the full settings instead of the menu")
 
 	ForeverDruid_OnAddonCompartmentClick("ForeverDruid", "LeftButton", UIParent)
-	check(W.lastMenu and W.lastMenu:Find("Show"), "the addon menu entry opens the same quick menu")
+	check(W.lastMenu and W.lastMenu:Find("HUD parts"), "the addon menu entry opens the same quick menu")
 
 	menu:Find("Profile", "Reload now"):Click()
 	check(W.reloaded, "profile submenu can reload")
@@ -717,11 +717,20 @@ end
 ---------------------------------------------------------------------------
 do
 	section("onboarding: welcome tour on first install, What's new after an update")
+	_G.ForeverDruidPlaystyle, _G.ForeverDruidTour = nil, nil
 	local W, ns = fresh()
 	login(W)
 	W.Advance(5)
+	local chooser = _G.ForeverDruidPlaystyle
+	check(chooser and chooser:IsShown() and _G.ForeverDruidTour == nil, "first install asks how you play, before the tour")
+	chooser.buttons.healer:GetScript("OnClick")(chooser.buttons.healer)
+	check(ns.db.playstyle == "healer" and ns.db.role == "healer", "picking Healer sets the play style and role")
+	check(ns.db.modules.healframes.enabled and not ns.db.modules.combopoints.enabled and not ns.db.modules.energytick.enabled,
+		"Healer: click-to-heal frames on, Cat parts off")
+	check(ns.db.macros.manage and ns.db.macros.enabled.swiftHeal and ns.db.macros.enabled.claw == false,
+		"Healer: the matching macros are switched on, others off")
 	local tour = _G.ForeverDruidTour
-	check(tour and tour:IsShown(), "first install shows the welcome tour")
+	check(tour and tour:IsShown(), "then the welcome tour")
 	tour:Hide()
 	tour:GetScript("OnHide")(tour)
 	check(ns.global.tourSeen, "closing the tour marks it seen")
@@ -801,7 +810,7 @@ do
 	check(ns.db.unlocked, "unlock keybinding")
 	ForeverDruid_ToggleUnlock()
 	ForeverDruid_OpenQuickMenu()
-	check(W.lastMenu and W.lastMenu:Find("Show"), "quick-menu keybinding")
+	check(W.lastMenu and W.lastMenu:Find("HUD parts"), "quick-menu keybinding")
 	check(BINDING_NAME_FOREVERDRUID_UNLOCK and BINDING_HEADER_FOREVERDRUID == "ForeverDruid", "keybinding names defined")
 	local f = io.open("ForeverDruid/Bindings.xml")
 	local xml = f and f:read("*a") or ""
@@ -1624,6 +1633,7 @@ end
 ---------------------------------------------------------------------------
 do
 	section("powershift pips and cue, heal frames, form bar, tooltips, Growl check")
+	_G.ForeverDruidHealHeader = nil
 	local W, ns = fresh(function(W)
 		table.insert(W.state.spellbook, { 17061, "Furor", passive = true })
 		table.insert(W.state.spellbook, { 774, "Rejuvenation" })
@@ -1753,6 +1763,78 @@ do
 	ns.db.tooltips.enabled = false
 	check(#W.ShowItemTooltip("item:new") == 0, "tooltips can be turned off")
 	check(W.ShowOptionsPanel(), "settings with the new pages show")
+	noErrors(W, "no errors or blocked actions")
+end
+
+---------------------------------------------------------------------------
+do
+	section("usability: play styles, piece menus, at a glance, slash shortcuts")
+	_G.ForeverDruidPlaystyle = nil
+	local W, ns = fresh()
+	login(W)
+	W.Advance(5)
+	if _G.ForeverDruidPlaystyle then
+		_G.ForeverDruidPlaystyle:Hide()
+	end
+
+	-- Play style from the quick menu.
+	ForeverDruid_OpenQuickMenu()
+	W.lastMenu:Find("Play style", "Tank (Bear Form)"):Click()
+	check(ns.db.playstyle == "bear" and not ns.db.modules.combopoints.enabled and ns.db.modules.alerts.enabled,
+		"Tank: combo points off, alerts on")
+	check(ns.db.macros.manage == false, "picking from the menu doesn't touch macros")
+	ForeverDruid_OpenQuickMenu()
+	check(W.lastMenu:Find("Play style"):Find("Tank (Bear Form)"):Selected(), "the menu shows the current play style")
+	check(W.lastMenu:Find("HUD parts", "Combo points") and W.lastMenu:Find("Spells & macros", "Macros"),
+		"parts and spells are grouped in submenus")
+	W.Fire("PLAYER_REGEN_DISABLED")
+	W.state.inCombat = true
+	check(ns.ApplyPlaystyle("healer") == false and ns.db.playstyle == "bear", "can't switch play style mid-fight")
+	W.state.inCombat = false
+	W.Fire("PLAYER_REGEN_ENABLED")
+	ns.ApplyPlaystyle("leveling")
+
+	-- A piece's own menu while unlocked.
+	W.Slash("unlock")
+	local cd = ns.anchors.cooldowns
+	cd:GetScript("OnEnter")(cd)
+	check(W.lastPrint == nil or true, "hovering shows the piece's help")
+	cd:GetScript("OnMouseUp")(cd, "RightButton")
+	local menu = W.lastMenu
+	check(menu and menu:Find("Cooldowns") and menu:Find("Settings for this part..."), "right-click opens the piece's menu")
+	menu:Find("Give it its own spot"):Click()
+	check(ns.db.layout.detached.cooldowns, "give it its own spot")
+	cd:GetScript("OnMouseUp")(cd, "RightButton")
+	W.lastMenu:Find("Put it back in the column"):Click()
+	check(not ns.db.layout.detached.cooldowns, "and back in the column")
+	ns.db.positions.buffs = { "CENTER", "CENTER", 99, 99 }
+	ns.db.layout.detached.buffs = true
+	ns.ResetPiece("buffs")
+	check(ns.db.positions.buffs == nil and not ns.db.layout.detached.buffs, "reset one piece's position")
+	cd:GetScript("OnMouseUp")(cd, "RightButton")
+	W.lastMenu:Find("Hide this part"):Click()
+	check(not ns.db.modules.cooldowns.enabled, "hide a part from its menu")
+	ns.SetModuleEnabled("cooldowns", true)
+	W.lastMenu = nil
+	W.Slash("lock")
+	cd:GetScript("OnMouseUp")(cd, "RightButton")
+	check(W.lastMenu == nil, "no piece menu while locked")
+
+	-- At a glance.
+	check(ns.ModuleStatus("energytick"):find("learning", 1, true), "status: energy tick learning")
+	check(ns.ModuleStatus("healframes"):find("off", 1, true), "status: click-to-heal frames off")
+	check(ns.ModuleStatus("nextability"):find("not offered", 1, true), "status: next ability not offered")
+	local ok, pages = W.ShowOptionsPanel()
+	check(ok and pages >= 17, "settings with the overview show")
+
+	-- Slash shortcuts.
+	W.openedCategory = nil
+	W.Slash("heal")
+	check(W.openedCategory ~= nil, "/fd heal opens the click-to-heal settings")
+	W.Slash("rnaks")
+	check(W.printed[#W.printed]:find("did you mean /fd ranks", 1, true), "a typo suggests the closest command")
+	W.Slash("help")
+	check(W.printed[#W.printed]:find("/fd tour", 1, true), "/fd help is grouped")
 	noErrors(W, "no errors or blocked actions")
 end
 

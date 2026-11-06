@@ -25,7 +25,7 @@ Updates that only change existing files are fine with `/reload`.
 | Shift pips / Powershift | Cat and Bear Form only. The cue also needs the Furor talent and only shows in combat. |
 | Buffs & procs | Buffs gained mid-fight appear when the fight ends (Forever hides buffs from addons in combat). |
 | Next ability | The settings page says whether the client offers Blizzard's rotation helper, and why not if it doesn't. |
-| Party panel | Only in a group, and optionally only when your role is healer. |
+| HoT tracker | Only in a group, and optionally only when your role is healer. |
 
 ## Proc alerts, aggro warnings or missing debuffs never appear
 
@@ -50,7 +50,7 @@ runs it immediately and says if it's waiting. Spells you've kept downranked (`/f
 alone. Buttons from other action bar addons are included as long as they use the game's action
 slots.
 
-## Heal frames don't respond to a click
+## Click-to-heal frames don't respond to a click
 
 Clicks are set up out of combat. If you changed a click mid-fight, it applies when the fight ends.
 Spells you haven't learned are skipped. "Target them" only works on left and right click.

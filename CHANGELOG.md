@@ -3,6 +3,16 @@
 ## 0.5.0
 
 **New**
+- "How do you play?": levelling, Feral, tank, healer or Balance switches on the parts that matter,
+  sets your role and can create the matching macros. Asked on first login; `/fd style` or the
+  minimap menu after that.
+- Right-click a piece while unlocked for its settings, hide it, column or own spot, reset its
+  position. Hovering explains it.
+- Settings open with "At a glance": every part with an on/off box, a status line and a link to its
+  page. Pages are in a sensible order; "Party" is now "HoT tracker" and "Heal frames" is
+  "Click-to-heal frames".
+- Quick menu regrouped; `/fd <part>` opens a part's settings; mistyped commands suggest the
+  closest one; grouped `/fd help`.
 - Shift pips (how many shifts your mana affords) and a Powershift cue in Cat or Bear Form with
   Furor: energy or rage low, mana enough, and not just before an energy tick. Mana, energy and
   rage stay hidden; the client decides each pip and the cue from them.

@@ -471,10 +471,22 @@ function ns.CreateAnchor(key, width, height, defaultPoint, label, options)
 			self:EnableKeyboard(true)
 			self:SetPropagateKeyboardInput(true)
 		end
+		if ns.db.unlocked and ns.ShowPieceTooltip then
+			ns.ShowPieceTooltip(self)
+		end
 	end)
 	anchor:SetScript("OnLeave", function(self)
 		if not InCombatLockdown() then
 			self:EnableKeyboard(false)
+		end
+		if GameTooltip then
+			GameTooltip:Hide()
+		end
+	end)
+	-- Right-click while unlocked: this piece's own menu (settings, hide, column, reset).
+	anchor:SetScript("OnMouseUp", function(self, button)
+		if button == "RightButton" and ns.db.unlocked and ns.OpenPieceMenu then
+			ns.OpenPieceMenu(self)
 		end
 	end)
 	anchor:SetScript("OnKeyDown", function(self, pressed)
@@ -684,6 +696,22 @@ end
 
 function ns.SetStacked(key, stacked)
 	ns.db.layout.detached[key] = (not stacked) or nil
+	ns.ApplyLayout()
+	return true
+end
+
+-- One piece back to its default place (and back in the column if it's a column piece).
+function ns.ResetPiece(key)
+	if InCombatLockdown() then
+		ns.Print(L["can't move frames during combat"])
+		return false
+	end
+	ns.db.positions[key] = nil
+	ns.db.layout.detached[key] = nil
+	local anchor = ns.anchors[key]
+	if anchor then
+		RestorePosition(anchor)
+	end
 	ns.ApplyLayout()
 	return true
 end

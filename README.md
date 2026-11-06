@@ -26,7 +26,7 @@ next target" when a bleeding mob is nearly dead.
 row, "Losing aggro!" when a mob turns to someone else in a group, "Growl missed" when a taunt
 doesn't take, and a dimmed icon when Demoralizing Roar or Faerie Fire is missing from your target.
 
-**Healing and Balance.** A party panel with your HoTs on each member, a Rebirth hint when someone
+**Healing and Balance.** A HoT tracker with your HoTs on each party member, a Rebirth hint when someone
 dies and an Innervate hint when a healer runs low. Optional click-to-heal party frames where you
 choose what each click casts. Clearcasting and Nature's Grace alerts, a five-second-rule bar, and
 Moonfire and Insect Swarm upkeep warnings for Balance.
@@ -53,7 +53,8 @@ and off, change size and fading. Profiles can be shared as a text string.
 3. Start the game (a `/reload` isn't enough for a first install) and tick ForeverDruid in the AddOns
    list at character select.
 
-A short welcome tour opens on your first login. After that: click the cat icon on your minimap for
+On your first login ForeverDruid asks how you play (levelling, Feral, tank, healer or Balance) and
+sets itself up for it, then a short tour shows where things are. After that: click the cat icon on your minimap for
 quick settings, right-click it to move things, shift-click it for everything else.
 
 **Turn off overlapping addons.** ForeverDruid replaces druid mana bars, combo bars and rotation

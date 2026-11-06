@@ -56,43 +56,73 @@ end
 
 -- Builds the menu into a rootDescription from Blizzard's Menu system. Kept separate from the
 -- opening code so the tests can walk it.
+local PART_GROUPS = {
+	{ "Cat & Bear", { "powerbar", "manabar", "energytick", "combopoints", "powershift" } },
+	{ "Combat", { "targetauras", "cooldowns", "buffs", "alerts", "nextability", "fsr" } },
+	{ "Group", { "party", "healframes" } },
+	{ "Extras", { "reminders", "formbar" } },
+}
+
+local function PlaystyleLabel()
+	for _, style in ipairs(ns.PLAYSTYLES or {}) do
+		if style.key == ns.db.playstyle then
+			return L[style.label]
+		end
+	end
+	return L["not chosen"]
+end
+
+-- Builds the menu into a rootDescription from Blizzard's Menu system. Kept separate from the
+-- opening code so the tests can walk it.
 function ns.BuildQuickMenu(root)
 	root:CreateTitle("ForeverDruid " .. ns.VERSION)
 
+	-- The three things people reach for most.
+	local style = root:CreateButton(L["Play style"] .. ": " .. PlaystyleLabel())
+	for _, entry in ipairs(ns.PLAYSTYLES or {}) do
+		style:CreateRadio(L[entry.label], function()
+			return ns.db.playstyle == entry.key
+		end, function()
+			ns.ApplyPlaystyle(entry.key, false)
+		end)
+	end
+	style:CreateDivider()
+	style:CreateButton(L["Choose with descriptions and macros..."], function()
+		ns.ShowPlaystyle()
+	end)
 	root:CreateCheckbox(L["Unlock to move"], function()
 		return ns.db.unlocked
 	end, function()
 		ns.SetUnlocked(not ns.db.unlocked)
 	end)
-	root:CreateCheckbox(L["Stack automatically"], function()
-		return ns.db.layout.stack
-	end, function()
-		ns.SetStackEnabled(not ns.db.layout.stack)
-	end)
-	local arrange = root:CreateButton(L["While unlocked"])
-	arrange:CreateCheckbox(L["Sample icons"], function()
-		return ns.db.preview
-	end, function()
-		ns.db.preview = not ns.db.preview
-		ns.Fire("FD_LOCK_CHANGED", ns.db.unlocked)
-	end)
-	arrange:CreateCheckbox(L["Alignment grid"], function()
-		return ns.db.grid
-	end, function()
-		ns.db.grid = not ns.db.grid
-		ns.UpdateGrid()
-	end)
-
-	local show = root:CreateButton(L["Show"])
-	for _, key in ipairs(ns.moduleOrder) do
-		show:CreateCheckbox(L[ns.MODULE_TITLES[key] or key], function()
-			return ns.db.modules[key].enabled
+	local role = root:CreateButton(L["Caster-form role"] .. ": " .. L[ns.db.role])
+	for _, value in ipairs(ns.CASTER_ROLES) do
+		role:CreateRadio(L[value], function()
+			return ns.db.role == value
 		end, function()
-			ns.SetModuleEnabled(key, not ns.db.modules[key].enabled)
+			ns.db.role = value
+			ns.UpdateRole()
 		end)
 	end
 
-	local size = root:CreateButton(L["HUD size"])
+	root:CreateDivider()
+
+	local parts = root:CreateButton(L["HUD parts"])
+	for _, group in ipairs(PART_GROUPS) do
+		parts:CreateTitle(L[group[1]])
+		for _, key in ipairs(group[2]) do
+			if ns.modules[key] then
+				parts:CreateCheckbox(L[ns.MODULE_TITLES[key] or key], function()
+					return ns.db.modules[key].enabled
+				end, function()
+					ns.SetModuleEnabled(key, not ns.db.modules[key].enabled)
+				end)
+			end
+		end
+	end
+
+	local look = root:CreateButton(L["Look"])
+	local size = look:CreateButton(L["HUD size"])
 	for _, value in ipairs(SIZES) do
 		size:CreateRadio(Percent(value), function()
 			return math.abs((ns.db.scale or 1) - value) < 0.001
@@ -101,18 +131,16 @@ function ns.BuildQuickMenu(root)
 			ns.ApplyScales()
 		end)
 	end
-
-	local look = root:CreateButton(L["Icon style"])
-	for _, style in ipairs(ns.ICON_STYLES) do
-		look:CreateRadio(L[style], function()
-			return ns.db.style.icons == style
+	local icons = look:CreateButton(L["Icon style"])
+	for _, value in ipairs(ns.ICON_STYLES) do
+		icons:CreateRadio(L[value], function()
+			return ns.db.style.icons == value
 		end, function()
-			ns.db.style.icons = style
+			ns.db.style.icons = value
 			ns.RestyleAll()
 		end)
 	end
-
-	local fade = root:CreateButton(L["Out of combat"])
+	local fade = look:CreateButton(L["Out of combat"])
 	for _, option in ipairs(FADES) do
 		fade:CreateRadio(L[option[2]], function()
 			return math.abs((ns.db.fadeOutOfCombat or 1) - option[1]) < 0.001
@@ -129,6 +157,24 @@ function ns.BuildQuickMenu(root)
 		Refresh("reminders")
 	end)
 	fade:CreateCheckbox(L["Hide cooldowns out of combat"], ModuleOption("cooldowns", "hideOutOfCombat"))
+	look:CreateCheckbox(L["Stack automatically"], function()
+		return ns.db.layout.stack
+	end, function()
+		ns.SetStackEnabled(not ns.db.layout.stack)
+	end)
+	local arrange = look:CreateButton(L["While unlocked"])
+	arrange:CreateCheckbox(L["Sample icons"], function()
+		return ns.db.preview
+	end, function()
+		ns.db.preview = not ns.db.preview
+		ns.Fire("FD_LOCK_CHANGED", ns.db.unlocked)
+	end)
+	arrange:CreateCheckbox(L["Alignment grid"], function()
+		return ns.db.grid
+	end, function()
+		ns.db.grid = not ns.db.grid
+		ns.UpdateGrid()
+	end)
 
 	local forms = root:CreateButton(L["Forms"])
 	forms:CreateCheckbox(L["Mana bar in every form"], ModuleOption("manabar", "alwaysShow"))
@@ -160,22 +206,15 @@ function ns.BuildQuickMenu(root)
 	reminders:CreateCheckbox(L["Ley line (Skyborne)"], ModuleOption("reminders", "attuned"))
 	reminders:CreateCheckbox(L["Trainer visit after levelling up"], ModuleOption("reminders", "trainer"))
 	reminders:CreateCheckbox(L["Bear and Cat Form class quests"], ModuleOption("reminders", "formQuests"))
+	reminders:CreateCheckbox(L["Unspent talent points"], ModuleOption("reminders", "talents"))
 	reminders:CreateCheckbox(L["Restock reagents at vendors"], function()
 		return ns.db.restock.enabled
 	end, function()
 		ns.db.restock.enabled = not ns.db.restock.enabled
 	end)
 
-	local role = root:CreateButton(L["Caster-form role"] .. ": " .. L[ns.db.role])
-	for _, value in ipairs(ns.CASTER_ROLES) do
-		role:CreateRadio(L[value], function()
-			return ns.db.role == value
-		end, function()
-			ns.db.role = value
-			ns.UpdateRole()
-		end)
-	end
-	root:CreateCheckbox(L["Highest ranks on my action bars"], function()
+	local spells = root:CreateButton(L["Spells & macros"])
+	spells:CreateCheckbox(L["Highest ranks on my action bars"], function()
 		return ns.db.ranks.auto
 	end, function()
 		ns.db.ranks.auto = not ns.db.ranks.auto
@@ -183,7 +222,12 @@ function ns.BuildQuickMenu(root)
 			ns.ranks.Upgrade()
 		end
 	end)
-	local macros = root:CreateButton(L["Macros"])
+	spells:CreateCheckbox(L["Druid values in item tooltips"], function()
+		return ns.db.tooltips.enabled
+	end, function()
+		ns.db.tooltips.enabled = not ns.db.tooltips.enabled
+	end)
+	local macros = spells:CreateButton(L["Macros"])
 	macros:CreateCheckbox(L["Create and update my druid macros"], function()
 		return ns.db.macros.manage
 	end, function()
@@ -238,6 +282,77 @@ function ns.BuildQuickMenu(root)
 	root:CreateButton(L["Hide this minimap button"], function()
 		ns.SetMinimapButtonShown(false)
 		ns.Print(L["minimap button hidden - /fd minimap brings it back"])
+	end)
+end
+
+---------------------------------------------------------------------------
+-- A HUD piece's own help and menu (while unlocked)
+---------------------------------------------------------------------------
+
+function ns.ShowPieceTooltip(anchor)
+	if not GameTooltip then
+		return
+	end
+	local key = anchor.fdKey
+	GameTooltip:SetOwner(anchor, "ANCHOR_RIGHT")
+	GameTooltip:SetText(L[ns.MODULE_TITLES and ns.MODULE_TITLES[key] or key] or key, 1, 0.82, 0)
+	local note = ns.MODULE_NOTES and ns.MODULE_NOTES[key]
+	if note then
+		GameTooltip:AddLine(L[note], 1, 1, 1, true)
+	end
+	if ns.IsStacked(anchor) then
+		GameTooltip:AddLine(L["Drag: move the whole column. Shift-drag: give this piece its own spot."], 0.6, 0.8, 1, true)
+	else
+		GameTooltip:AddLine(L["Drag: move this piece."], 0.6, 0.8, 1, true)
+	end
+	GameTooltip:AddLine(L["Arrow keys: nudge. Right-click: options for this piece."], 0.6, 0.8, 1, true)
+	GameTooltip:Show()
+end
+
+function ns.BuildPieceMenu(root, key)
+	root:CreateTitle(L[ns.MODULE_TITLES and ns.MODULE_TITLES[key] or key] or key)
+	root:CreateButton(L["Settings for this part..."], function()
+		ns.OpenModuleSettings(key)
+	end)
+	if ns.modules[key] then
+		root:CreateButton(L["Hide this part"], function()
+			ns.SetModuleEnabled(key, false)
+			ns.Print((L[ns.MODULE_TITLES[key] or key]) .. " " .. L["hidden - turn it back on in /fd config"])
+		end)
+	end
+	if ns.IsStackable(key) then
+		if ns.db.layout.stack and not ns.db.layout.detached[key] then
+			root:CreateButton(L["Give it its own spot"], function()
+				ns.SetStacked(key, false)
+			end)
+		else
+			root:CreateButton(L["Put it back in the column"], function()
+				ns.SetStacked(key, true)
+			end)
+		end
+	end
+	root:CreateButton(L["Reset its position"], function()
+		ns.ResetPiece(key)
+	end)
+	root:CreateDivider()
+	root:CreateButton(L["Lock the HUD"], function()
+		ns.SetUnlocked(false)
+	end)
+end
+
+function ns.OpenPieceMenu(anchor)
+	if GameTooltip then
+		GameTooltip:Hide()
+	end
+	if not (MenuUtil and MenuUtil.CreateContextMenu) then
+		ns.OpenModuleSettings(anchor.fdKey)
+		return
+	end
+	MenuUtil.CreateContextMenu(anchor, function(_, root)
+		local ok, err = pcall(ns.BuildPieceMenu, root, anchor.fdKey)
+		if not ok then
+			ns.ReportError(err)
+		end
 	end)
 end
 
