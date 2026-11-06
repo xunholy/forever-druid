@@ -1517,5 +1517,56 @@ do
 	noErrors(W, "no errors or blocked actions")
 end
 
+---------------------------------------------------------------------------
+do
+	section("let it bleed: nearly-dead enemy with your bleed ticking")
+	local W, ns = fresh(function(W)
+		W.state.extraNames[1822] = "Rake"
+		W.state.extraNames[1079] = "Rip"
+		W.RebuildNames()
+	end)
+	login(W)
+	W.Advance(5)
+	local targets = ns.modules.targetauras
+	W.state.targetExists, W.state.targetHostile = true, true
+	W.state.targetAuras = { { name = "Rake", icon = 132122, expirationTime = W.now + 9, duration = 9, auraInstanceID = 1 } }
+	W.Fire("PLAYER_TARGET_CHANGED")
+	W.Advance(1)
+	check(targets.cue:IsShown() and W.IsSecret(rawget(targets.cue, "_alpha")),
+		"your Rake on an enemy: the cue's visibility comes from the client's own health check")
+	local queries = W.healthQueries or 0
+	W.Fire("UNIT_HEALTH", "target")
+	check((W.healthQueries or 0) > queries, "re-checked as the target's health changes")
+
+	W.state.targetAuras = { { name = "Faerie Fire", icon = 136033, expirationTime = W.now + 40, duration = 40, auraInstanceID = 2 } }
+	W.Fire("UNIT_AURA", "target", {})
+	W.Advance(1)
+	check(not targets.cue:IsShown(), "only Faerie Fire on it (no damage over time): no cue")
+
+	W.state.secretAuras = true
+	W.state.form = 1
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Fire("UNIT_AURA", "target", {})
+	W.Advance(1)
+	check(targets.cue:IsShown(), "in combat with hidden names, Cat Form counts your effects as bleeds")
+	W.state.secretAuras = false
+	W.state.form = 0
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+
+	W.state.targetHostile = false
+	W.state.targetAuras = { { name = "Rejuvenation", icon = 136081, expirationTime = W.now + 9, duration = 12, auraInstanceID = 3 } }
+	W.Fire("PLAYER_TARGET_CHANGED")
+	W.Advance(1)
+	check(not targets.cue:IsShown(), "friendly target: never")
+	ns.db.modules.targetauras.letItBleed = false
+	W.state.targetHostile = true
+	W.state.targetAuras = { { name = "Rip", icon = 132152, expirationTime = W.now + 12, duration = 12, auraInstanceID = 4 } }
+	W.Fire("PLAYER_TARGET_CHANGED")
+	W.Advance(1)
+	check(not targets.cue:IsShown(), "can be turned off")
+	check(W.ShowOptionsPanel(), "settings with the threshold slider show")
+	noErrors(W, "no errors")
+end
+
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))
 os.exit(failures == 0 and 0 or 1)

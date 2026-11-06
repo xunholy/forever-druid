@@ -137,6 +137,70 @@ end
 
 local missingIcons = {}
 
+---------------------------------------------------------------------------
+-- "Let it bleed": one of your bleeds or DoTs is ticking on an enemy that's nearly dead, so you
+-- can move on to the next one. The health check happens inside the client: a curve turns the
+-- target's hidden health percentage into the cue's visibility, so ForeverDruid never sees the
+-- number and never has to guess it.
+---------------------------------------------------------------------------
+
+M.stats.bleedChecks, M.stats.bleedCues, M.stats.bleedUnknownNames = 0, 0, 0
+
+local DOT_SPELLS = { "rake", "rip", "moonfire", "insectSwarm" }
+local bleedCurve, bleedCurveFor
+
+local function BleedCurve(threshold)
+	if bleedCurve and bleedCurveFor == threshold then
+		return bleedCurve
+	end
+	if not (C_CurveUtil and C_CurveUtil.CreateCurve) then
+		return nil
+	end
+	local ok, curve = pcall(C_CurveUtil.CreateCurve)
+	if not ok or not curve then
+		return nil
+	end
+	local linear = Enum and Enum.LuaCurveType and Enum.LuaCurveType.Linear
+	if linear and curve.SetType then
+		curve:SetType(linear)
+	end
+	-- Fully shown at or under the threshold, gone a few percent above it.
+	curve:AddPoint(0, 1)
+	curve:AddPoint(threshold, 1)
+	curve:AddPoint(math.min(threshold + 0.03, 1), 0)
+	curve:AddPoint(1, 0)
+	bleedCurve, bleedCurveFor = curve, threshold
+	return curve
+end
+
+-- Is one of your damaging bleeds or DoTs among your effects on the target? When the client hides
+-- the names, Cat Form and Balance count any effect of yours (nearly all of theirs are damaging).
+function M.HasMyDot(auras)
+	local names = {}
+	for _, key in ipairs(DOT_SPELLS) do
+		local name = ns.SpellName(key)
+		if name then
+			names[name] = true
+		end
+	end
+	local pounce = ns.SpellName("pounceBleed")
+	if pounce then
+		names[pounce] = true
+	end
+	for _, aura in ipairs(auras) do
+		local name = not ns.IsSecret(aura) and type(aura) == "table" and aura.name
+		if not name or ns.IsSecret(name) then
+			M.stats.bleedUnknownNames = M.stats.bleedUnknownNames + 1
+			if ns.form == "cat" or ns.role == "balance" then
+				return true
+			end
+		elseif names[name] then
+			return true
+		end
+	end
+	return false
+end
+
 local function StackText(aura)
 	-- Prefer the client's formatter (handles secret counts) when the instance ID is usable.
 	local id = aura.auraInstanceID
@@ -200,6 +264,27 @@ function M:Init()
 		end
 	end
 	ns.OnUnit("UNIT_AURA", "target", Queue)
+	-- Health moves faster than auras: just re-apply the cue's visibility.
+	ns.OnUnit("UNIT_HEALTH", "target", function()
+		if self.enabled then
+			self:UpdateBleedCue()
+		end
+	end)
+
+	local cue = CreateFrame("Frame", nil, self.anchor)
+	cue:SetSize(160, 20)
+	cue:SetPoint("BOTTOM", self.anchor, "TOP", 0, 4)
+	local cueIcon = cue:CreateTexture(nil, "ARTWORK")
+	cueIcon:SetSize(18, 18)
+	cueIcon:SetPoint("LEFT", cue, "LEFT", 0, 0)
+	cueIcon:SetTexture(ns.SpellIcon(1079))
+	cueIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	local cueText = cue:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	cueText:SetPoint("LEFT", cueIcon, "RIGHT", 4, 0)
+	cueText:SetTextColor(1, 0.35, 0.25)
+	cueText:SetText(L["Let it bleed - next target"])
+	cue:Hide()
+	self.cue = cue
 	ns.On("PLAYER_TARGET_CHANGED", Queue)
 	ns.Listen("FD_LOCK_CHANGED", Queue)
 	-- Auras can drop without an event reaching us (target out of range); re-check now and then.
@@ -260,9 +345,41 @@ function M:Refresh()
 	for i = #missing + 1, #missingIcons do
 		missingIcons[i]:Hide()
 	end
+	self.hasMyDot = not previewing and #list > 0 and M.HasMyDot(list) or false
+	self:UpdateBleedCue()
+
 	local total = count + #missing
 	self.anchor:SetSize(math.max(size, total * size + math.max(total - 1, 0) * spacing + (#missing > 0 and 6 or 0)), size)
 	self.anchor:Show()
+end
+
+function M:UpdateBleedCue()
+	local cfg = ns.ModuleConfig("targetauras")
+	local cue = self.cue
+	if ns.Previewing() then
+		cue:SetAlpha(1)
+		cue:Show()
+		return
+	end
+	if not (cfg.letItBleed and self.hasMyDot and UnitHealthPercent)
+		or ns.SafeReadable(UnitCanAttack, "player", "target") ~= true then
+		cue:Hide()
+		return
+	end
+	local curve = BleedCurve(cfg.bleedThreshold or 0.2)
+	if not curve then
+		cue:Hide()
+		return
+	end
+	M.stats.bleedChecks = M.stats.bleedChecks + 1
+	local ok, alpha = pcall(UnitHealthPercent, "target", false, curve)
+	if ok then
+		cue:SetAlpha(alpha) -- secret is fine: the client applies it
+		cue:Show()
+		M.stats.bleedCues = M.stats.bleedCues + 1
+	else
+		cue:Hide()
+	end
 end
 
 function M:Enable()

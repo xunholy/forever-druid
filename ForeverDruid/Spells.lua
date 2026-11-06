@@ -65,6 +65,8 @@ local SPELLS = {
 	demoralizingRoar = { "Demoralizing Roar", 99 },
 	moonfire = { "Moonfire", 8921 },
 	insectSwarm = { "Insect Swarm", 5570 },
+	rake = { "Rake", 1822 },
+	rip = { "Rip", 1079 },
 
 	-- Skyborne racials (probe)
 	readLeyline = { "Read Leyline", 1259705 },
@@ -76,6 +78,7 @@ ns.SPELLS = SPELLS
 ns.AURAS = {
 	clearcasting = { "Clearcasting", 16870 },
 	naturesGrace = { "Nature's Grace", 16886 }, -- Balance proc: next spell casts faster
+	pounceBleed = { "Pounce Bleed", 9007 },
 	attuned = { "Attuned", 1259691 }, -- probe: Skyborne buff from Read Leyline at a ley line
 }
 

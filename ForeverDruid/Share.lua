@@ -247,6 +247,7 @@ local RANGES = {
 	["modules.energytick.width"] = { 80, 400 }, ["modules.energytick.height"] = { 2, 20 },
 	["modules.targetauras.max"] = { 1, 16 }, ["modules.reminders.reagentThreshold"] = { 0, 20 },
 	["restock.seeds"] = { 0, 20 }, ["restock.thornroot"] = { 0, 40 },
+	["modules.targetauras.bleedThreshold"] = { 0.05, 0.4 },
 }
 local CHOICES = {
 	["style.icons"] = "ICON_STYLES",

@@ -708,6 +708,13 @@ local MODULE_PAGES = {
 	targetauras = function(s)
 		s:Slider(L["Icon size"], 16, 64, 1, ModuleGetter("targetauras", "size"), ModuleSetter("targetauras", "size"))
 		s:Slider(L["Most shown"], 1, 16, 1, ModuleGetter("targetauras", "max"), ModuleSetter("targetauras", "max"))
+		s:Check(L["\"Let it bleed\" when it's nearly dead"], ModuleGetter("targetauras", "letItBleed"), ModuleSetter("targetauras", "letItBleed"),
+			L["When your bleed or DoT is ticking on an enemy below the health below, says so, so you can move to the next one. The game checks the health itself; addons can't see it."]) -- luacheck: no max line length
+		s:Slider(L["Nearly dead below (%)"], 5, 40, 1, function()
+			return math.floor((ns.db.modules.targetauras.bleedThreshold or 0.2) * 100 + 0.5)
+		end, function(value)
+			ns.db.modules.targetauras.bleedThreshold = math.floor(value + 0.5) / 100
+		end, L["Rip and a full Rake finish more than a single Moonfire tick. Start at 20% and adjust to what you see."])
 		s:Check(L["Show missing debuffs"], ModuleGetter("targetauras", "warnMissing"), ModuleSetter("targetauras", "warnMissing"),
 			L["In combat, a dimmed red-framed icon for Faerie Fire, Demoralizing Roar (Bear), or Moonfire and Insect Swarm (Balance) when they're not on your enemy target. Only shown when the game lets addons name the target's debuffs. Targets immune to a debuff will keep showing it."]) -- luacheck: no max line length
 	end,

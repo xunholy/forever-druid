@@ -771,6 +771,14 @@ C_CurveUtil = {
 		return setmetatable({ points = {}, kind = "color" }, CurveMT)
 	end,
 }
+-- Target health is secret to addons; with a curve the client evaluates it and returns a secret.
+function UnitHealthPercent(unit, _, curve)
+	W.healthQueries = (W.healthQueries or 0) + 1
+	if curve then
+		return W.Secret()
+	end
+	return W.Secret()
+end
 function UnitPowerPercent(_, powerType, _, curve)
 	local fraction = (S.power[powerType or 0] or 0) / math.max(1, S.powerMax[powerType or 0] or 1)
 	if curve and curve.kind == "color" then
@@ -1010,10 +1018,10 @@ C_UnitAuras = {
 			end
 			if S.secretAuras then
 				out[i] = { icon = W.Secret(), expirationTime = W.Secret(), duration = W.Secret(),
-					applications = W.Secret(), auraInstanceID = W.Secret() }
+					applications = W.Secret(), auraInstanceID = W.Secret(), name = W.Secret() }
 			else
 				out[i] = { icon = a.icon, expirationTime = a.expirationTime, duration = a.duration,
-					applications = a.applications, auraInstanceID = a.auraInstanceID }
+					applications = a.applications, auraInstanceID = a.auraInstanceID, name = a.name }
 			end
 		end
 		return out

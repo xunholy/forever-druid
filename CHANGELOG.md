@@ -3,6 +3,9 @@
 ## 0.5.0
 
 **New**
+- "Let it bleed - next target" above the target row when one of your bleeds or DoTs is ticking on
+  an enemy under a health threshold you set (20% by default). The game evaluates the target's
+  health itself; ForeverDruid never reads it.
 - Party panel (in a group): your HoTs on each member with timers, a Rebirth hint when one is
   dead, and an Innervate hint that fades in when a healer is under about a third of their mana
   (the game does the fade from their hidden mana; the addon never reads it).
