@@ -98,8 +98,9 @@ local function IconFor(index, parent)
 		frame:RegisterForClicks("AnyUp", "AnyDown")
 		local tex = frame:CreateTexture(nil, "ARTWORK")
 		tex:SetAllPoints()
-		tex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 		frame.icon = tex
+		ns.AddIconBorder(frame)
+		ns.StyleIcon(frame)
 		local label = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 		label:SetPoint("TOP", frame, "BOTTOM", 0, -2)
 		frame.label = label
@@ -177,6 +178,13 @@ function M:Refresh()
 	end
 	local cfg = ns.ModuleConfig("reminders")
 	local list = (Suppressed() and not ns.db.unlocked) and {} or M.Collect(cfg)
+	if #list == 0 and ns.Previewing() then
+		-- Nothing to remind about: show samples (not clickable) so the row can be placed.
+		list = {
+			{ spellKey = "markOfTheWild", label = L["Mark"], sampleIcon = 136078 },
+			{ spellKey = "thorns", label = L["Thorns"], sampleIcon = 136104 },
+		}
+	end
 	M.active = list
 
 	local size, spacing = cfg.size, 8
@@ -188,7 +196,7 @@ function M:Refresh()
 		frame:ClearAllPoints()
 		frame:SetPoint("LEFT", self.anchor, "LEFT", (i - 1) * (size + spacing), 0)
 		local spellID = ns.KnownSpell(item.spellKey)
-		frame.icon:SetTexture(spellID and ns.SpellIcon(spellID) or 134400)
+		frame.icon:SetTexture(item.sampleIcon or (spellID and ns.SpellIcon(spellID)) or 134400)
 		frame.label:SetText(item.label)
 		frame.fdTip = item.label
 		local cast = cfg.clickToCast and item.cast or nil

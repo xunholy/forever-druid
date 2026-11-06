@@ -100,14 +100,19 @@ end
 ---------------------------------------------------------------------------
 
 local Frame = {}
+-- Unknown API methods (PascalCase, like the client's) become no-ops; anything else, such as a
+-- field the addon attaches itself, reads as nil exactly as on a real frame.
 Frame.__index = function(self, key)
 	local method = Frame[key]
 	if method ~= nil then
 		return method
 	end
-	return function()
-		return nil
+	if type(key) == "string" and key:match("^%u") then
+		return function()
+			return nil
+		end
 	end
+	return nil
 end
 
 local function NewObject(kind, parent, template)
@@ -277,8 +282,34 @@ function Frame:SetFormattedText(fmt, ...)
 	end
 	self._text = string.format(fmt, ...)
 end
-function Frame:SetValue(v)
+function Frame:SetValue(v, interpolation)
 	self._values.value = v
+	self._interpolation = interpolation
+end
+-- Accepts secret booleans like the client: records them without testing them.
+function Frame:SetVertexColorFromBoolean(value, ifTrue, ifFalse)
+	self._colorBool = value
+	self._colorIfTrue, self._colorIfFalse = ifTrue, ifFalse
+end
+function Frame:SetVertexColor(r, g, b, a)
+	self._vertex = { r, g, b, a }
+	self._colorBool = nil
+end
+function Frame:SetTexCoord(...)
+	self._texcoord = { ... }
+end
+function Frame:CreateAnimationGroup()
+	local group = { _plays = 0 }
+	function group:CreateAnimation()
+		return setmetatable({}, { __index = function()
+			return function() end
+		end })
+	end
+	function group:Play()
+		self._plays = self._plays + 1
+	end
+	function group:Stop() end
+	return group
 end
 function Frame:SetMinMaxValues(a, b)
 	self._values.min, self._values.max = a, b
@@ -430,6 +461,7 @@ W.state = {
 	race = "Skyborne",
 	inCombat = false,
 	secretPower = true, -- probe: secret even out of combat
+	spellUsable = true, spellNoPower = false, spellInRange = nil,
 	secretAuras = false,
 	mounted = false,
 	form = 0,
@@ -611,7 +643,15 @@ C_RestrictedActions = {
 	end,
 }
 
+Enum.StatusBarInterpolation = { Immediate = 0, ExponentialEaseOut = 1 }
+
 C_Spell = {
+	IsSpellUsable = function()
+		return S.spellUsable, S.spellNoPower
+	end,
+	IsSpellInRange = function()
+		return S.spellInRange
+	end,
 	GetSpellName = function(id)
 		return SPELL_NAMES[id]
 	end,

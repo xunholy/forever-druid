@@ -83,7 +83,7 @@ function M:Layout()
 end
 
 function M:Update()
-	local value = ReadComboPoints()
+	local value = ns.Previewing() and 4 or ReadComboPoints() -- preview: four of five lit
 	-- Check for a secret before any comparison: even == on a secret value raises an error.
 	if ns.IsSecret(value) then
 		for _, pip in ipairs(pips) do

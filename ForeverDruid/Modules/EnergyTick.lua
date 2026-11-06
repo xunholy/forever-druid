@@ -151,10 +151,13 @@ function M:Init()
 end
 
 function M:UpdateSpark()
-	if stats.mode ~= "tick" or not stats.phase then
+	local phase, period = stats.phase, stats.period
+	if ns.Previewing() and (stats.mode ~= "tick" or not phase) then
+		phase, period = 0, 2 -- preview a 2-second tick while unlocked, before any learning
+	elseif stats.mode ~= "tick" or not phase then
 		return
 	end
-	local progress = ((GetTime() - stats.phase) % stats.period) / stats.period
+	local progress = ((GetTime() - phase) % period) / period
 	self.bar:SetValue(progress)
 	self.spark:ClearAllPoints()
 	self.spark:SetPoint("CENTER", self.bar, "LEFT", progress * self.bar:GetWidth(), 0)

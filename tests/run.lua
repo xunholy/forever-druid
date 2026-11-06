@@ -615,5 +615,89 @@ do
 	noErrors(W, "no errors")
 end
 
+---------------------------------------------------------------------------
+do
+	local W, ns = fresh()
+	section("polish: preview while unlocked, ready pulse, tints, icon styles, smooth mana")
+	login(W)
+	W.state.form = 1
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.5)
+	local buffs, targets, combo = ns.modules.buffs, ns.modules.targetauras, ns.modules.combopoints
+
+	W.Slash("unlock")
+	W.Advance(0.5)
+	check(#buffs.active == 3, "unlocked: buff row shows three sample buffs (" .. #buffs.active .. ")")
+	check(targets.stats.shown == 3, "unlocked: target row shows three sample DoTs (" .. targets.stats.shown .. ")")
+	local lit = 0
+	for _, f in ipairs(W.frames) do
+		if rawget(f, "_parent") == ns.anchors.combopoints and rawget(f, "_kind") == "Texture" and f:IsShown() then
+			lit = lit + 1
+		end
+	end
+	check(lit >= 4, "unlocked: combo points preview lit")
+	local reminderSamples = ns.modules.reminders.active
+	check(#reminderSamples > 0, "unlocked: reminders row has something to place")
+	W.Slash("lock")
+	W.Advance(0.5)
+	check(#buffs.active == 0, "locked again: samples go away")
+
+	ns.db.preview = false
+	W.Slash("unlock")
+	W.Advance(0.5)
+	check(#buffs.active == 0, "preview can be turned off")
+	W.Slash("lock")
+	ns.db.preview = true
+
+	-- Ready pulse: a cooldown ending by itself pulses; Clear() and hidden icons don't.
+	local cooldowns = ns.modules.cooldowns
+	local button = cooldowns.buttons[1]
+	local done = button.cooldown:GetScript("OnCooldownDone")
+	check(done ~= nil, "cooldown icons listen for their cooldown finishing")
+	local before = ns.pulseCount or 0
+	done(button.cooldown)
+	check((ns.pulseCount or 0) == before + 1, "a finished cooldown pulses")
+	button.fdClearing = true
+	done(button.cooldown)
+	button.fdClearing = nil
+	check((ns.pulseCount or 0) == before + 1, "clearing a cooldown doesn't pulse")
+	ns.db.modules.cooldowns.pulse = false
+	done(button.cooldown)
+	check((ns.pulseCount or 0) == before + 1, "pulse can be turned off")
+	ns.db.modules.cooldowns.pulse = true
+
+	-- Tints use the client's booleans without reading them, so secret values work in combat.
+	W.Fire("PLAYER_REGEN_DISABLED")
+	W.state.inCombat = true
+	W.state.spellUsable, W.state.spellNoPower, W.state.spellInRange = W.Secret(), W.Secret(), W.Secret()
+	cooldowns:UpdateTints()
+	check(W.IsSecret(rawget(button.icon, "_colorBool")), "usable tint takes a secret boolean")
+	check(W.IsSecret(rawget(button.rangeTint, "_colorBool")), "range tint takes a secret boolean")
+	check(ns.tintStats.failures == 0, "no tint failures")
+	W.state.spellInRange = nil
+	cooldowns:UpdateTints()
+	check(rawget(button.rangeTint, "_colorBool") == nil, "no range check (nil) clears the range tint")
+	W.state.inCombat = false
+	W.Fire("PLAYER_REGEN_ENABLED")
+	W.state.spellUsable, W.state.spellNoPower = true, false
+
+	-- Icon style switch restyles icons already on screen.
+	ns.db.style.icons = "blizzard"
+	ns.RestyleAll()
+	local tc = rawget(button.icon, "_texcoord")
+	check(tc and tc[1] == 0 and tc[2] == 1 and not button.border:IsShown(), "Blizzard style: full icon border, no frame")
+	ns.db.style.icons = "minimal"
+	ns.RestyleAll()
+	check(button.border:IsShown(), "minimal style: thin frame back")
+
+	local bar = ns.modules.manabar.bar
+	ns.modules.manabar:Update()
+	check(rawget(bar, "_interpolation") == Enum.StatusBarInterpolation.ExponentialEaseOut, "mana bar eases to new values")
+	ns.db.modules.manabar.smooth = false
+	ns.modules.manabar:Update()
+	check(rawget(bar, "_interpolation") == nil, "smoothing can be turned off")
+	noErrors(W, "no errors or blocked actions")
+end
+
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))
 os.exit(failures == 0 and 0 or 1)

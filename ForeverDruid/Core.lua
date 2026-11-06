@@ -196,19 +196,23 @@ ns.defaults = {
 	-- The combat HUD stacks itself into one column; `detached` pieces keep their own position.
 	layout = { stack = true, gap = 4, detached = {} },
 	minimap = { hide = false, angle = 200 }, -- degrees round the ring, 0 = right
+	style = { icons = "minimal" },
+	preview = true, -- sample icons while unlocked
+	grid = false, -- alignment grid while unlocked
 	scale = 1.0,
 	fadeOutOfCombat = 1.0, -- alpha of the combat HUD when out of combat
 	hideWhenMounted = true,
 	modules = {
 		manabar = {
 			enabled = true, scale = 1, width = 160, height = 10,
-			alwaysShow = false, text = "value", colorByLevel = true, shiftMarker = true,
+			alwaysShow = false, text = "value", colorByLevel = true, shiftMarker = true, smooth = true,
 		},
 		energytick = { enabled = true, scale = 1, width = 160, height = 4 },
 		combopoints = { enabled = true, scale = 1, size = 14, spacing = 3, catOnly = true },
 		cooldowns = {
 			enabled = true, scale = 1, size = 30, spacing = 4,
 			hideOutOfCombat = false, showNumbers = true, tooltips = false, racials = true,
+			pulse = true, usableTint = true, rangeTint = true,
 			extra = {},
 		},
 		buffs = { enabled = true, scale = 1, size = 28, spacing = 4 },

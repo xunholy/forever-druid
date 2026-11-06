@@ -14,6 +14,7 @@ Locale.lua
 Core.lua
 Spells.lua
 Spec.lua
+Widgets.lua
 Modules\ManaBar.lua
 Modules\EnergyTick.lua
 Modules\ComboPoints.lua

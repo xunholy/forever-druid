@@ -78,28 +78,20 @@ end
 local function IconFor(index, parent, size)
 	local frame = icons[index]
 	if not frame then
-		frame = CreateFrame("Frame", nil, parent)
-		local border = frame:CreateTexture(nil, "BACKGROUND")
-		border:SetPoint("TOPLEFT", -1, 1)
-		border:SetPoint("BOTTOMRIGHT", 1, -1)
-		border:SetColorTexture(0.6, 0.1, 0.1, 0.9)
-		frame.border = border
-		local tex = frame:CreateTexture(nil, "ARTWORK")
-		tex:SetAllPoints()
-		tex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-		frame.icon = tex
-		local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
-		cooldown:SetAllPoints()
-		cooldown:SetReverse(true)
-		cooldown:SetDrawEdge(false)
-		frame.cooldown = cooldown
-		local count = frame:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
-		count:SetPoint("BOTTOMRIGHT", -1, 1)
-		frame.count = count
+		frame = ns.CreateIcon(parent, size, { reverse = true, count = true, borderColor = { 0.6, 0.1, 0.1, 0.9 } })
 		icons[index] = frame
 	end
 	frame:SetSize(size, size)
 	return frame
+end
+
+-- Shown while unlocked: Rake, Rip and Moonfire with timers, plus a 3-stack.
+function M.SampleList()
+	return {
+		ns.SampleAura(1822, 9, 6),
+		ns.SampleAura(1079, 12, 10),
+		ns.SampleAura(8921, 12, 3, 3),
+	}
 end
 
 local function ApplyAura(frame, aura, friendly)
@@ -138,8 +130,9 @@ end
 
 function M:Refresh()
 	local cfg = ns.ModuleConfig("targetauras")
-	local list = M.Collect(cfg.max)
-	local friendly = ns.SafeReadable(UnitCanAttack, "player", "target") == false
+	local previewing = ns.Previewing()
+	local list = previewing and M.SampleList() or M.Collect(cfg.max)
+	local friendly = not previewing and ns.SafeReadable(UnitCanAttack, "player", "target") == false
 	local size, spacing = cfg.size, cfg.spacing
 	local count = #list
 	self.anchor:SetSize(math.max(size, count * size + math.max(count - 1, 0) * spacing), size)

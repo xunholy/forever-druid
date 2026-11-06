@@ -41,27 +41,25 @@ local function HideTooltip()
 end
 
 local function CreateButton(parent, size)
-	local button = CreateFrame("Frame", nil, parent)
-	button:SetSize(size, size)
-
-	local border = button:CreateTexture(nil, "BACKGROUND")
-	border:SetPoint("TOPLEFT", -1, 1)
-	border:SetPoint("BOTTOMRIGHT", 1, -1)
-	border:SetColorTexture(0, 0, 0, 0.8)
-
-	local icon = button:CreateTexture(nil, "ARTWORK")
-	icon:SetAllPoints()
-	icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-	button.icon = icon
-
-	local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
-	cooldown:SetAllPoints()
-	cooldown:SetDrawEdge(false)
-	button.cooldown = cooldown
-
+	local button = ns.CreateIcon(parent, size, { tints = true })
+	-- A cooldown that runs out on its own flashes the icon (Clear() doesn't count: see ApplyCooldown).
+	button.cooldown:SetScript("OnCooldownDone", function()
+		if button.fdClearing or not button.spellID or not button:IsVisible() then
+			return
+		end
+		if ns.ModuleConfig("cooldowns").pulse then
+			ns.Pulse(button)
+		end
+	end)
 	button:SetScript("OnEnter", ShowTooltip)
 	button:SetScript("OnLeave", HideTooltip)
 	return button
+end
+
+local function ClearCooldown(button)
+	button.fdClearing = true
+	button.cooldown:Clear()
+	button.fdClearing = nil
 end
 
 -- Applies the spell's cooldown to the button's Cooldown frame without reading the numbers.
@@ -75,7 +73,7 @@ function M.ApplyCooldown(button)
 			if duration then
 				cooldown:SetCooldownFromDurationObject(duration, true)
 			else
-				cooldown:Clear()
+				ClearCooldown(button)
 			end
 		end)
 		if ok then
@@ -94,7 +92,7 @@ function M.ApplyCooldown(button)
 	if start and length and length > 1.5 then
 		cooldown:SetCooldown(start, length)
 	elseif start and length then
-		cooldown:Clear()
+		ClearCooldown(button)
 	end
 end
 
@@ -109,6 +107,11 @@ function M:Init()
 	end
 	ns.On("SPELL_UPDATE_COOLDOWN", Update)
 	ns.On("SPELL_UPDATE_CHARGES", Update)
+	C_Timer.NewTicker(0.25, function()
+		if self.enabled and self.anchor:IsVisible() then
+			self:UpdateTints()
+		end
+	end)
 
 	local function Rebuild()
 		if self.enabled then
@@ -226,9 +229,31 @@ function M:Layout()
 end
 
 function M:UpdateCooldowns()
+	local previewing = ns.Previewing()
+	for i, button in ipairs(buttons) do
+		if button.spellID and button:IsShown() then
+			if previewing and i <= 2 then
+				-- Sample sweeps while unlocked, so the countdown text and spacing can be judged.
+				button.cooldown:SetCooldown(GetTime() - 3 * i, 12 * i)
+			else
+				M.ApplyCooldown(button)
+			end
+		end
+	end
+	self:UpdateTints()
+end
+
+-- Dim when unusable, blue without the power, red out of range. Polled: range has no event.
+function M:UpdateTints()
+	local cfg = ns.ModuleConfig("cooldowns")
+	local tint = (cfg.usableTint or cfg.rangeTint) and not ns.Previewing()
 	for _, button in ipairs(buttons) do
 		if button.spellID and button:IsShown() then
-			M.ApplyCooldown(button)
+			if tint then
+				ns.ApplyTints(button, button.spellID, cfg.usableTint, cfg.rangeTint)
+			else
+				ns.ClearTints(button)
+			end
 		end
 	end
 end

@@ -195,7 +195,13 @@ end
 
 function M:Update()
 	self.bar:SetMinMaxValues(0, UnitPowerMax("player", MANA))
-	self.bar:SetValue(UnitPower("player", MANA))
+	-- Smooth: the client eases the bar toward the new value (works with the secret value).
+	local smooth = ns.ModuleConfig("manabar").smooth and Enum and Enum.StatusBarInterpolation
+	if smooth then
+		self.bar:SetValue(UnitPower("player", MANA), smooth.ExponentialEaseOut)
+	else
+		self.bar:SetValue(UnitPower("player", MANA))
+	end
 	self:UpdateColor()
 	self:UpdateText()
 end

@@ -84,27 +84,20 @@ end
 local function IconFor(index, parent, size)
 	local frame = icons[index]
 	if not frame then
-		frame = CreateFrame("Frame", nil, parent)
-		local border = frame:CreateTexture(nil, "BACKGROUND")
-		border:SetPoint("TOPLEFT", -1, 1)
-		border:SetPoint("BOTTOMRIGHT", 1, -1)
-		border:SetColorTexture(0, 0, 0, 0.8)
-		local tex = frame:CreateTexture(nil, "ARTWORK")
-		tex:SetAllPoints()
-		tex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-		frame.icon = tex
-		local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
-		cooldown:SetAllPoints()
-		cooldown:SetReverse(true)
-		cooldown:SetDrawEdge(false)
-		frame.cooldown = cooldown
-		local count = frame:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
-		count:SetPoint("BOTTOMRIGHT", -1, 1)
-		frame.count = count
+		frame = ns.CreateIcon(parent, size, { reverse = true, count = true })
 		icons[index] = frame
 	end
 	frame:SetSize(size, size)
 	return frame
+end
+
+-- Shown while unlocked so the row has something to arrange: Clearcasting, Tiger's Fury, Barkskin.
+function M.SampleList()
+	return {
+		{ key = "clearcasting", aura = ns.SampleAura(16870, 15, 11) },
+		{ key = "tigersFury", aura = ns.SampleAura(5217, 6, 4) },
+		{ key = "barkskin", aura = ns.SampleAura(22812, 15, 9) },
+	}
 end
 
 local function ApplyAura(frame, aura)
@@ -143,7 +136,7 @@ end
 
 function M:Refresh()
 	local cfg = ns.ModuleConfig("buffs")
-	local list = M.Collect(ns.role)
+	local list = ns.Previewing() and M.SampleList() or M.Collect(ns.role)
 	M.active = list
 	local size, spacing = cfg.size, cfg.spacing
 	local count = #list
