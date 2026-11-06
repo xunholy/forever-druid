@@ -9,3 +9,4 @@ ignore:
   - dist
   - README.md
   - docs
+  - CONTRIBUTING.md

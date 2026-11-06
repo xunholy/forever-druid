@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Run the tests, then copy ForeverDruid into the WoW Forever AddOns folder.
-# Override the destination with FOREVER_ADDONS=/path/to/_forever_/Interface/AddOns.
+# Set FOREVER_ADDONS to your WoW Forever AddOns folder, for example
+#   FOREVER_ADDONS="/mnt/c/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns" scripts/deploy.sh
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-addons="${FOREVER_ADDONS:-/mnt/d/Battle.net/World of Warcraft/_forever_/Interface/AddOns}"
+addons="${FOREVER_ADDONS:?set FOREVER_ADDONS to your _forever_/Interface/AddOns folder}"
 
 cd "$repo"
 for f in ForeverDruid/*.lua ForeverDruid/Modules/*.lua; do

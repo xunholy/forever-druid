@@ -1,12 +1,12 @@
 # Publishing
 
-Nothing here runs until you choose to publish. Today the addon is installed by
-`scripts/deploy.sh` and packaged locally by `scripts/package.sh`.
+Releases are cut by pushing a version tag. Locally, `scripts/deploy.sh` installs the addon into
+the game and `scripts/package.sh` builds the zip.
 
-## 1. Put the repository on GitHub
+## 1. The repository
 
-Create an empty repository, add it as `origin` and push `main`. CI (`.github/workflows/ci.yml`)
-then lints and tests every push and pull request that touches the addon.
+The code lives at https://github.com/xunholy/forever-druid. CI (`.github/workflows/ci.yml`) lints
+and tests every push and pull request that touches the addon.
 
 ## 2. Cut a release
 
