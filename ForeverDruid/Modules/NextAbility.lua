@@ -103,11 +103,12 @@ local function GlowFor(button)
 	-- touched and showing or hiding the glow is fine in combat.
 	glow = CreateFrame("Frame", nil, UIParent)
 	glow:SetFrameStrata("HIGH")
-	glow:SetPoint("TOPLEFT", button, "TOPLEFT", -6, 6)
-	glow:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 6, -6)
+	glow:SetPoint("TOPLEFT", button, "TOPLEFT", -2, 2)
+	glow:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 2, -2)
 	local tex = glow:CreateTexture(nil, "OVERLAY")
 	tex:SetAllPoints()
-	tex:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+	-- The standard square button highlight (used throughout Forever's own UI), tinted gold.
+	tex:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
 	tex:SetBlendMode("ADD")
 	tex:SetVertexColor(1, 0.82, 0.2, 1)
 	glow.tex = tex
