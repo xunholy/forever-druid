@@ -873,5 +873,23 @@ do
 	noErrors(W, "no errors")
 end
 
+---------------------------------------------------------------------------
+do
+	section("translations: German, French and Spanish clients")
+	for locale, expected in pairs({ deDE = "Manaleiste", frFR = "Barre de mana", esES = "Barra de maná", esMX = "Barra de maná" }) do
+		local W, ns = fresh(function(W)
+			W.locale = locale
+		end)
+		login(W)
+		W.Advance(5)
+		check(ns.L["Mana bar"] == expected, locale .. ": " .. tostring(ns.L["Mana bar"]))
+		check(ns.L["an untranslated sentence"] == "an untranslated sentence", locale .. ": missing strings fall back to English")
+		local ok = W.ShowOptionsPanel()
+		check(ok, locale .. ": settings build")
+		noErrors(W, locale .. ": no errors")
+		W.locale = nil
+	end
+end
+
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))
 os.exit(failures == 0 and 0 or 1)

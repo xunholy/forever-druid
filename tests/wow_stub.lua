@@ -80,7 +80,7 @@ GetTime = function()
 	return W.now
 end
 GetLocale = function()
-	return "enUS"
+	return W.locale or "enUS"
 end
 date = os.date
 WOW_PROJECT_CAMELOT = 18

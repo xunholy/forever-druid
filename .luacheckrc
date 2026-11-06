@@ -46,3 +46,6 @@ files["tests/"] = {
 	globals = { "*" }, -- the stub stands in for the whole client
 	ignore = { "111", "112", "113", "121", "122", "131", "142", "143", "211", "212", "311", "431", "631" },
 }
+
+-- Translation tables are whole sentences.
+files["ForeverDruid/Locale.lua"] = { max_line_length = false }

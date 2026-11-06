@@ -17,7 +17,7 @@ ns.RELEASE_NOTES = {
 		"Keybindings for unlock, quick settings and all settings, under Key Bindings > AddOns.",
 		"Share a layout: copy your profile as text and paste it on another character, account or for a friend.",
 		"Each part of the HUD has its own settings page, every option explains itself when you hover it, and resets ask first.",
-		"German, French and Spanish translations.",
+		"German, French and Spanish translations of the menus, settings and welcome tour.",
 	} },
 	{ version = "0.4.0", notes = {
 		"A druid icon on the minimap opens quick settings: what's shown, size, fading, forms, reminders and profiles.",
