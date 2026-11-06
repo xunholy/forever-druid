@@ -37,7 +37,7 @@ read_globals = {
 	"hooksecurefunc", "issecretvalue", "securecallfunction", "wipe", "strsplit", "strtrim", "strlower", "strupper",
 	"format", "tinsert", "tremove", "date", "time", "debugstack", "geterrorhandler", "seterrorhandler",
 	"YES", "NO", "OKAY", "CANCEL", "ACCEPT", "Constants",
-	"CreateMacro", "EditMacro", "DeleteMacro", "GetMacroIndexByName", "GetMacroInfo", "GetNumMacros", "PickupMacro", "ShowMacroFrame",
+	"CreateMacro", "EditMacro", "DeleteMacro", "GetMacroIndexByName", "GetMacroInfo", "GetNumMacros", "PickupMacro", "ShowMacroFrame", "RegisterStateDriver",
 	"GetActionInfo", "PlaceAction", "ClearCursor", "GetCursorInfo", "C_ActionBar",
 	"GetMerchantNumItems", "GetMerchantItemID", "BuyMerchantItem", "GetMoney", "C_MerchantFrame",
 	"GetMerchantItemMaxStack", "IsTradeskillTrainer",

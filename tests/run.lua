@@ -980,7 +980,7 @@ do
 		names[#names + 1] = m.name
 	end
 	table.sort(names)
-	check(table.concat(names, ",") == "FD Barkskin,FD Innervate,FD Mark,FD Powershift,FD Prowl,FD Rebirth,FD Shift Bear,FD Shift Cat,FD Thorns",
+	check(table.concat(names, ",") == "FD Barkskin,FD Innervate,FD Mark,FD Powershift,FD Prowl,FD Rebirth,FD Reshift,FD Shift Bear,FD Shift Cat,FD Thorns",
 		"only macros whose spells are known: " .. table.concat(names, ","))
 	check(#W.macros.account == 0, "nothing in the account-wide slots")
 	local mark = W.CharacterMacro("FD Mark")
@@ -1990,6 +1990,62 @@ do
 	check(ns.macros.Status("shiftCat") == "ready", "and counts as ForeverDruid's, not 'edited by you'")
 	check(W.CharacterMacro("Power Cat").body == old .. "\n", "your own macros (Power Cat) are never touched")
 	noErrors(W, "no errors")
+end
+
+---------------------------------------------------------------------------
+do
+	section("FD Reshift (powershift whatever form you're in) and FD Bear Rejuv")
+	local W, ns = fresh(function(W)
+		W.state.forms = { 5487, 1066, 768 } -- Bear 1, Aquatic 2, Cat 3
+		W.state.extraNames[1066] = "Aquatic Form"
+		W.RebuildNames()
+		table.insert(W.state.spellbook, { 774, "Rejuvenation" })
+	end)
+	login(W)
+	W.Advance(5)
+	ns.macros.SetManaged(true)
+	W.Advance(2)
+	local reshiftMacro = W.CharacterMacro("FD Reshift")
+	check(reshiftMacro and reshiftMacro.body:find("/click ForeverDruidReshift", 1, true) and reshiftMacro.icon == 132115,
+		"FD Reshift clicks ForeverDruid's reshift button, with the Cat Form icon")
+	local button = _G.ForeverDruidReshift
+	check(button and button:GetAttribute("type") == "macro" and button:GetAttribute("useOnKeyDown") == false,
+		"the button runs a macro and acts on the release a /click sends")
+
+	local function at(form)
+		W.state.form = form
+		W.UpdateStateDrivers()
+		return button:GetAttribute("macrotext") or ""
+	end
+	local inCat = at(3)
+	check(inCat:find("/cancelform [nostealth]", 1, true) and inCat:find("/stopmacro [form]", 1, true) and inCat:find("/cast !Cat Form", 1, true),
+		"in Cat Form: leave it and try straight back into Cat (never while prowling)")
+	check(at(0) == "/cast !Cat Form", "then in caster form it shifts back into Cat, the form you came from")
+	local inBear = at(1)
+	check(inBear:find("/cancelform", 1, true) and inBear:find("/cast !Bear Form", 1, true), "in Bear Form: leave it and back into Bear")
+	check(at(0) == "/cast !Bear Form", "and back into Bear after a second press")
+	check(at(2) == "/cast !Bear Form", "Aquatic or another form: back into your last Cat or Bear form")
+
+	local bearRejuv = W.CharacterMacro("FD Bear Rejuv").body
+	check(bearRejuv:find("/cancelform [form:1]", 1, true) and bearRejuv:find("/stopmacro [form:1]", 1, true),
+		"FD Bear Rejuv drops Bear Form (Bear = 1), stopping if still shifted")
+	check(bearRejuv:find("/castsequence [@mouseover,help,nodead][@player] reset=8 Rejuvenation, Bear Form", 1, true),
+		"then Rejuvenation, then back into Bear Form, on one key")
+	check(not bearRejuv:find("!Bear", 1, true), "no ! in the sequence (it would stop the sequence moving on)")
+	check(#bearRejuv <= 255, "fits the macro limit")
+
+	-- Learning forms later rebuilds the button's form numbers out of combat.
+	W.Fire("PLAYER_REGEN_DISABLED")
+	W.state.inCombat = true
+	W.state.forms[4] = 783
+	W.Fire("UPDATE_SHAPESHIFT_FORMS")
+	W.Advance(2)
+	check(#W.blocked == 0, "no secure changes in combat")
+	W.state.inCombat = false
+	W.Fire("PLAYER_REGEN_ENABLED")
+	W.Advance(3)
+	check(at(3):find("/cast !Cat Form", 1, true), "still right after learning Travel Form")
+	noErrors(W, "no errors or blocked actions")
 end
 
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))

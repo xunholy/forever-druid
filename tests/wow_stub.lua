@@ -555,6 +555,44 @@ function W.CharacterMacro(name)
 	end
 end
 
+-- Secure state drivers: "[form:N] name; ...; default" evaluated against the current form, running
+-- the frame's _onstate-<state> snippet (as the secure environment would) whenever it changes.
+W.stateDrivers = {}
+function RegisterStateDriver(frame, state, values)
+	W.stateDrivers[#W.stateDrivers + 1] = { frame = frame, state = state, values = values }
+	W.UpdateStateDrivers()
+end
+local function EvaluateConditions(values)
+	for raw in (values .. ";"):gmatch("([^;]*);") do
+		local clause = raw:match("^%s*(.-)%s*$")
+		local cond, result = clause:match("^%[(.-)%]%s*(.*)$")
+		if not cond then
+			return clause
+		end
+		local formNumbers = cond:match("^form:([%d/]+)$")
+		if formNumbers then
+			for n in formNumbers:gmatch("%d+") do
+				if tonumber(n) == W.state.form then
+					return result
+				end
+			end
+		end
+	end
+end
+function W.UpdateStateDrivers()
+	for _, d in ipairs(W.stateDrivers) do
+		local new = EvaluateConditions(d.values)
+		if new ~= d.current then
+			d.current = new
+			local snippet = d.frame:GetAttribute("_onstate-" .. d.state)
+			if snippet then
+				local chunk = assert(load(snippet, "snippet", "t", setmetatable({ self = d.frame, newstate = new }, { __index = _G })))
+				chunk()
+			end
+		end
+	end
+end
+
 -- Blizzard's rotation helper: W.state.assisted = { available=, reason=, next= }.
 C_AssistedCombat = {
 	IsAvailable = function()

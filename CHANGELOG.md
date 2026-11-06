@@ -64,6 +64,13 @@
 - German, French and Spanish translations of the menus, settings and welcome tour.
 - `/fd status` and the probe report ForeverDruid's own CPU use when the game's profiler is on.
 
+**New macros**
+- FD Reshift: powershift whatever form you're in. A hidden secure button remembers your last form
+  (Blizzard's state driver, works in combat), so the second press of a two-press powershift goes
+  back into Cat or Bear, whichever you came from.
+- FD Bear Rejuv: out of Bear Form, Rejuvenation, back into Bear Form, by pressing one key; it waits
+  out the global cooldown before shifting back.
+
 **Fixed**
 - Existing FD macros weren't being updated: the game stores macro text with a trailing line
   break, so every saved FD macro looked "edited by you" and was left alone (FD Shift Cat kept the

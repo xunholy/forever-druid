@@ -127,6 +127,23 @@ M.LIST = {
 			return ("#showtooltip %s\n/cancelform [form:%d,nostealth]\n/stopmacro [form:%d]\n/cast !%s"):format(
 				S("catForm"), cat, cat, S("catForm"))
 		end },
+	{ key = "reshift", name = "FD Reshift", needs = { { "catForm", "bearForm", "direBearForm" } }, icon = 132115,
+		desc = "Powershift whatever form you're in: Cat back into Cat, Bear back into Bear. One press if the game allows it, otherwise two (out, then back into the same form). Never breaks Prowl.", -- luacheck: no max line length
+		body = function()
+			return "/click ForeverDruidReshift"
+		end },
+	{ key = "bearRejuv", name = "FD Bear Rejuv", needs = { { "direBearForm", "bearForm" }, "rejuvenation" },
+		desc = "Bear Form, Rejuvenation on yourself (or your mouseover), back into Bear Form: keep pressing the one key. It waits out the global cooldown before shifting back.", -- luacheck: no max line length
+		body = function()
+			local bear = FormIndex("bear")
+			if not bear then
+				return nil
+			end
+			-- Plain "Bear Form" in the sequence: by then you're in caster form, and /castsequence
+			-- matches steps by spell ID, which a "!" prefix would break.
+			return ("#showtooltip %s\n/cancelform [form:%d]\n/stopmacro [form:%d]\n/castsequence [@mouseover,help,nodead][@player] reset=8 %s, %s"):format(
+				S("rejuvenation"), bear, bear, S("rejuvenation"), S(ns.BearFormKey()))
+		end },
 	{ key = "prowl", name = "FD Prowl", needs = { "catForm", "prowl" },
 		desc = "Tap: into Cat Form. Tap again: Prowl. Tap while prowling: leave Prowl, staying in Cat Form.",
 		body = function()
@@ -316,7 +333,7 @@ function M.Sync()
 			if body then
 				if not index then
 					if CharacterSlotsFree() > 0 then
-						local created = CreateMacro(def.name, ICON, body, true)
+						local created = CreateMacro(def.name, def.icon or ICON, body, true)
 						if type(created) == "number" and created > 0 then
 							written[def.key] = body
 							result.created = result.created + 1
@@ -426,6 +443,82 @@ function M.PickUp(key)
 	PickupMacro(index)
 	return true
 end
+
+---------------------------------------------------------------------------
+-- FD Reshift's button: a hidden secure button that remembers which form you were last in, using
+-- Blizzard's secure state driver (which keeps working in combat). In Cat or Bear Form it leaves
+-- the form and tries to shift straight back; if the game still has you shifted it stops, and the
+-- next press, now in caster form, shifts back into the form you came from.
+---------------------------------------------------------------------------
+
+local reshift
+local reshiftPending = false
+
+-- Snippet run by the secure environment whenever your form changes.
+local RESHIFT_ON_STATE = [[
+	if newstate == "cat" or newstate == "bear" then
+		self:SetAttribute("fdlast", newstate)
+		self:SetAttribute("macrotext", self:GetAttribute("fdout-" .. newstate))
+	else
+		self:SetAttribute("macrotext", self:GetAttribute("fdback-" .. (self:GetAttribute("fdlast") or "cat")))
+	end
+]]
+
+function M.SetupReshift()
+	if InCombatLockdown() or not ns.isDruid then
+		return false
+	end
+	local cat, bear = FormIndex("cat"), FormIndex("bear")
+	if not reshift then
+		reshift = CreateFrame("Button", "ForeverDruidReshift", UIParent, "SecureActionButtonTemplate,SecureHandlerStateTemplate")
+		reshift:SetSize(1, 1)
+		reshift:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", -50, -50) -- off screen, invisible
+		reshift:SetAlpha(0)
+		reshift:EnableMouse(false)
+		reshift:RegisterForClicks("AnyUp", "AnyDown")
+		reshift:SetAttribute("type", "macro")
+		-- /click from a macro arrives as a key release; act on it.
+		reshift:SetAttribute("useOnKeyDown", false)
+		reshift:SetAttribute("_onstate-form", RESHIFT_ON_STATE)
+		M.reshift = reshift
+	end
+	local catName, bearName = S("catForm"), S(ns.BearFormKey())
+	reshift:SetAttribute("fdout-cat", catName and ("/cancelform [nostealth]\n/stopmacro [form]\n/cast !" .. catName) or "")
+	reshift:SetAttribute("fdout-bear", bearName and ("/cancelform\n/stopmacro [form]\n/cast !" .. bearName) or "")
+	reshift:SetAttribute("fdback-cat", catName and ("/cast !" .. catName) or "")
+	reshift:SetAttribute("fdback-bear", bearName and ("/cast !" .. bearName) or "")
+	local states = {}
+	if bear then
+		states[#states + 1] = ("[form:%d] bear"):format(bear)
+	end
+	if cat then
+		states[#states + 1] = ("[form:%d] cat"):format(cat)
+	end
+	states[#states + 1] = "none"
+	if RegisterStateDriver then
+		RegisterStateDriver(reshift, "form", table.concat(states, "; "))
+	end
+	return true
+end
+
+local function QueueReshift()
+	if ns.isDruid then
+		ns.Debounce("reshift", 1, function()
+			if not M.SetupReshift() then
+				reshiftPending = true
+			end
+		end)
+	end
+end
+
+ns.Listen("FD_SPELLS_CHANGED", QueueReshift)
+ns.On("UPDATE_SHAPESHIFT_FORMS", QueueReshift)
+ns.On("PLAYER_REGEN_ENABLED", function()
+	if reshiftPending then
+		reshiftPending = false
+		QueueReshift()
+	end
+end)
 
 ns.Listen("FD_SPELLS_CHANGED", Queue)
 -- Learning a form can renumber your stance bar; the form-numbered macros follow it.

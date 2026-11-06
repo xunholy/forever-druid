@@ -241,6 +241,8 @@ for the spells you know, and adds more as you learn them:
 | FD Roots, FD Hibernate | Crowd control your mouseover or target, dropping your form first |
 | FD Shift Cat, FD Shift Bear | Into that form from caster or the other form, in one press; never takes you out of it |
 | FD Powershift | Leave Cat Form and shift straight back in (Furor's energy); won't break Prowl |
+| FD Reshift | Powershift whatever form you're in: Cat back into Cat, Bear back into Bear |
+| FD Bear Rejuv | Keep pressing: out of Bear Form, Rejuvenation on you (or your mouseover), back into Bear Form |
 | FD Prowl | Tap: Cat Form. Tap: Prowl. Tap while prowling: leave Prowl, staying in Cat Form |
 | FD Opener | Cat Form, then Prowl, then Ravage from stealth |
 | FD Barkskin | Barkskin, dropping your form first |
