@@ -648,6 +648,12 @@ end
 function GetMerchantNumItems()
 	return #W.merchant
 end
+function GetMerchantItemMaxStack(i)
+	return W.merchant[i] and W.merchant[i].maxStack or 20
+end
+function IsTradeskillTrainer()
+	return W.tradeskillTrainer or false
+end
 function GetMerchantItemID(i)
 	return W.merchant[i] and W.merchant[i].item
 end
@@ -831,6 +837,9 @@ C_Spell = {
 		return cost and { { type = 0, cost = cost } } or {}
 	end,
 	PickupSpell = function(id)
+		if W.pickupFails then
+			return -- the client quietly refusing
+		end
 		W.cursorItem = { kind = "spell", id = id }
 	end,
 	GetSpellSubtext = function(id)

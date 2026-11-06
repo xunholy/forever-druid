@@ -153,7 +153,9 @@ SlashCmdList.FOREVERDRUID = function(input)
 			local _, result = ns.macros.Sync()
 			ns.macros.Report(result)
 		elseif action == "restore" then
-			ns.Print(L["restored"] .. " " .. ns.macros.Restore())
+			ns.Confirm(L["Overwrite the FD macros you edited with ForeverDruid's version?"], function()
+				ns.Print(L["restored"] .. " " .. ns.macros.Restore())
+			end)
 		else
 			ns.Print(L["macros"] .. ": " .. (ns.db.macros.manage and L["on"] or L["off"]) .. "  (/fd macros on | off | sync | restore)")
 			for _, def in ipairs(ns.macros.LIST) do
@@ -178,8 +180,10 @@ SlashCmdList.FOREVERDRUID = function(input)
 			ns.ranks.SetKept(spell, false)
 			ns.Print(spell .. ": " .. L["kept at the highest rank again"])
 		elseif action == "now" or action == "update" then
-			local done = ns.ranks.Upgrade()
-			if done == 0 then
+			local done, deferred = ns.ranks.Upgrade()
+			if deferred then
+				ns.Print(L["will update your action bars once you're out of combat and not dragging anything"])
+			elseif done == 0 then
 				ns.Print(L["every spell on your bars is already the highest rank"])
 			end
 		else

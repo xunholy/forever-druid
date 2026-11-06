@@ -47,33 +47,39 @@ local function MerchantIndexFor(itemIDs)
 	end
 end
 
--- Buys what's missing up to each target. Returns a list of { item=, count= } actually bought.
+-- Buys what's missing up to each target. Returns a list of { item=, count= } asked for.
+-- The exact reagent for your rank only; it falls back to the highest listed reagent the vendor
+-- sells only when your rank isn't one it knows (never a substitute for a known one).
 function M.Restock()
 	local bought = {}
 	if not (ns.isDruid and ns.db.restock.enabled and GetMerchantNumItems and BuyMerchantItem) or InCombatLockdown() then
 		return bought
 	end
 	for _, want in ipairs(M.WantedReagents()) do
-		local candidates = want.item and { want.item } or want.fallback
-		local index, itemID = MerchantIndexFor(candidates)
-		if not index and want.item then
-			index, itemID = MerchantIndexFor(want.fallback)
-		end
+		local index, itemID = MerchantIndexFor(want.item and { want.item } or want.fallback)
 		local have = itemID and ns.modules.reminders.CountItems({ itemID }) or 0
 		local missing = (want.target or 0) - have
-		if index and missing > 0 then
-			local info = C_MerchantFrame and C_MerchantFrame.GetItemInfo and C_MerchantFrame.GetItemInfo(index)
-			if info and info.isPurchasable ~= false and not info.hasExtendedCost then
-				local each = (info.price or 0) / math.max(info.stackCount or 1, 1)
-				local affordable = each > 0 and math.floor((GetMoney() or 0) / each) or missing
-				local available = (info.numAvailable and info.numAvailable >= 0) and info.numAvailable or missing
-				local count = math.min(missing, affordable, available)
-				if count > 0 then
-					local ok = pcall(BuyMerchantItem, index, count)
-					if ok then
-						bought[#bought + 1] = { item = itemID, count = count, name = info.name }
-					end
+		local info = index and C_MerchantFrame and C_MerchantFrame.GetItemInfo and C_MerchantFrame.GetItemInfo(index)
+		if info and missing > 0 and info.isPurchasable ~= false and not info.hasExtendedCost then
+			local stack = math.max(info.stackCount or 1, 1)
+			local each = (info.price or 0) / stack
+			local affordable = each > 0 and math.floor((GetMoney() or 0) / each) or missing
+			local available = (info.numAvailable and info.numAvailable >= 0) and info.numAvailable * stack or missing
+			local count = math.min(missing, affordable, available)
+			count = count - count % stack -- vendors sell whole stacks
+			local maxPerBuy = GetMerchantItemMaxStack and tonumber(GetMerchantItemMaxStack(index)) or count
+			maxPerBuy = math.max(maxPerBuy or count, stack)
+			local asked = 0
+			while count - asked >= stack do
+				local chunk = math.min(count - asked, maxPerBuy)
+				chunk = chunk - chunk % stack
+				if chunk <= 0 or not pcall(BuyMerchantItem, index, chunk) then
+					break
 				end
+				asked = asked + chunk
+			end
+			if asked > 0 then
+				bought[#bought + 1] = { item = itemID, count = asked, name = info.name }
 			end
 		end
 	end
@@ -82,18 +88,28 @@ function M.Restock()
 		for _, b in ipairs(bought) do
 			parts[#parts + 1] = b.count .. "x " .. tostring(b.name or b.item)
 		end
-		ns.Print(L["restocked"] .. " " .. table.concat(parts, ", "))
+		-- "Buying": the server can still refuse (bags full); the bag count is the truth.
+		ns.Print(L["buying reagents:"] .. " " .. table.concat(parts, ", "))
 	end
 	return bought
 end
 
 ns.On("MERCHANT_SHOW", function()
-	-- Let the merchant's list fill in first.
-	C_Timer.After(0.3, function()
+	-- Let the merchant's list fill in first; a slow list gets one more try.
+	local function Try(retry)
+		if GetMerchantNumItems and GetMerchantNumItems() == 0 and retry then
+			C_Timer.After(1, function()
+				Try(false)
+			end)
+			return
+		end
 		local ok, err = pcall(M.Restock)
 		if not ok then
 			ns.ReportError(err)
 		end
+	end
+	C_Timer.After(0.3, function()
+		Try(true)
 	end)
 end)
 
@@ -116,7 +132,7 @@ function M.NoteLevel(level)
 			ns.Print(("%s %d: %s"):format(L["Level"], level, L["new ranks may be waiting at your druid trainer"]))
 		end
 	end
-	if level == 10 and not ns.IsKnown("bearForm") then
+	if level == 10 and not ns.HasBearForm() then
 		ns.Print(L["Bear Form is a class quest from level 10: ask your druid trainer"])
 	elseif level == 20 and not ns.IsKnown("catForm") then
 		ns.Print(L["Cat Form is a class quest from level 20: ask your druid trainer"])
@@ -131,8 +147,9 @@ function M.Reminders(cfg)
 		list[#list + 1] = { label = L["Trainer"], sampleIcon = TRAINER_ICON,
 			tip = L["You levelled up: new ranks may be waiting at your druid trainer. Clears when you visit one."] }
 	end
-	if cfg.formQuests then
-		if level >= 10 and not ns.IsKnown("bearForm") then
+	-- Before the first spellbook scan nothing looks known; don't flash quest reminders then.
+	if cfg.formQuests and ns.spellbookScanned then
+		if level >= 10 and not ns.HasBearForm() then
 			list[#list + 1] = { label = L["Bear Form"], sampleIcon = ns.SpellIcon(5487),
 				tip = L["Bear Form comes from a class quest at level 10. Your druid trainer starts it."] }
 		end
@@ -152,6 +169,10 @@ ns.On("PLAYER_LEVEL_UP", function(_, level)
 end)
 
 ns.On("TRAINER_SHOW", function()
+	-- Profession trainers don't count.
+	if IsTradeskillTrainer and ns.SafeReadable(IsTradeskillTrainer) then
+		return
+	end
 	if ns.isDruid and TrainerState()[ns.charKey] then
 		TrainerState()[ns.charKey] = nil
 		ns.Fire("FD_REMINDERS_CHANGED")

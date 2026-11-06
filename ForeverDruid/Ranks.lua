@@ -41,7 +41,10 @@ function M.Plan()
 			if highest ~= true then
 				local name = ns.SafeReadable(C_Spell.GetSpellName, id)
 				local best = type(name) == "string" and ns.KnownSpellByName(name)
-				if best and best ~= id and not keep[strlower(name)] then
+				-- Only ever move up: the replacement must itself be your highest rank.
+				local bestIsTop = not (C_ActionBar and C_ActionBar.IsHighestSpellRank)
+					or ns.SafeReadable(C_ActionBar.IsHighestSpellRank, best) == true
+				if best and best ~= id and bestIsTop and not keep[strlower(name)] then
 					plan[#plan + 1] = { slot = slot, from = id, to = best, name = name }
 				end
 			end
@@ -62,7 +65,7 @@ function M.Upgrade(quiet)
 	if InCombatLockdown() or CursorBusy() then
 		pending = true
 		M.stats.deferred = M.stats.deferred + 1
-		return 0
+		return 0, true
 	end
 	pending = false
 	M.stats.scans = M.stats.scans + 1
@@ -72,8 +75,22 @@ function M.Upgrade(quiet)
 		local ok = pcall(function()
 			ClearCursor()
 			C_Spell.PickupSpell(step.to)
+			-- Never place an empty or unexpected cursor: that could clear the button.
+			if GetCursorInfo() ~= "spell" then
+				error("pickup failed")
+			end
 			PlaceAction(step.slot)
 			ClearCursor() -- the old rank lands on the cursor; drop it
+			local kind, now = GetActionInfo(step.slot)
+			if kind ~= "spell" or now ~= step.to then
+				-- Something went wrong: put the old rank back where it was.
+				C_Spell.PickupSpell(step.from)
+				if GetCursorInfo() == "spell" then
+					PlaceAction(step.slot)
+				end
+				ClearCursor()
+				error("slot didn't take the new rank")
+			end
 		end)
 		if ok then
 			done = done + 1

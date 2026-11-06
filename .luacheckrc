@@ -40,6 +40,7 @@ read_globals = {
 	"CreateMacro", "EditMacro", "DeleteMacro", "GetMacroIndexByName", "GetMacroInfo", "GetNumMacros", "PickupMacro", "ShowMacroFrame",
 	"GetActionInfo", "PlaceAction", "ClearCursor", "GetCursorInfo", "C_ActionBar",
 	"GetMerchantNumItems", "GetMerchantItemID", "BuyMerchantItem", "GetMoney", "C_MerchantFrame",
+	"GetMerchantItemMaxStack", "IsTradeskillTrainer",
 	"UnitThreatSituation", "UnitDetailedThreatSituation", "UnitAttackSpeed",
 	"_G",
 }

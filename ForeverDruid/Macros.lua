@@ -73,10 +73,11 @@ M.LIST = {
 		body = function()
 			return ("#showtooltip %s\n/cancelform [form,nostealth]\n/cast !%s"):format(S("catForm"), S("catForm"))
 		end },
-	{ key = "shiftBear", name = "FD Shift Bear", needs = { "bearForm" },
+	{ key = "shiftBear", name = "FD Shift Bear", needs = { { "direBearForm", "bearForm" } },
 		desc = "Into Bear Form from anywhere, or re-shift while in it. With Furor that gives 10 rage.",
 		body = function()
-			return ("#showtooltip %s\n/cancelform [form]\n/cast !%s"):format(S("bearForm"), S("bearForm"))
+			local bear = ns.BearFormKey()
+			return ("#showtooltip %s\n/cancelform [form]\n/cast !%s"):format(S(bear), S(bear))
 		end },
 	{ key = "rebirth", name = "FD Rebirth", needs = { "rebirth" },
 		desc = "Rebirth on the dead party member under your mouse, or your dead target.",
@@ -125,10 +126,17 @@ function M.IsWanted(key)
 	return cfg.manage and cfg.enabled[key] ~= false
 end
 
+-- Each need is a spell key, or a list of keys where any one will do (Dire Bear Form replaces
+-- Bear Form at 40).
 function M.HasSpells(def)
-	for _, spell in ipairs(def.needs) do
-		if not ns.IsCastable(spell) then
-			return false, spell
+	for _, need in ipairs(def.needs) do
+		local options = type(need) == "table" and need or { need }
+		local any = false
+		for _, spell in ipairs(options) do
+			any = any or ns.IsCastable(spell)
+		end
+		if not any then
+			return false, options[#options]
 		end
 	end
 	return true
@@ -213,9 +221,11 @@ function M.Sync()
 			if body then
 				if not index then
 					if CharacterSlotsFree() > 0 then
-						CreateMacro(def.name, ICON, body, true)
-						written[def.key] = body
-						result.created = result.created + 1
+						local created = CreateMacro(def.name, ICON, body, true)
+						if type(created) == "number" and created > 0 then
+							written[def.key] = body
+							result.created = result.created + 1
+						end
 					else
 						result.full = true
 					end
@@ -296,7 +306,8 @@ function M.Restore()
 	local written, restored = Written(), 0
 	for _, def in ipairs(M.LIST) do
 		local index, current = Existing(def)
-		local body = index and M.IsWanted(def.key) and Body(def)
+		-- Only macros ForeverDruid wrote: a macro of yours that shares a name is never touched.
+		local body = index and written[def.key] and M.IsWanted(def.key) and Body(def)
 		if body and current ~= body then
 			EditMacro(index, nil, nil, body)
 			written[def.key] = body

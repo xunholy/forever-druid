@@ -56,18 +56,23 @@ function M:Init()
 	self.bar, self.text, self.spark = bar, text, spark
 
 	local elapsed = 0
-	bar:SetScript("OnUpdate", function(_, dt)
+	self.onUpdate = function(_, dt)
 		elapsed = elapsed + dt
 		if elapsed >= 0.02 then
 			elapsed = 0
 			self:UpdateSpark()
 		end
-	end)
+	end
 
 	ns.OnUnit("UNIT_POWER_FREQUENT", "player", function(_, _, token)
 		local kind = self:Kind()
 		if self.enabled and kind and token == kind.token then
 			self:Update()
+			-- The tick learner lives in the energy tick module; feed it even if that row is off.
+			local tick = ns.modules.energytick
+			if token == "ENERGY" and tick and not tick.enabled and tick.Observe then
+				tick.Observe(GetTime())
+			end
 		end
 	end)
 	ns.OnUnit("UNIT_MAXPOWER", "player", function()
@@ -133,6 +138,11 @@ function M:Refresh()
 		self.bar:SetMinMaxValues(0, (tonumber(max) or 0) > 0 and max or 100)
 		self.bar:SetStatusBarColor(kind.color[1], kind.color[2], kind.color[3])
 		self:Update()
+	end
+	-- Only animate while carrying the spark.
+	self.bar:SetScript("OnUpdate", (show and (self:CarriesTick() or ns.Previewing())) and self.onUpdate or nil)
+	if not self:CarriesTick() then
+		self.spark:Hide()
 	end
 	-- The tick row hides while this bar carries the spark.
 	local tick = ns.modules.energytick

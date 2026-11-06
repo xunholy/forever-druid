@@ -354,16 +354,21 @@ function ns.SanitizeProfile(raw)
 	local rawRanks = type(raw.ranks) == "table" and type(raw.ranks.keep) == "table" and raw.ranks.keep or {}
 	for name, value in pairs(rawRanks) do
 		if type(name) == "string" and #name <= 60 and value == true then
-			profile.ranks.keep[name] = true
+			profile.ranks.keep[strlower(name)] = true
 		end
 	end
-	profile.macros = profile.macros or {}
-	profile.macros.enabled = {}
-	local rawMacros = type(raw.macros) == "table" and type(raw.macros.enabled) == "table" and raw.macros.enabled or {}
-	for key, value in pairs(rawMacros) do
-		if ns.macros and ns.macros.BY_KEY[key] and type(value) == "boolean" then
-			profile.macros.enabled[key] = value
-		end
+	-- Things that spend your gold or change your macros and action bars are never imported: an
+	-- imported profile keeps your current choices for them.
+	local mine = ns.db or ns.defaults
+	profile.restock = profile.restock or {}
+	profile.restock.enabled = mine.restock and mine.restock.enabled or false
+	profile.macros = { manage = mine.macros and mine.macros.manage or false, enabled = {} }
+	for key, value in pairs(mine.macros and mine.macros.enabled or {}) do
+		profile.macros.enabled[key] = value
+	end
+	profile.ranks.auto = mine.ranks and mine.ranks.auto
+	if profile.ranks.auto == nil then
+		profile.ranks.auto = true
 	end
 	return profile
 end

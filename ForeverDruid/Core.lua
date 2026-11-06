@@ -296,12 +296,18 @@ function ns.CopyProfileFrom(name)
 	end
 	ns.global.profiles[ns.profileName] = DeepCopy(source)
 	RebindProfile()
+	if ns.UpdateRole then
+		ns.UpdateRole()
+	end
 	return true
 end
 
 function ns.ResetProfile()
 	ns.global.profiles[ns.profileName] = CopyDefaults({}, ns.defaults)
 	RebindProfile()
+	if ns.UpdateRole then
+		ns.UpdateRole()
+	end
 end
 
 function ns.DeleteProfile(name)

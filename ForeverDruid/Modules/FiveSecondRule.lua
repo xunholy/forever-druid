@@ -36,13 +36,18 @@ function M.SpendsMana(spellID)
 	if not ok or ns.IsSecret(costs) or type(costs) ~= "table" then
 		return not InForm()
 	end
-	local mana = false
+	local mana, unsure = false, false
 	for _, entry in ipairs(costs) do
 		local kind = ns.Readable(entry.type)
 		local cost = ns.Readable(entry.cost) or ns.Readable(entry.minCost)
-		if kind == MANA and type(cost) == "number" and cost > 0 then
+		if kind == nil or cost == nil then
+			unsure = true -- hidden right now; don't remember a guess
+		elseif kind == MANA and type(cost) == "number" and cost > 0 then
 			mana = true
 		end
+	end
+	if unsure and not mana then
+		return not InForm()
 	end
 	manaCost[spellID] = mana
 	return mana

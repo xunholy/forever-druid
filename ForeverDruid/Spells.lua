@@ -146,6 +146,15 @@ end
 
 -- Known and something you can actually cast, not a passive spellbook entry. Some Classic buffs
 -- can't be cast on Forever (Omen of Clarity), so reminders and click-to-cast check this.
+-- Dire Bear Form replaces Bear Form in the spellbook at level 40.
+function ns.HasBearForm()
+	return ns.IsKnown("direBearForm") or ns.IsKnown("bearForm")
+end
+
+function ns.BearFormKey()
+	return ns.IsCastable("direBearForm") and "direBearForm" or "bearForm"
+end
+
 function ns.IsCastable(key)
 	local name = ns.SpellName(key)
 	if not name then
@@ -216,6 +225,7 @@ function ns.ScanSpellbook()
 			end
 		end
 	end
+	ns.spellbookScanned = next(known) ~= nil
 	ns.Fire("FD_SPELLS_CHANGED")
 end
 

@@ -1288,5 +1288,104 @@ do
 	noErrors(W2, "no errors")
 end
 
+---------------------------------------------------------------------------
+do
+	section("second review fixes: macros, imports, Dire Bear, restock, rank safety")
+	local W, ns = fresh(function(W)
+		W.state.level = 40
+		for i = #W.state.spellbook, 1, -1 do
+			if W.state.spellbook[i][2] == "Bear Form" then
+				W.state.spellbook[i] = { 9634, "Dire Bear Form" }
+			end
+		end
+		W.state.extraNames[5487] = "Bear Form"
+	end)
+	login(W)
+	W.Advance(5)
+	check(not labels(ns.modules.reminders.active)["Bear Form"], "level 40 with Dire Bear Form: no Bear Form quest reminder")
+	ns.macros.SetManaged(true)
+	local bear = W.CharacterMacro("FD Shift Bear")
+	check(bear and bear.body:find("/cast !Dire Bear Form", 1, true), "bear powershift uses Dire Bear Form once you have it")
+
+	-- Restore never touches a macro ForeverDruid didn't write.
+	W.macros.character[#W.macros.character + 1] = { name = "FD Rejuv", icon = 1, body = "/cast Rejuvenation\n/s mine" }
+	table.sort(W.macros.character, function(a, b) return a.name < b.name end)
+	table.insert(W.state.spellbook, { 774, "Rejuvenation" })
+	W.Fire("SPELLS_CHANGED")
+	W.Advance(3)
+	ns.macros.Restore()
+	check(W.CharacterMacro("FD Rejuv").body:find("/s mine", 1, true), "restore leaves your own same-named macro alone")
+	W.Slash("macros restore")
+	check(#W.popups == 1, "/fd macros restore asks first")
+	W.popups = {}
+
+	-- Imports keep your own choices for gold spending, macros and action bars.
+	ns.db.restock.enabled = false
+	local hostile = { restock = { enabled = true, seeds = 20 }, macros = { manage = false, enabled = { mark = false } },
+		ranks = { auto = false, keep = { ["Healing Touch"] = true } } }
+	local clean = ns.SanitizeProfile(hostile)
+	check(clean.restock.enabled == false and clean.restock.seeds == 20, "import can't switch on reagent buying (amounts still come over)")
+	check(clean.macros.manage == true and clean.macros.enabled.mark == nil, "import keeps your macro choices")
+	check(clean.ranks.auto == true and clean.ranks.keep["healing touch"], "import keeps your rank setting; kept spells lower-cased")
+
+	-- Restock buys the exact seed or nothing, in capped whole stacks.
+	ns.db.restock.enabled = true
+	W.state.items[17034] = 5
+	W.merchant = { { item = 17038, name = "Ironwood Seed", price = 100 } }
+	W.bought = {}
+	W.Fire("MERCHANT_SHOW")
+	W.Advance(1)
+	check(#W.bought == 0, "never substitutes a different seed for your Rebirth rank")
+	W.state.items[17034] = 0
+	ns.db.restock.seeds = 5
+	W.merchant = { { item = 17034, name = "Maple Seed", price = 100, maxStack = 2 } }
+	W.Fire("MERCHANT_SHOW")
+	W.Advance(1)
+	local total, biggest = 0, 0
+	for _, b in ipairs(W.bought) do
+		total, biggest = total + b.count, math.max(biggest, b.count)
+	end
+	check(total == 5 and biggest <= 2, "buys in chunks no bigger than the vendor's stack limit (" .. total .. " in " .. #W.bought .. ")")
+	W.Fire("PLAYER_LEVEL_UP", 42)
+	W.tradeskillTrainer = true
+	W.Fire("TRAINER_SHOW")
+	W.Advance(1)
+	check(labels(ns.modules.reminders.active)["Trainer"], "a profession trainer doesn't clear the trainer reminder")
+	W.tradeskillTrainer = false
+
+	-- Rank swaps: a pickup that silently fails never clears the button.
+	table.insert(W.state.spellbook, { 1430, "Rejuvenation" })
+	for _, entry in ipairs(W.state.spellbook) do
+		if entry[1] == 774 then
+			entry.low = true
+		end
+	end
+	W.Fire("SPELLS_CHANGED")
+	W.Advance(3)
+	W.actions[7] = { kind = "spell", id = 774 }
+	W.pickupFails = true
+	ns.ranks.Upgrade(true)
+	check(W.actions[7] and W.actions[7].id == 774, "failed pickup: the button keeps its spell")
+	W.pickupFails = false
+	ns.ranks.Upgrade(true)
+	check(W.actions[7].id == 1430, "then upgrades normally")
+
+	-- Never downgrade: a stale known rank below the button's is ignored.
+	W.actions[8] = { kind = "spell", id = 1430 }
+	W.state.ranks[2090] = { "Rejuvenation", 4 }
+	W.state.extraNames[2090] = "Rejuvenation"
+	W.actions[9] = { kind = "spell", id = 2090 }
+	ns.ranks.Upgrade(true)
+	check(W.actions[9].id == 2090, "a button above your known rank is never moved down")
+
+	W.Fire("PLAYER_REGEN_DISABLED")
+	W.state.inCombat = true
+	W.Slash("ranks now")
+	check(W.printed[#W.printed] and W.printed[#W.printed]:find("out of combat", 1, true), "/fd ranks now in combat says it will wait")
+	W.state.inCombat = false
+	W.Fire("PLAYER_REGEN_ENABLED")
+	noErrors(W, "no errors or blocked actions")
+end
+
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))
 os.exit(failures == 0 and 0 or 1)
