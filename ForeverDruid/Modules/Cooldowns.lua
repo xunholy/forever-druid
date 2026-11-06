@@ -10,7 +10,10 @@ local M = ns.RegisterModule("cooldowns", {})
 
 M.LAYOUTS = {
 	cat = { "tigersFury", "shiftingPower", "faerieFireFeral", "dash", "prowl", "feralCharge", "barkskin", "innervate", "rebirth" },
-	bear = { "enrage", "frenziedRegeneration", "bash", "feralCharge", "primalBite", "faerieFireFeral", "challengingRoar", "growl", "barkskin", "innervate", "rebirth" },
+	bear = {
+		"enrage", "frenziedRegeneration", "bash", "feralCharge", "primalBite", "faerieFireFeral",
+		"challengingRoar", "growl", "barkskin", "innervate", "rebirth",
+	},
 	balance = { "naturesSwiftness", "starfall", "forceOfNature", "hurricane", "naturesGrasp", "barkskin", "innervate", "rebirth" },
 	healer = { "naturesSwiftness", "swiftmend", "tranquility", "naturesGrasp", "barkskin", "innervate", "rebirth" },
 	feral = { "naturesGrasp", "barkskin", "innervate", "rebirth" },

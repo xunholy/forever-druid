@@ -236,7 +236,9 @@ function ns.PrintSnapshot(s)
 	ns.Print(("  cooldowns secret=%s durationApi=%s"):format(tostring(s.cooldowns.shouldCooldownsBeSecret), tostring(s.cooldowns.hasDurationApi)))
 	ns.Print(("  auras secret=%s"):format(tostring(s.auras.shouldAurasBeSecret)))
 	if s.energyTick then
-		ns.Print(("  energy tick: mode=%s period=%s events=%s (cast-related %s)"):format(tostring(s.energyTick.mode), tostring(s.energyTick.period), tostring(s.energyTick.events), tostring(s.energyTick.castEvents)))
+		local tick = s.energyTick
+		ns.Print(("  energy tick: mode=%s period=%s events=%s (cast-related %s)"):format(
+			tostring(tick.mode), tostring(tick.period), tostring(tick.events), tostring(tick.castEvents)))
 	end
 	local secretAuras = {}
 	for key, info in pairs(s.auraSecrecy or {}) do

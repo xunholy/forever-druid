@@ -9,7 +9,7 @@
 -- them. Every module goes through ns.IsSecret / ns.Readable before using a value with Lua operators.
 
 local ADDON, ns = ...
-_G.ForeverDruid = ns
+ForeverDruid = ns -- for /dump and debugging
 
 local L = ns.L
 

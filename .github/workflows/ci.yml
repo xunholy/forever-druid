@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths: ["ForeverDruid/**", "tests/**", ".luacheckrc", ".github/workflows/ci.yml"]
+  pull_request:
+    paths: ["ForeverDruid/**", "tests/**", ".luacheckrc", ".github/workflows/ci.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua and luacheck
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lua5.4 lua-check
+      - name: Syntax
+        run: for f in ForeverDruid/*.lua ForeverDruid/Modules/*.lua; do luac5.4 -p "$f"; done
+      - name: Lint
+        run: luacheck .
+      - name: Tests
+        run: lua5.4 tests/run.lua

@@ -860,8 +860,8 @@ end
 function W.LoadAddon(dir, name)
 	local ns = {}
 	local toc = assert(io.open(dir .. "/" .. name .. ".toc"))
-	for line in toc:lines() do
-		line = line:gsub("\r", "")
+	for raw in toc:lines() do
+		local line = raw:gsub("\r", "")
 		if line ~= "" and not line:match("^##") then
 			local path = dir .. "/" .. line:gsub("\\", "/")
 			local chunk = assert(loadfile(path))
