@@ -3,6 +3,9 @@
 ## 0.5.0
 
 **New**
+- Next ability: Blizzard's own rotation suggestion (C_AssistedCombat), shown as an icon by the HUD
+  with a glow on the Blizzard action button that holds it. The game picks the spell from values
+  addons can't read; nothing shows if the client doesn't offer it, and the probe records why.
 - "Let it bleed - next target" above the target row when one of your bleeds or DoTs is ticking on
   an enemy under a health threshold you set (20% by default). The game evaluates the target's
   health itself; ForeverDruid never reads it.

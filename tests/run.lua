@@ -1568,5 +1568,58 @@ do
 	noErrors(W, "no errors")
 end
 
+---------------------------------------------------------------------------
+do
+	section("next ability: Blizzard's rotation suggestion as an icon and a button glow")
+	local W, ns = fresh(function(W)
+		W.state.assisted = { available = false, reason = "disabled for this game" }
+	end)
+	login(W)
+	W.Advance(5)
+	local nextAb = ns.modules.nextability
+	W.Fire("PLAYER_REGEN_DISABLED")
+	W.state.inCombat = true
+	W.Advance(0.5)
+	check(not nextAb.anchor:IsShown() and nextAb.stats.reason == "disabled for this game",
+		"helper not offered: nothing shows, and the reason is recorded")
+
+	W.state.assisted = { available = true, next = 1082 }
+	W.actions[3] = { kind = "spell", id = 1082 }
+	W.Advance(0.5)
+	check(nextAb.anchor:IsShown() and nextAb.Current() == 1082, "offered: shows the suggested spell (Claw)")
+	local glowing = 0
+	for _, f in ipairs(W.frames) do
+		local p = rawget(f, "_points")[1]
+		if p and p[2] == _G.ActionButton3 and f:IsShown() then
+			glowing = glowing + 1
+		end
+	end
+	check(glowing == 1, "the button holding Claw glows")
+	check(rawget(_G.ActionButton3, "_parent") == UIParent and #W.blocked == 0, "the glow is laid over the button; the secure button is untouched")
+
+	W.state.assisted.next = W.Secret()
+	W.Advance(0.5)
+	check(nextAb.Current() == nil and nextAb.stats.secret > 0, "a hidden suggestion is never guessed")
+	W.state.assisted.next = 1082
+	W.Advance(0.5)
+	ns.db.modules.nextability.glow = false
+	nextAb:Update()
+	local still = 0
+	for _, f in ipairs(W.frames) do
+		local p = rawget(f, "_points")[1]
+		if p and p[2] == _G.ActionButton3 and f:IsShown() then
+			still = still + 1
+		end
+	end
+	check(still == 0, "glow can be turned off")
+	W.state.inCombat = false
+	W.Fire("PLAYER_REGEN_ENABLED")
+	W.Advance(0.5)
+	check(not nextAb.anchor:IsShown(), "only in combat by default")
+	local snap = ns.TakeSnapshot("assisted")
+	check(snap.capabilities.assistedCombat and snap.capabilities.assistedCombat.available == true, "probe records whether the helper is offered")
+	noErrors(W, "no errors or blocked actions")
+end
+
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))
 os.exit(failures == 0 and 0 or 1)

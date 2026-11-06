@@ -430,6 +430,7 @@ local function ModuleGetter(module, field)
 end
 
 local MODULE_TITLES = {
+	nextability = "Next ability",
 	alerts = "Alerts",
 	party = "Party",
 	powerbar = "Energy / rage",
@@ -445,6 +446,7 @@ local MODULE_TITLES = {
 ns.MODULE_TITLES = MODULE_TITLES
 
 local MODULE_NOTES = {
+	nextability = "Blizzard's own rotation suggestion: the game picks your next ability from the real numbers addons can't see, and ForeverDruid shows it and makes its button glow. Only if Forever's client offers it.", -- luacheck: no max line length
 	alerts = "Clearcasting and Nature's Grace the moment they trigger, and a warning when you're losing aggro in Bear Form. Only shows what the game lets addons see during a fight.", -- luacheck: no max line length
 	party = "In a group: your HoTs on each party member with timers, a Rebirth hint when someone is dead, and an Innervate hint when a healer runs low on mana.",
 	powerbar = "Energy in Cat Form and rage in Bear Form, with the energy tick spark on the bar.",
@@ -627,6 +629,16 @@ local function MainPage()
 end
 
 local MODULE_PAGES = {
+	nextability = function(s)
+		local available = ns.modules.nextability.Available()
+		local reason = ns.modules.nextability.stats.reason
+		s:Note(available and ("|cff40ff40" .. L["Available on this client."] .. "|r")
+			or ("|cffff8080" .. L["Not offered by this client right now"] .. (reason and (": " .. tostring(reason)) or "") .. ".|r"))
+		s:Check(L["Glow on the action button"], ModuleGetter("nextability", "glow"), ModuleSetter("nextability", "glow"),
+			L["Highlights the button on your Blizzard action bars that holds the suggested spell. Other action bar addons' buttons aren't found."])
+		s:Check(L["Only in combat"], ModuleGetter("nextability", "combatOnly"), ModuleSetter("nextability", "combatOnly"))
+		s:Slider(L["Icon size"], 24, 80, 1, ModuleGetter("nextability", "size"), ModuleSetter("nextability", "size"))
+	end,
 	alerts = function(s)
 		s:Check(L["Clearcasting and Nature's Grace"], ModuleGetter("alerts", "procs"), ModuleSetter("alerts", "procs"),
 			L["A big icon with its timer when the proc triggers. Needs the game to name the buff as it's gained in combat."])

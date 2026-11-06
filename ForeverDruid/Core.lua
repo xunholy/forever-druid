@@ -224,6 +224,7 @@ ns.defaults = {
 		buffs = { enabled = true, scale = 1, size = 28, spacing = 4 },
 		targetauras = { enabled = true, scale = 1, size = 26, spacing = 3, max = 8, warnMissing = true,
 			letItBleed = true, bleedThreshold = 0.2 },
+		nextability = { enabled = true, scale = 1, size = 44, glow = true, combatOnly = true },
 		alerts = { enabled = true, scale = 1, size = 40, procs = true, threat = true, threatSolo = false, sound = false },
 		party = { enabled = true, scale = 1, size = 20, width = 200, includeSelf = true, healerOnly = false,
 			rebirthHint = true, innervateHint = true },

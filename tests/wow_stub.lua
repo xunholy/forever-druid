@@ -312,6 +312,9 @@ function Frame:CreateAnimationGroup()
 		self._plays = self._plays + 1
 	end
 	function group:Stop() end
+	function group:SetLooping(mode)
+		self._looping = mode
+	end
 	return group
 end
 function Frame:SetMinMaxValues(a, b)
@@ -526,6 +529,28 @@ function W.CharacterMacro(name)
 			return m
 		end
 	end
+end
+
+-- Blizzard's rotation helper: W.state.assisted = { available=, reason=, next= }.
+C_AssistedCombat = {
+	IsAvailable = function()
+		local a = W.state.assisted
+		return a and a.available or false, a and a.reason or "not available"
+	end,
+	GetNextCastSpell = function()
+		local a = W.state.assisted
+		return a and a.next
+	end,
+	GetRotationSpells = function()
+		return { 1082, 1822, 1079 }
+	end,
+}
+-- A main action bar: ActionButton1..12 showing slots 1..12.
+ActionButtonUtil = { ActionBarButtonNames = { "ActionButton" } }
+for i = 1, 12 do
+	local button = NewObject("CheckButton", UIParent, "ActionBarButtonTemplate")
+	button.action = i
+	_G["ActionButton" .. i] = button
 end
 
 -- Popups: recorded, and accepted or declined by the test.
