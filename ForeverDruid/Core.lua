@@ -199,7 +199,8 @@ ns.defaults = {
 	style = { icons = "minimal" },
 	preview = true, -- sample icons while unlocked
 	macros = { manage = false, enabled = {} }, -- enabled[key] = false to skip one
-	ranks = { auto = true, keep = {} }, -- keep[lower-case spell name] = true: leave its rank alone
+	ranks = { auto = true, keep = {} },
+	role = "auto", -- caster-form role: auto (from talents), healer, balance or feral -- keep[lower-case spell name] = true: leave its rank alone
 	grid = false, -- alignment grid while unlocked
 	scale = 1.0,
 	fadeOutOfCombat = 1.0, -- alpha of the combat HUD when out of combat

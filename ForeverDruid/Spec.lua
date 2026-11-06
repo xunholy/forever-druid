@@ -141,14 +141,26 @@ function ns.PrimaryTree()
 		return nil
 	end
 	local best, bestSpent = nil, 0
+	local spentBy = {}
 	for _, tree in ipairs(trees) do
 		local spent = ns.Readable(tree.spent) or 0
+		spentBy[tree.key] = spent
 		if spent > bestSpent then
 			best, bestSpent = tree.key, spent
 		end
 	end
+	-- Close call (within 2 points, typical while levelling a split build): most druids in that spot
+	-- are fighting in Cat or Bear Form, so prefer Feral over Restoration or Balance.
+	local feral = spentBy.feral or 0
+	if best and best ~= "feral" and feral > 0 and bestSpent - feral <= 2 then
+		return "feral"
+	end
 	return best
 end
+
+-- The role you picked for caster form ("auto" = from your talents). Cat and Bear Form always
+-- decide the role themselves.
+ns.CASTER_ROLES = { "auto", "healer", "balance", "feral" }
 
 ---------------------------------------------------------------------------
 -- Role
@@ -159,9 +171,18 @@ function ns.ComputeRole(form, tree)
 		return "cat"
 	elseif form == "bear" then
 		return "bear"
-	elseif form == "tree" or tree == "restoration" then
+	elseif form == "tree" then
 		return "healer"
-	elseif form == "moonkin" or tree == "balance" then
+	elseif form == "moonkin" then
+		return "balance"
+	end
+	local chosen = ns.db and ns.db.role
+	if chosen and chosen ~= "auto" then
+		return chosen
+	end
+	if tree == "restoration" then
+		return "healer"
+	elseif tree == "balance" then
 		return "balance"
 	elseif tree == "feral" then
 		return "feral"

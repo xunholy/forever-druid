@@ -1164,5 +1164,36 @@ do
 	noErrors(W, "no errors or blocked actions")
 end
 
+---------------------------------------------------------------------------
+do
+	section("role: close talent split guesses Feral, and you can pick your caster-form role")
+	local W, ns = fresh(function(W)
+		W.state.trees = { { "Balance", 0 }, { "Feral Combat", 4 }, { "Restoration", 5 } }
+	end)
+	login(W)
+	check(ns.tree == "feral" and ns.role == "feral", "4 Feral / 5 Restoration: treated as Feral (got " .. tostring(ns.role) .. ")")
+	ns.db.role = "healer"
+	ns.UpdateRole()
+	check(ns.role == "healer", "picked Healer: caster-form role is healer")
+	W.state.form = 1
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.5)
+	check(ns.role == "cat", "Cat Form still decides its own role")
+	W.state.form = 0
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.5)
+	check(ns.role == "healer", "back in caster form: your pick again")
+	ns.db.role = "auto"
+	ns.UpdateRole()
+	noErrors(W, "no errors")
+
+	local W2, ns2 = fresh(function(W)
+		W.state.trees = { { "Balance", 0 }, { "Feral Combat", 2 }, { "Restoration", 11 } }
+	end)
+	login(W2)
+	check(ns2.role == "healer", "a clear Restoration build stays a healer")
+	noErrors(W2, "no errors")
+end
+
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))
 os.exit(failures == 0 and 0 or 1)

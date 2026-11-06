@@ -563,6 +563,14 @@ local function MainPage()
 		end
 	end, L["The cat icon on the minimap: left-click for quick settings, right-click to unlock, shift-click for this panel. ForeverDruid is also in the minimap addon menu."]) -- luacheck: no max line length
 
+	b:Header(L["Role"])
+	b:Cycle(L["In caster form I'm a"], ns.CASTER_ROLES, function()
+		return ns.db.role
+	end, function(value)
+		ns.db.role = value
+		ns.UpdateRole()
+	end, L["Decides which cooldowns show in caster form. auto: from where your talent points are (Feral wins a close call). Cat and Bear Form always show their own."]) -- luacheck: no max line length
+
 	b:Header(L["Spells"])
 	b:Check(L["Keep my action bars on the highest rank"], function()
 		return ns.db.ranks.auto

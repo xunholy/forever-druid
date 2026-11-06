@@ -159,6 +159,15 @@ function ns.BuildQuickMenu(root)
 	reminders:CreateCheckbox(L["Low reagents"], ModuleOption("reminders", "reagents"))
 	reminders:CreateCheckbox(L["Ley line (Skyborne)"], ModuleOption("reminders", "attuned"))
 
+	local role = root:CreateButton(L["Caster-form role"] .. ": " .. L[ns.db.role])
+	for _, value in ipairs(ns.CASTER_ROLES) do
+		role:CreateRadio(L[value], function()
+			return ns.db.role == value
+		end, function()
+			ns.db.role = value
+			ns.UpdateRole()
+		end)
+	end
 	root:CreateCheckbox(L["Highest ranks on my action bars"], function()
 		return ns.db.ranks.auto
 	end, function()
