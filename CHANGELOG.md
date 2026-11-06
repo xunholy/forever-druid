@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.0
+
+**New**
+- Unlocking fills empty rows with sample buffs, DoTs, combo points and reminders, so you can see
+  what you're arranging. Arrow keys nudge the piece under your mouse (Shift: 10px), and an
+  optional grid marks the screen centre.
+- Cooldowns flash when they come back, dim when you can't use them, turn blue when you're short on
+  mana, rage or energy, and red when your target is out of range. Works in combat.
+- Minimal or Blizzard-style icons, outlined countdown numbers, and a mana bar that glides.
+- Welcome tour on first install and a "What's new" window after updates (never during a fight).
+- Settings split into a page per part of the HUD, with a tooltip on every option. Resetting
+  positions or a profile asks first.
+- Key bindings under Key Bindings > AddOns: unlock, quick settings, all settings.
+- Share a profile as a text string and import someone else's as a new profile.
+- German, French and Spanish translations of the menus, settings and welcome tour.
+- `/fd status` and the probe report ForeverDruid's own CPU use when the game's profiler is on.
+
 ## 0.4.0
 
 **New**

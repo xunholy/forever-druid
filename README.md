@@ -27,6 +27,9 @@ The role comes from your form first (Cat, Bear), then from the talent tree with 
 /fd reset                         default positions, everything back in the stack
 /fd stack on | off                automatic stacking
 /fd minimap                       show or hide the minimap button
+/fd grid                          alignment grid while unlocked
+/fd tour | whatsnew               welcome tour, recent changes
+/fd profile export | import       share a profile as text
 /fd toggle <module>               manabar energytick combopoints cooldowns buffs targetauras reminders
 /fd cd add|remove <role|all> <spell>
 /fd cd list
@@ -46,6 +49,24 @@ make bigger pushes the rest down rather than overlapping them.
 and give it a spot of its own; tick "Part of the stack" for it in `/fd config` to put it back.
 Reminders sit above your character on their own, because their click-to-cast buttons can't be
 attached to something that moves during a fight.
+
+## Arranging
+
+Unlock (minimap right-click, `/fd unlock`, or a key binding) and every piece shows a green box
+filled with sample icons. Drag any stacked piece to move the column, shift-drag to pull one out,
+or hover a piece and use the arrow keys (Shift for 10px). `/fd grid` adds an alignment grid.
+
+## Settings
+
+Options > AddOns > ForeverDruid has a main page (moving, look, profiles, help, diagnostics) and a
+page for each part of the HUD. Hover any option for what it does. Key bindings for unlock, the
+quick menu and the settings are under Key Bindings > AddOns.
+
+## Development
+
+`lua tests/run.lua` runs the addon against a stub of the Forever client; `luacheck .` lints;
+`scripts/deploy.sh` does both and copies the addon into the game. See `tests/README.md` and
+`docs/PUBLISHING.md`.
 
 ## Minimap button
 
