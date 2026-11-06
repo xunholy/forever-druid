@@ -1195,5 +1195,98 @@ do
 	noErrors(W2, "no errors")
 end
 
+---------------------------------------------------------------------------
+do
+	section("levelling helpers: restock, trainer visit, class quests; probe capability checks")
+	local W, ns = fresh(function(W)
+		W.state.level = 20
+		table.insert(W.state.spellbook, { 21849, "Gift of the Wild" })
+	end)
+	login(W)
+	W.Advance(5)
+	-- Rebirth rank 1 needs Maple Seed; Gift of the Wild rank 1 needs Wild Berries.
+	W.state.items[17034] = 1
+	W.merchant = {
+		{ item = 17034, name = "Maple Seed", price = 100 },
+		{ item = 17035, name = "Stranglethorn Seed", price = 200 },
+		{ item = 17021, name = "Wild Berries", price = 150 },
+		{ item = 4540, name = "Tough Hunk of Bread", price = 25 },
+	}
+	W.Fire("MERCHANT_SHOW")
+	W.Advance(1)
+	check(#W.bought == 0, "restock is off by default: nothing bought")
+	ns.db.restock.enabled = true
+	W.Fire("MERCHANT_SHOW")
+	W.Advance(1)
+	local bought = {}
+	for _, b in ipairs(W.bought) do
+		bought[b.item] = b.count
+	end
+	check(bought[17034] == 4 and bought[17035] == nil, "tops up the seed for your Rebirth rank to 5 (had 1, bought " .. tostring(bought[17034]) .. ")")
+	check(bought[17021] == 10, "buys 10 Wild Berries for Gift of the Wild rank 1")
+	check(bought[4540] == nil, "never buys anything else")
+	W.bought = {}
+	W.Fire("MERCHANT_SHOW")
+	W.Advance(1)
+	check(#W.bought == 0, "already stocked: buys nothing")
+	W.state.items[17034], W.state.items[17021], W.money = 0, 0, 250
+	W.bought = {}
+	W.Fire("MERCHANT_SHOW")
+	W.Advance(1)
+	local spent = 0
+	for _, b in ipairs(W.bought) do
+		spent = spent + b.count
+	end
+	check(W.money >= 0 and spent <= 2, "only what you can afford (" .. tostring(W.money) .. " copper left)")
+
+	-- Trainer: after an even level until you open a trainer.
+	W.Fire("PLAYER_LEVEL_UP", 22)
+	W.Advance(1)
+	check(labels(ns.modules.reminders.active)["Trainer"], "levelling to 22 shows a trainer reminder")
+	W.Fire("TRAINER_SHOW")
+	W.Advance(1)
+	check(not labels(ns.modules.reminders.active)["Trainer"], "opening the trainer clears it")
+	W.Fire("PLAYER_LEVEL_UP", 23)
+	W.Advance(1)
+	check(not labels(ns.modules.reminders.active)["Trainer"], "odd levels don't")
+	noErrors(W, "no errors")
+
+	-- Class quest: level 20 without Cat Form.
+	local W2, ns2 = fresh(function(W)
+		W.state.level = 20
+		for i = #W.state.spellbook, 1, -1 do
+			if W.state.spellbook[i][2] == "Cat Form" then
+				table.remove(W.state.spellbook, i)
+			end
+		end
+	end)
+	login(W2)
+	W2.Advance(5)
+	check(labels(ns2.modules.reminders.active)["Cat Form"], "level 20 without Cat Form: class quest reminder")
+	check(not labels(ns2.modules.reminders.active)["Bear Form"], "has Bear Form: no reminder for it")
+	local reminderButton
+	for i, item in ipairs(ns2.modules.reminders.active) do
+		if item.label == "Cat Form" then
+			reminderButton = _G["ForeverDruidReminder" .. i]
+		end
+	end
+	check(reminderButton and reminderButton:GetAttribute("type") == nil, "the quest reminder isn't a cast button")
+
+	-- Probe: capability checks saved in combat.
+	W2.state.inCombat = false
+	W2.Fire("PLAYER_REGEN_DISABLED")
+	W2.state.inCombat = true
+	W2.Fire("UNIT_AURA", "player", { addedAuras = { { spellId = 16870 }, { spellId = W2.Secret() } } })
+	local snap = ns2.TakeSnapshot("caps")
+	local caps = snap.capabilities
+	check(caps and caps.auraAdded.readableID == 1 and caps.auraAdded.secretID == 1 and caps.auraAdded.clearcasting == 1,
+		"probe counts readable vs secret 'aura added' spell IDs in combat")
+	check(caps.threat == nil or caps.threatRaw == "<secret>", "probe records whether threat is secret")
+	check(caps.attackSpeed == 2.5, "probe records attack speed")
+	W2.state.inCombat = false
+	W2.Fire("PLAYER_REGEN_ENABLED")
+	noErrors(W2, "no errors")
+end
+
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))
 os.exit(failures == 0 and 0 or 1)

@@ -692,6 +692,26 @@ local MODULE_PAGES = {
 		s:Check(L["Low Rebirth / Gift of the Wild reagents"], ModuleGetter("reminders", "reagents"), ModuleSetter("reminders", "reagents"),
 			L["Warns when you have fewer than two of the reagent."])
 		s:Check(L["Skyborne: not attuned to a ley line"], ModuleGetter("reminders", "attuned"), ModuleSetter("reminders", "attuned"))
+		s:Check(L["Trainer visit after levelling up"], ModuleGetter("reminders", "trainer"), ModuleSetter("reminders", "trainer"),
+			L["Shows after each even level until you open a druid trainer."])
+		s:Check(L["Bear and Cat Form class quests"], ModuleGetter("reminders", "formQuests"), ModuleSetter("reminders", "formQuests"),
+			L["From level 10 (Bear Form) and 20 (Cat Form) until you have the form."])
+		s:Header(L["Restock at vendors"])
+		s:Check(L["Buy reagents when I open a vendor"], function()
+			return ns.db.restock.enabled
+		end, function(value)
+			ns.db.restock.enabled = value
+		end, L["Tops up Rebirth seeds and Gift of the Wild reagents to the amounts below, only from vendors that sell them, and only what you can afford. Off by default because it spends gold."]) -- luacheck: no max line length
+		s:Slider(L["Rebirth seeds to carry"], 0, 20, 1, function()
+			return ns.db.restock.seeds
+		end, function(value)
+			ns.db.restock.seeds = math.floor(value + 0.5)
+		end)
+		s:Slider(L["Gift of the Wild reagents to carry"], 0, 40, 1, function()
+			return ns.db.restock.thornroot
+		end, function(value)
+			ns.db.restock.thornroot = math.floor(value + 0.5)
+		end)
 	end,
 }
 

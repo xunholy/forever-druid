@@ -629,7 +629,40 @@ function GetRealmName()
 	return "Testrealm"
 end
 function UnitLevel()
-	return 40
+	return W.state.level or 40
+end
+function UnitThreatSituation()
+	return W.state.inCombat and W.Secret() or nil
+end
+function UnitAttackSpeed()
+	return 2.5
+end
+
+-- Merchant: W.merchant = { { item=, name=, price=, stackCount=, numAvailable= }, ... }
+W.merchant = {}
+W.bought = {}
+W.money = 100000
+function GetMoney()
+	return W.money
+end
+function GetMerchantNumItems()
+	return #W.merchant
+end
+function GetMerchantItemID(i)
+	return W.merchant[i] and W.merchant[i].item
+end
+C_MerchantFrame = {
+	GetItemInfo = function(i)
+		local m = W.merchant[i]
+		return m and { name = m.name, price = m.price, stackCount = m.stackCount or 1, numAvailable = m.numAvailable or -1,
+			isPurchasable = true, hasExtendedCost = false }
+	end,
+}
+function BuyMerchantItem(i, count)
+	local m = W.merchant[i]
+	W.bought[#W.bought + 1] = { item = m.item, count = count }
+	W.money = W.money - m.price * count
+	W.state.items[m.item] = (W.state.items[m.item] or 0) + count
 end
 function InCombatLockdown()
 	return S.inCombat

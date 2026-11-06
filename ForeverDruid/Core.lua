@@ -200,7 +200,8 @@ ns.defaults = {
 	preview = true, -- sample icons while unlocked
 	macros = { manage = false, enabled = {} }, -- enabled[key] = false to skip one
 	ranks = { auto = true, keep = {} },
-	role = "auto", -- caster-form role: auto (from talents), healer, balance or feral -- keep[lower-case spell name] = true: leave its rank alone
+	role = "auto", -- caster-form role: auto (from talents), healer, balance or feral
+	restock = { enabled = false, seeds = 5, thornroot = 10 }, -- buys reagents at vendors when on -- keep[lower-case spell name] = true: leave its rank alone
 	grid = false, -- alignment grid while unlocked
 	scale = 1.0,
 	fadeOutOfCombat = 1.0, -- alpha of the combat HUD when out of combat
@@ -225,7 +226,7 @@ ns.defaults = {
 		reminders = {
 			enabled = true, scale = 1, size = 30, clickToCast = true,
 			markOfTheWild = true, thorns = false, thornsInBear = true, omenOfClarity = true,
-			reagents = true, reagentThreshold = 2, attuned = true,
+			reagents = true, reagentThreshold = 2, attuned = true, trainer = true, formQuests = true,
 		},
 	},
 	probe = { auto = true },

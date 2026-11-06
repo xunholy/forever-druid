@@ -182,6 +182,89 @@ local function ReagentSnapshot()
 	return out
 end
 
+---------------------------------------------------------------------------
+-- Capability checks: what Forever lets addons see for features still waiting on that answer
+-- (party HoT tracker, Clearcasting alert, missing-debuff warning, threat, swing timer).
+-- Counted during play and saved with every snapshot. Nothing here changes what you see.
+---------------------------------------------------------------------------
+
+local caps = {
+	auraAdded = { inCombat = 0, readableID = 0, secretID = 0, secretList = 0, clearcasting = 0 },
+}
+ns.capabilities = caps
+
+-- Do "aura added" events still name the spell in combat? (Clearcasting alert)
+ns.OnUnit("UNIT_AURA", "player", function(_, _, info)
+	if not ns.InCombat() or ns.IsSecret(info) or type(info) ~= "table" then
+		return
+	end
+	local added = info.addedAuras
+	if ns.IsSecret(added) then
+		caps.auraAdded.secretList = caps.auraAdded.secretList + 1
+		return
+	end
+	if type(added) ~= "table" then
+		return
+	end
+	for _, aura in ipairs(added) do
+		caps.auraAdded.inCombat = caps.auraAdded.inCombat + 1
+		local id = not ns.IsSecret(aura) and type(aura) == "table" and aura.spellId
+		if not id or ns.IsSecret(id) then
+			caps.auraAdded.secretID = caps.auraAdded.secretID + 1
+		else
+			caps.auraAdded.readableID = caps.auraAdded.readableID + 1
+			if id == 16870 then
+				caps.auraAdded.clearcasting = caps.auraAdded.clearcasting + 1
+			end
+		end
+	end
+end)
+
+-- The combat log (what a swing timer would need) is marked restricted in Forever's API docs
+-- (COMBAT_LOG_EVENT_UNFILTERED: HasRestrictions), so it isn't registered here: an addon touching a
+-- restricted event can trigger the game's "blocked action" warning. Attack speed is still probed.
+
+local function AuraListInfo(unit, filter)
+	if not (C_UnitAuras and C_UnitAuras.GetUnitAuras) then
+		return nil
+	end
+	local ok, list = pcall(C_UnitAuras.GetUnitAuras, unit, filter, 10)
+	if not ok then
+		return { error = true }
+	end
+	if ns.IsSecret(list) or type(list) ~= "table" then
+		return { list = Describe(list) }
+	end
+	local first = list[1]
+	local out = { count = #list }
+	if first ~= nil then
+		out.entry = ns.IsSecret(first) and "<secret>" or "table"
+		if not ns.IsSecret(first) then
+			out.spellId = Describe(first.spellId)
+			out.expirationTime = ns.IsSecret(first.expirationTime) and "<secret>" or "readable"
+		end
+	end
+	return out
+end
+
+local function CapabilitySnapshot()
+	local out = {
+		auraAdded = Copy(caps.auraAdded),
+		threat = Describe(ns.SafeReadable(UnitThreatSituation, "player", "target")),
+		threatRaw = UnitThreatSituation and Describe(select(2, pcall(UnitThreatSituation, "player", "target"))) or "<missing>",
+		attackSpeed = UnitAttackSpeed and Describe(select(2, pcall(UnitAttackSpeed, "player"))) or "<missing>",
+		target = AuraListInfo("target", "HARMFUL|PLAYER"),
+		party = {},
+	}
+	for i = 1, 4 do
+		local unit = "party" .. i
+		if ns.SafeReadable(UnitExists, unit) then
+			out.party[unit] = AuraListInfo(unit, "HELPFUL|PLAYER")
+		end
+	end
+	return out
+end
+
 -- ForeverDruid's own CPU cost from the client's addon profiler (the same numbers as the AddOns
 -- list's CPU readout). Milliseconds per frame; nil when the profiler is off or unavailable.
 function ns.CpuUsage()
@@ -250,6 +333,7 @@ function ns.TakeSnapshot(tag)
 		api = ApiSnapshot(),
 		profile = ns.profileName,
 		cpu = ns.CpuUsage(),
+		capabilities = CapabilitySnapshot(),
 		tints = ns.tintStats and Copy(ns.tintStats),
 		layout = ns.db and { stack = ns.db.layout.stack, detached = Copy(ns.db.layout.detached), style = ns.db.style.icons },
 	}

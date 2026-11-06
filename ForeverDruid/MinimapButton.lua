@@ -158,6 +158,13 @@ function ns.BuildQuickMenu(root)
 	end
 	reminders:CreateCheckbox(L["Low reagents"], ModuleOption("reminders", "reagents"))
 	reminders:CreateCheckbox(L["Ley line (Skyborne)"], ModuleOption("reminders", "attuned"))
+	reminders:CreateCheckbox(L["Trainer visit after levelling up"], ModuleOption("reminders", "trainer"))
+	reminders:CreateCheckbox(L["Bear and Cat Form class quests"], ModuleOption("reminders", "formQuests"))
+	reminders:CreateCheckbox(L["Restock reagents at vendors"], function()
+		return ns.db.restock.enabled
+	end, function()
+		ns.db.restock.enabled = not ns.db.restock.enabled
+	end)
 
 	local role = root:CreateButton(L["Caster-form role"] .. ": " .. L[ns.db.role])
 	for _, value in ipairs(ns.CASTER_ROLES) do

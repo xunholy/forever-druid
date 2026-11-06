@@ -29,5 +29,6 @@ Onboarding.lua
 Share.lua
 Macros.lua
 Ranks.lua
+Leveling.lua
 Options.lua
 MinimapButton.lua

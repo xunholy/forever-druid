@@ -246,9 +246,11 @@ local RANGES = {
 	["modules.manabar.width"] = { 80, 400 }, ["modules.manabar.height"] = { 4, 30 },
 	["modules.energytick.width"] = { 80, 400 }, ["modules.energytick.height"] = { 2, 20 },
 	["modules.targetauras.max"] = { 1, 16 }, ["modules.reminders.reagentThreshold"] = { 0, 20 },
+	["restock.seeds"] = { 0, 20 }, ["restock.thornroot"] = { 0, 40 },
 }
 local CHOICES = {
 	["style.icons"] = "ICON_STYLES",
+	role = "CASTER_ROLES",
 }
 local ROLES = { all = true, cat = true, bear = true, balance = true, healer = true, feral = true, caster = true }
 local ANCHOR_KEYS = { stack = true, reminders = true }
@@ -347,6 +349,14 @@ function ns.SanitizeProfile(raw)
 		end
 	end
 	profile.modules.cooldowns.extra = extra
+	profile.ranks = profile.ranks or {}
+	profile.ranks.keep = {}
+	local rawRanks = type(raw.ranks) == "table" and type(raw.ranks.keep) == "table" and raw.ranks.keep or {}
+	for name, value in pairs(rawRanks) do
+		if type(name) == "string" and #name <= 60 and value == true then
+			profile.ranks.keep[name] = true
+		end
+	end
 	profile.macros = profile.macros or {}
 	profile.macros.enabled = {}
 	local rawMacros = type(raw.macros) == "table" and type(raw.macros.enabled) == "table" and raw.macros.enabled or {}

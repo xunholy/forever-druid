@@ -39,6 +39,8 @@ read_globals = {
 	"YES", "NO", "OKAY", "CANCEL", "ACCEPT", "Constants",
 	"CreateMacro", "EditMacro", "DeleteMacro", "GetMacroIndexByName", "GetMacroInfo", "GetNumMacros", "PickupMacro", "ShowMacroFrame",
 	"GetActionInfo", "PlaceAction", "ClearCursor", "GetCursorInfo", "C_ActionBar",
+	"GetMerchantNumItems", "GetMerchantItemID", "BuyMerchantItem", "GetMoney", "C_MerchantFrame",
+	"UnitThreatSituation", "UnitDetailedThreatSituation", "UnitAttackSpeed",
 	"_G",
 }
 

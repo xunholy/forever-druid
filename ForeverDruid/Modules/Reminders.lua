@@ -71,6 +71,12 @@ function M.Collect(cfg)
 		-- Read Leyline only attunes you standing on a ley line, so the click casts it there.
 		Add("readLeyline", L["Ley line"], "readLeyline")
 	end
+	-- Trainer visit and class quests (Leveling.lua): information only, nothing to cast.
+	if ns.leveling then
+		for _, item in ipairs(ns.leveling.Reminders(cfg)) do
+			list[#list + 1] = item
+		end
+	end
 	return list
 end
 
@@ -168,6 +174,7 @@ function M:Init()
 	ns.Listen("FD_SPELLS_CHANGED", Queue)
 	ns.Listen("FD_FORM_CHANGED", Queue)
 	ns.Listen("FD_LOCK_CHANGED", Queue)
+	ns.Listen("FD_REMINDERS_CHANGED", Queue)
 	-- Buffs expire without a combat event; re-check periodically.
 	C_Timer.NewTicker(10, Queue)
 end
@@ -195,10 +202,10 @@ function M:Refresh()
 		frame:SetSize(size, size)
 		frame:ClearAllPoints()
 		frame:SetPoint("LEFT", self.anchor, "LEFT", (i - 1) * (size + spacing), 0)
-		local spellID = ns.KnownSpell(item.spellKey)
+		local spellID = item.spellKey and ns.KnownSpell(item.spellKey)
 		frame.icon:SetTexture(item.sampleIcon or (spellID and ns.SpellIcon(spellID)) or 134400)
 		frame.label:SetText(item.label)
-		frame.fdTip = item.label
+		frame.fdTip = item.tip or item.label
 		local cast = cfg.clickToCast and item.cast or nil
 		frame.fdCast = cast
 		frame:SetAttribute("type", cast and "spell" or nil)
