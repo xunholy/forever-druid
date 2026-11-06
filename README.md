@@ -27,6 +27,7 @@ The role comes from your form first (Cat, Bear), then from the talent tree with 
 /fd reset                         default positions, everything back in the stack
 /fd stack on | off                automatic stacking
 /fd minimap                       show or hide the minimap button
+/fd macros [on|off|sync|restore]  create and manage druid macros
 /fd grid                          alignment grid while unlocked
 /fd tour | whatsnew               welcome tour, recent changes
 /fd profile export | import       share a profile as text

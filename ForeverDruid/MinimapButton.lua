@@ -159,6 +159,28 @@ function ns.BuildQuickMenu(root)
 	reminders:CreateCheckbox(L["Low reagents"], ModuleOption("reminders", "reagents"))
 	reminders:CreateCheckbox(L["Ley line (Skyborne)"], ModuleOption("reminders", "attuned"))
 
+	local macros = root:CreateButton(L["Macros"])
+	macros:CreateCheckbox(L["Create and update my druid macros"], function()
+		return ns.db.macros.manage
+	end, function()
+		ns.macros.SetManaged(not ns.db.macros.manage)
+	end)
+	if ns.db.macros.manage then
+		macros:CreateDivider()
+		for _, def in ipairs(ns.macros.LIST) do
+			local _, state = ns.MacroStatusText(def.key)
+			if state == "ready" or state == "edited" then
+				-- Click to put it on the cursor, then click an action bar slot.
+				macros:CreateButton(L["Pick up"] .. ": " .. def.name, function()
+					ns.macros.PickUp(def.key)
+				end)
+			end
+		end
+	end
+	macros:CreateButton(L["Macro settings..."], function()
+		ns.OpenOptions(ns.macrosCategory)
+	end)
+
 	local profiles = root:CreateButton(L["Profile"] .. ": " .. tostring(ns.profileName))
 	for _, name in ipairs(ns.ProfileNames()) do
 		profiles:CreateRadio(name, function()

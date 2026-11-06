@@ -9,6 +9,7 @@ local L = ns.L
 
 ns.RELEASE_NOTES = {
 	{ version = "0.5.0", notes = {
+		"Druid macros made for you: shift-out heals, mouseover buffs, Maul and Claw with auto-attack, powershifting, mouseover Roots and Rebirth. Turn them on in the new Macros settings page, then pick one up and drop it on your bar. New ones appear as you learn the spells, and any you edit are left alone.",
 		"Unlocking now fills empty rows with sample icons, so you can see what you're arranging.",
 		"Cooldowns flash when they're ready again, dim when you can't use them, turn blue when you're short on mana, rage or energy, and red when your target is out of range.", -- luacheck: no max line length
 		"Choose a minimal or a Blizzard-style look for every icon.",

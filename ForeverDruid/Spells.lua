@@ -51,6 +51,15 @@ local SPELLS = {
 	giftOfTheWild = { "Gift of the Wild", 21849 },
 	thorns = { "Thorns", 467, 782 }, -- 782 probe (rank 2)
 	omenOfClarity = { "Omen of Clarity", 16864 },
+	-- Used by the macro manager.
+	rejuvenation = { "Rejuvenation", 774 },
+	regrowth = { "Regrowth", 8936 },
+	healingTouch = { "Healing Touch", 5185 },
+	maul = { "Maul", 6807 },
+	claw = { "Claw", 1082 },
+	entanglingRoots = { "Entangling Roots", 339 },
+	hibernate = { "Hibernate", 2637 },
+	ravage = { "Ravage", 6785 },
 
 	-- Skyborne racials (probe)
 	readLeyline = { "Read Leyline", 1259705 },

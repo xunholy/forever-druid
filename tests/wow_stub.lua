@@ -444,6 +444,90 @@ function CreateFrame(kind, name, parent, template)
 	return f
 end
 
+-- Macros like the client: account slots 1-120, character slots 121-150, each list sorted by name,
+-- 16-character names, 255-character bodies, and no changes during combat lockdown.
+W.macros = { account = {}, character = {} }
+local function MacroLookup(index)
+	if index > 120 then
+		return W.macros.character[index - 120], W.macros.character, index - 120
+	end
+	return W.macros.account[index], W.macros.account, index
+end
+local function SortMacros()
+	for _, list in pairs(W.macros) do
+		table.sort(list, function(a, b)
+			return a.name < b.name
+		end)
+	end
+end
+local function GuardMacro(what)
+	if W.state.inCombat then
+		W.blocked[#W.blocked + 1] = what
+		error("ADDON_ACTION_BLOCKED: " .. what .. " in combat")
+	end
+end
+function GetNumMacros()
+	return #W.macros.account, #W.macros.character
+end
+function GetMacroIndexByName(name)
+	for i, m in ipairs(W.macros.account) do
+		if m.name == name then
+			return i
+		end
+	end
+	for i, m in ipairs(W.macros.character) do
+		if m.name == name then
+			return 120 + i
+		end
+	end
+	return 0
+end
+function GetMacroInfo(index)
+	local m = MacroLookup(index)
+	if m then
+		return m.name, m.icon, m.body
+	end
+end
+function CreateMacro(name, icon, body, perCharacter)
+	GuardMacro("CreateMacro")
+	assert(#name <= 16, "macro name too long: " .. name)
+	assert(not body or #body <= 255, "macro body too long")
+	local list = perCharacter and W.macros.character or W.macros.account
+	assert(#list < (perCharacter and 30 or 120), "no free macro slots")
+	list[#list + 1] = { name = name, icon = icon, body = body or "" }
+	SortMacros()
+	return GetMacroIndexByName(name)
+end
+function EditMacro(index, name, icon, body)
+	GuardMacro("EditMacro")
+	local m = assert(MacroLookup(index), "no macro at " .. tostring(index))
+	m.name, m.icon = name or m.name, icon or m.icon
+	if body then
+		assert(#body <= 255, "macro body too long")
+		m.body = body
+	end
+	SortMacros()
+	return GetMacroIndexByName(m.name)
+end
+function DeleteMacro(index)
+	GuardMacro("DeleteMacro")
+	local m, list, i = MacroLookup(index)
+	if m then
+		table.remove(list, i)
+	end
+end
+function PickupMacro(index)
+	local m = MacroLookup(index)
+	W.pickedMacro = m and m.name
+end
+function W.CharacterMacro(name)
+	for _, m in ipairs(W.macros.character) do
+		if m.name == name then
+			return m
+		end
+	end
+end
+
 -- Popups: recorded, and accepted or declined by the test.
 StaticPopupDialogs = {}
 UISpecialFrames = {}

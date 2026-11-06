@@ -36,7 +36,8 @@ read_globals = {
 	"WOW_PROJECT_ID", "WOW_PROJECT_CAMELOT",
 	"hooksecurefunc", "issecretvalue", "securecallfunction", "wipe", "strsplit", "strtrim", "strlower", "strupper",
 	"format", "tinsert", "tremove", "date", "time", "debugstack", "geterrorhandler", "seterrorhandler",
-	"YES", "NO", "OKAY", "CANCEL", "ACCEPT",
+	"YES", "NO", "OKAY", "CANCEL", "ACCEPT", "Constants",
+	"CreateMacro", "EditMacro", "DeleteMacro", "GetMacroIndexByName", "GetMacroInfo", "GetNumMacros", "PickupMacro", "ShowMacroFrame",
 	"_G",
 }
 

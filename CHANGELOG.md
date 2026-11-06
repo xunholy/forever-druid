@@ -3,6 +3,12 @@
 ## 0.5.0
 
 **New**
+- Macro manager: turn it on and ForeverDruid creates druid macros in your character's own slots
+  (Rejuvenation, Regrowth and Healing Touch that drop your form first, mouseover Mark of the Wild,
+  Thorns and Innervate, Maul and Claw with auto-attack, Cat and Bear powershifts, mouseover
+  Entangling Roots, Hibernate and Rebirth, Prowl into Ravage). Each one appears when you learn its
+  spells. Untick one to delete it; edit one and ForeverDruid leaves it alone. Pick them up from
+  the Macros settings page or the minimap menu. `/fd macros on | off | sync | restore`.
 - Unlocking fills empty rows with sample buffs, DoTs, combo points and reminders, so you can see
   what you're arranging. Arrow keys nudge the piece under your mouse (Shift: 10px), and an
   optional grid marks the screen centre.

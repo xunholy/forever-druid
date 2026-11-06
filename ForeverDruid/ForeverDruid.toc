@@ -25,5 +25,6 @@ Modules\Reminders.lua
 Probe.lua
 Onboarding.lua
 Share.lua
+Macros.lua
 Options.lua
 MinimapButton.lua

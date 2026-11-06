@@ -806,7 +806,7 @@ do
 	end
 
 	local ok, pages = W.ShowOptionsPanel()
-	check(ok and pages == 1 + #ns.moduleOrder, "settings: main page plus one per part of the HUD (" .. tostring(pages) .. ")")
+	check(ok and pages == 2 + #ns.moduleOrder, "settings: main page, one per part of the HUD, and Macros (" .. tostring(pages) .. ")")
 	noErrors(W, "no errors or blocked actions")
 
 	-- Keyboard capture never survives into combat.
@@ -947,6 +947,118 @@ do
 	noErrors(W2, "a sanitized hostile profile logs in without errors")
 	check(ns2.profileName == "Hostile" and not ns2.db.unlocked, "and starts locked")
 
+end
+
+---------------------------------------------------------------------------
+do
+	section("macros: created for known spells, kept up to date, edits left alone, never in combat")
+	local W, ns = fresh()
+	login(W)
+	W.Advance(5)
+	local mac = ns.macros
+	check(#W.macros.character == 0, "off by default: no macros made at login")
+
+	W.Slash("macros on")
+	local names = {}
+	for _, m in ipairs(W.macros.character) do
+		names[#names + 1] = m.name
+	end
+	table.sort(names)
+	check(table.concat(names, ",") == "FD Innervate,FD Mark,FD Rebirth,FD Shift Bear,FD Shift Cat,FD Thorns",
+		"only macros whose spells are known: " .. table.concat(names, ","))
+	check(#W.macros.account == 0, "nothing in the account-wide slots")
+	local mark = W.CharacterMacro("FD Mark")
+	check(mark.body:find("/cast [@mouseover,help,nodead][help,nodead][@player] Mark of the Wild", 1, true), "Mark macro body uses the spell name")
+	check(W.CharacterMacro("FD Shift Cat").body:find("/cast !Cat Form", 1, true), "powershift macro uses !Cat Form")
+	check(W.CharacterMacro("FD Prowl") == nil, "Prowl/Ravage waits for Ravage")
+	check(mac.Status("mark") == "ready" and mac.Status("rejuv") == "needs", "status: ready / needs a spell")
+
+	-- Learning a spell adds its macro.
+	table.insert(W.state.spellbook, { 774, "Rejuvenation" })
+	W.Fire("SPELLS_CHANGED")
+	W.Advance(3)
+	local rejuv = W.CharacterMacro("FD Rejuv")
+	check(rejuv and rejuv.body:find("/cancelform [form]", 1, true), "learning Rejuvenation creates FD Rejuv")
+
+	-- An empty spellbook for a moment (login) never deletes anything.
+	local saved = W.state.spellbook
+	W.state.spellbook = {}
+	W.Fire("SPELLS_CHANGED")
+	W.Advance(3)
+	check(W.CharacterMacro("FD Mark") ~= nil and W.CharacterMacro("FD Rejuv") ~= nil, "a momentarily empty spellbook deletes nothing")
+	W.state.spellbook = saved
+	W.Fire("SPELLS_CHANGED")
+	W.Advance(3)
+
+	-- Your edits are yours.
+	W.CharacterMacro("FD Mark").body = "/cast Mark of the Wild\n/say buffed!"
+	mac.Sync()
+	check(W.CharacterMacro("FD Mark").body:find("/say buffed!", 1, true), "an edited macro isn't overwritten")
+	check(mac.Status("mark") == "edited", "status: edited")
+	mac.SetWanted("mark", false)
+	check(W.CharacterMacro("FD Mark") ~= nil, "unticking an edited macro doesn't delete it")
+	mac.SetWanted("mark", true)
+
+	mac.SetWanted("thorns", false)
+	check(W.CharacterMacro("FD Thorns") == nil, "unticking deletes ForeverDruid's own macro")
+	mac.SetWanted("thorns", true)
+	check(W.CharacterMacro("FD Thorns") ~= nil, "ticking brings it back")
+
+	check(mac.Restore() == 1 and not W.CharacterMacro("FD Mark").body:find("/say", 1, true), "restore puts ForeverDruid's text back")
+	check(mac.Status("mark") == "ready", "and it's managed again")
+
+	-- Combat: no macro changes, applied when the fight ends.
+	W.Fire("PLAYER_REGEN_DISABLED")
+	W.state.inCombat = true
+	mac.SetWanted("thorns", false)
+	W.Advance(2)
+	check(W.CharacterMacro("FD Thorns") ~= nil and #W.blocked == 0, "no macro changes during combat")
+	W.state.inCombat = false
+	W.Fire("PLAYER_REGEN_ENABLED")
+	W.Advance(2)
+	check(W.CharacterMacro("FD Thorns") == nil, "applied as the fight ends")
+	mac.SetWanted("thorns", true)
+
+	mac.PickUp("mark")
+	check(W.pickedMacro == "FD Mark", "pick up puts it on the cursor")
+
+	-- A macro of yours that happens to share a name is never touched.
+	W.macros.character[#W.macros.character + 1] = { name = "FD Regrowth", icon = 1, body = "/cast Regrowth\n/y heals" }
+	table.insert(W.state.spellbook, { 8936, "Regrowth" })
+	W.Fire("SPELLS_CHANGED")
+	W.Advance(3)
+	check(W.CharacterMacro("FD Regrowth").body:find("/y heals", 1, true), "a same-named macro of yours is left alone")
+
+	W.Slash("macros")
+	W.Slash("macros off")
+	local left = {}
+	for _, m in ipairs(W.macros.character) do
+		left[#left + 1] = m.name
+	end
+	check(table.concat(left, ",") == "FD Regrowth", "turning management off removes only ForeverDruid's macros (" .. table.concat(left, ",") .. ")")
+	check(W.ShowOptionsPanel(), "settings with the Macros page show")
+	noErrors(W, "no errors or blocked actions")
+
+	-- Slots full: says so, no error.
+	local W2, ns2 = fresh()
+	for i = 1, 30 do
+		W2.macros.character[i] = { name = ("Mine %02d"):format(i), icon = 1, body = "" }
+	end
+	login(W2)
+	ns2.db.macros.manage = true
+	local _, result = ns2.macros.Sync()
+	check(result.full and #W2.macros.character == 30, "no free character slots: reported, nothing broken")
+	noErrors(W2, "no errors")
+
+	-- Profiles are shared: a warlock on a profile with macros on gets none.
+	local W3 = fresh(function(W)
+		W.state.class = "WARLOCK"
+		ForeverDruidDB = { profiles = { Default = { macros = { manage = true, enabled = {} } } }, chars = {} }
+	end)
+	login(W3)
+	W3.Advance(5)
+	check(#W3.macros.character == 0, "no druid macros on other classes")
+	noErrors(W3, "no errors")
 end
 
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))

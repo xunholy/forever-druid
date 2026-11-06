@@ -32,6 +32,7 @@ local function Help()
 	ns.Print("  /fd stack on | off - " .. L["stack the HUD into one column automatically"])
 	ns.Print("  /fd minimap - " .. L["show or hide the minimap button"])
 	ns.Print("  /fd grid - " .. L["alignment grid while unlocked"])
+	ns.Print("  /fd macros [on | off | sync | restore] - " .. L["create and manage druid macros"])
 	ns.Print("  /fd tour | whatsnew - " .. L["the welcome tour, or what changed recently"])
 	ns.Print("  /fd toggle <module> - manabar, energytick, combopoints, cooldowns, buffs, targetauras, reminders")
 	ns.Print("  /fd cd add|remove <role|all> <spell> - " .. L["track extra cooldowns"])
@@ -139,6 +140,25 @@ SlashCmdList.FOREVERDRUID = function(input)
 		end
 		ns.SetStackEnabled(enabled)
 		ns.Print(L["automatic stack"] .. " " .. (ns.db.layout.stack and L["on"] or L["off"]))
+	elseif command == "macros" or command == "macro" then
+		if not ns.isDruid then
+			ns.Print(L["Not a druid: modules are off. /fd probe still works."])
+			return
+		end
+		local action = rest and strlower(strtrim(rest)) or ""
+		if action == "on" or action == "off" then
+			ns.macros.SetManaged(action == "on")
+		elseif action == "sync" or action == "update" then
+			local _, result = ns.macros.Sync()
+			ns.macros.Report(result)
+		elseif action == "restore" then
+			ns.Print(L["restored"] .. " " .. ns.macros.Restore())
+		else
+			ns.Print(L["macros"] .. ": " .. (ns.db.macros.manage and L["on"] or L["off"]) .. "  (/fd macros on | off | sync | restore)")
+			for _, def in ipairs(ns.macros.LIST) do
+				ns.Print(("  %s - %s"):format(def.name, (ns.MacroStatusText(def.key))))
+			end
+		end
 	elseif command == "grid" then
 		ns.db.grid = not ns.db.grid
 		ns.UpdateGrid()
@@ -189,9 +209,10 @@ end
 
 local panelCategory
 
-function ns.OpenOptions()
-	if panelCategory and Settings and Settings.OpenToCategory then
-		local id = panelCategory.GetID and panelCategory:GetID() or panelCategory.ID
+function ns.OpenOptions(category)
+	category = category or panelCategory
+	if category and Settings and Settings.OpenToCategory then
+		local id = category.GetID and category:GetID() or category.ID
 		if id then
 			Settings.OpenToCategory(id)
 			return
@@ -626,6 +647,77 @@ local function ModulePage(key)
 	return panel
 end
 
+local MACRO_STATUS = {
+	ready = "|cff40ff40" .. L["ready"] .. "|r",
+	edited = "|cffffd100" .. L["edited by you, left alone"] .. "|r",
+	missing = "|cffaaaaaa" .. L["not created yet"] .. "|r",
+	needs = "|cffaaaaaa" .. L["needs"] .. " %s|r",
+	off = "|cff808080" .. L["off"] .. "|r",
+}
+
+function ns.MacroStatusText(key)
+	local status, extra = ns.macros.Status(key)
+	local text = MACRO_STATUS[status] or status
+	if status == "needs" then
+		text = text:format(ns.SpellName(extra) or extra)
+	end
+	return text, status
+end
+
+local function MacrosPage()
+	local panel, b = NewPage(L["Macros"], L["Macros"],
+		L["ForeverDruid can create druid macros in your character's own macro slots and keep them up to date as you learn spells. It only touches macros named \"FD ...\", and leaves alone any you've edited."]) -- luacheck: no max line length
+	b:Check(L["Create and update my druid macros"], function()
+		return ns.db.macros.manage
+	end, function(value)
+		ns.macros.SetManaged(value)
+		b:Refresh()
+	end, L["Turning this off deletes the FD macros ForeverDruid made (not ones you've edited)."])
+	b:Note(L["Click Pick up, then click an action bar slot to place a macro. Unticking a macro deletes it, unless you've edited it."])
+	b:Space(4)
+	for _, def in ipairs(ns.macros.LIST) do
+		local check = b:Check(def.name, function()
+			return ns.db.macros.enabled[def.key] ~= false
+		end, function(value)
+			ns.macros.SetWanted(def.key, value)
+			b:Refresh()
+		end, L[def.desc])
+		local status = b.content:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		status:SetPoint("LEFT", check, "LEFT", 150, 0)
+		local pick = CreateFrame("Button", nil, b.content, "UIPanelButtonTemplate")
+		pick:SetSize(90, 20)
+		pick:SetPoint("LEFT", check, "LEFT", 440, 0)
+		pick:SetText(L["Pick up"])
+		pick:SetScript("OnClick", function()
+			ns.macros.PickUp(def.key)
+		end)
+		b.refreshers[#b.refreshers + 1] = function()
+			local text, state = ns.MacroStatusText(def.key)
+			status:SetText(text)
+			pick:SetEnabled(state == "ready" or state == "edited")
+		end
+	end
+	b:Space(6)
+	b:Button(L["Restore edited macros"], 200, function()
+		ns.Confirm(L["Overwrite the FD macros you edited with ForeverDruid's version?"], function()
+			ns.Print(L["restored"] .. " " .. ns.macros.Restore())
+			b:Refresh()
+		end)
+	end, L["Puts ForeverDruid's text back into FD macros you changed. Asks first."])
+	if ShowMacroFrame then
+		b:Button(L["Open the macro window"], 200, function()
+			ShowMacroFrame()
+		end)
+	end
+	Finish(b)
+	ns.Listen("FD_MACROS_CHANGED", function()
+		if panel:IsVisible() then
+			b:Refresh()
+		end
+	end)
+	return panel
+end
+
 local function BuildPanel()
 	if not (Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory) then
 		return
@@ -641,6 +733,13 @@ local function BuildPanel()
 			if not ok then
 				ns.ReportError(err)
 			end
+		end
+		local ok, err = pcall(function()
+			local page = MacrosPage()
+			ns.macrosCategory = Settings.RegisterCanvasLayoutSubcategory(panelCategory, page, page.name)
+		end)
+		if not ok then
+			ns.ReportError(err)
 		end
 	end
 end

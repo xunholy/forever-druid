@@ -198,6 +198,7 @@ ns.defaults = {
 	minimap = { hide = false, angle = 200 }, -- degrees round the ring, 0 = right
 	style = { icons = "minimal" },
 	preview = true, -- sample icons while unlocked
+	macros = { manage = false, enabled = {} }, -- enabled[key] = false to skip one
 	grid = false, -- alignment grid while unlocked
 	scale = 1.0,
 	fadeOutOfCombat = 1.0, -- alpha of the combat HUD when out of combat

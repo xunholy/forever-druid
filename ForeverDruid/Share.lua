@@ -347,6 +347,14 @@ function ns.SanitizeProfile(raw)
 		end
 	end
 	profile.modules.cooldowns.extra = extra
+	profile.macros = profile.macros or {}
+	profile.macros.enabled = {}
+	local rawMacros = type(raw.macros) == "table" and type(raw.macros.enabled) == "table" and raw.macros.enabled or {}
+	for key, value in pairs(rawMacros) do
+		if ns.macros and ns.macros.BY_KEY[key] and type(value) == "boolean" then
+			profile.macros.enabled[key] = value
+		end
+	end
 	return profile
 end
 
