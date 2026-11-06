@@ -63,11 +63,14 @@ Options > AddOns > ForeverDruid has a main page (moving, look, profiles, help, d
 page for each part of the HUD. Hover any option for what it does. Key bindings for unlock, the
 quick menu and the settings are under Key Bindings > AddOns.
 
-## Development
+## Macros
 
-`lua tests/run.lua` runs the addon against a stub of the Forever client; `luacheck .` lints;
-`scripts/deploy.sh` does both and copies the addon into the game. See `tests/README.md` and
-`docs/PUBLISHING.md`.
+Options > AddOns > ForeverDruid > Macros (or the minimap menu): tick "Create and update my druid
+macros" and ForeverDruid writes "FD ..." macros into your character's own macro slots for the
+spells you know, adding more as you learn them. Click Pick up and then an action bar slot to place
+one. It never touches a macro you've edited or one of your own that happens to share a name, and
+it only deletes an FD macro when you untick it or turn the feature off. Macro changes wait until
+you're out of combat.
 
 ## Minimap button
 
@@ -117,9 +120,13 @@ Forever uses, reagent counts and per-module counters. Turn it off under Diagnost
 
 ```
 lua tests/run.lua        # runs the addon against a WoW Forever API stub
-scripts/deploy.sh        # tests, then copies ForeverDruid/ into the Forever AddOns folder
+luacheck .               # lint (config in .luacheckrc)
+scripts/deploy.sh        # lint and tests, then copies ForeverDruid/ into the Forever AddOns folder
 scripts/package.sh       # tests, then builds dist/ForeverDruid-<version>.zip
 ```
+
+CI runs the same lint and tests on GitHub; `docs/PUBLISHING.md` covers releases. See
+`tests/README.md` for what the stub models.
 
 The stub's hidden values raise errors on comparison, arithmetic, concatenation, indexing, calling
 and `tostring`, like the real client. Its secure buttons refuse changes during combat lockdown.
