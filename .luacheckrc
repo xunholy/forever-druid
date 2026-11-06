@@ -38,6 +38,7 @@ read_globals = {
 	"format", "tinsert", "tremove", "date", "time", "debugstack", "geterrorhandler", "seterrorhandler",
 	"YES", "NO", "OKAY", "CANCEL", "ACCEPT", "Constants",
 	"CreateMacro", "EditMacro", "DeleteMacro", "GetMacroIndexByName", "GetMacroInfo", "GetNumMacros", "PickupMacro", "ShowMacroFrame",
+	"GetActionInfo", "PlaceAction", "ClearCursor", "GetCursorInfo", "C_ActionBar",
 	"_G",
 }
 

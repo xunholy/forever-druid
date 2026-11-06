@@ -31,6 +31,7 @@ local function Help()
 	ns.Print("  /fd reset - " .. L["default positions"])
 	ns.Print("  /fd stack on | off - " .. L["stack the HUD into one column automatically"])
 	ns.Print("  /fd minimap - " .. L["show or hide the minimap button"])
+	ns.Print("  /fd ranks [on | off | now | keep <spell> | unkeep <spell>] - " .. L["keep action bars on your highest spell ranks"])
 	ns.Print("  /fd grid - " .. L["alignment grid while unlocked"])
 	ns.Print("  /fd macros [on | off | sync | restore] - " .. L["create and manage druid macros"])
 	ns.Print("  /fd tour | whatsnew - " .. L["the welcome tour, or what changed recently"])
@@ -158,6 +159,34 @@ SlashCmdList.FOREVERDRUID = function(input)
 			for _, def in ipairs(ns.macros.LIST) do
 				ns.Print(("  %s - %s"):format(def.name, (ns.MacroStatusText(def.key))))
 			end
+		end
+	elseif command == "ranks" or command == "rank" then
+		if not ns.isDruid then
+			ns.Print(L["Not a druid: modules are off. /fd probe still works."])
+			return
+		end
+		local action, spell = strsplit(" ", rest or "", 2)
+		action = strlower(action or "")
+		spell = spell and strtrim(spell) or nil
+		if action == "on" or action == "off" then
+			ns.db.ranks.auto = action == "on"
+			ns.Print(L["highest-rank action bars"] .. " " .. (ns.db.ranks.auto and L["on"] or L["off"]))
+		elseif action == "keep" and spell and spell ~= "" then
+			ns.ranks.SetKept(spell, true)
+			ns.Print(spell .. ": " .. L["left at the rank you put on your bars"])
+		elseif action == "unkeep" and spell and spell ~= "" then
+			ns.ranks.SetKept(spell, false)
+			ns.Print(spell .. ": " .. L["kept at the highest rank again"])
+		elseif action == "now" or action == "update" then
+			local done = ns.ranks.Upgrade()
+			if done == 0 then
+				ns.Print(L["every spell on your bars is already the highest rank"])
+			end
+		else
+			local kept = ns.ranks.KeptList()
+			ns.Print(L["highest-rank action bars"] .. ": " .. (ns.db.ranks.auto and L["on"] or L["off"])
+				.. (#kept > 0 and ("  (" .. L["kept"] .. ": " .. table.concat(kept, ", ") .. ")") or ""))
+			ns.Print("  /fd ranks on | off | now | keep <spell> | unkeep <spell>")
 		end
 	elseif command == "grid" then
 		ns.db.grid = not ns.db.grid
@@ -397,6 +426,8 @@ local function ModuleGetter(module, field)
 end
 
 local MODULE_TITLES = {
+	powerbar = "Energy / rage",
+	fsr = "Five-second rule",
 	manabar = "Mana bar",
 	energytick = "Energy tick",
 	combopoints = "Combo points",
@@ -408,6 +439,8 @@ local MODULE_TITLES = {
 ns.MODULE_TITLES = MODULE_TITLES
 
 local MODULE_NOTES = {
+	powerbar = "Energy in Cat Form and rage in Bear Form, with the energy tick spark on the bar.",
+	fsr = "After you spend mana, your normal mana regeneration pauses for five seconds. This bar fills over those five seconds.",
 	manabar = "Your mana while in Cat or Bear Form, with the cost of one shift marked.",
 	energytick = "Learns Forever's energy ticks in Cat Form and sweeps a spark to the next one.",
 	combopoints = "Five pips that turn red at five points.",
@@ -530,6 +563,16 @@ local function MainPage()
 		end
 	end, L["The cat icon on the minimap: left-click for quick settings, right-click to unlock, shift-click for this panel. ForeverDruid is also in the minimap addon menu."]) -- luacheck: no max line length
 
+	b:Header(L["Spells"])
+	b:Check(L["Keep my action bars on the highest rank"], function()
+		return ns.db.ranks.auto
+	end, function(value)
+		ns.db.ranks.auto = value
+		if value then
+			ns.ranks.Upgrade()
+		end
+	end, L["When you learn a new rank, every button with an older rank of that spell is switched to it (out of combat). To keep a spell downranked on purpose: /fd ranks keep <spell>."]) -- luacheck: no max line length
+
 	b:Header(L["Profiles"])
 	b:Note(L["Current profile:"] .. " |cffffd100" .. tostring(ns.profileName) .. "|r. " .. L["Switch or create profiles with /fd profile use <name>."])
 	b:Button(L["Share this profile..."], 180, function()
@@ -568,6 +611,22 @@ local function MainPage()
 end
 
 local MODULE_PAGES = {
+	powerbar = function(s)
+		s:Check(L["Show the number"], ModuleGetter("powerbar", "text"), ModuleSetter("powerbar", "text"),
+			L["Your energy or rage as a number on the bar."])
+		s:Check(L["Energy tick spark on the bar"], ModuleGetter("powerbar", "tickSpark"), ModuleSetter("powerbar", "tickSpark"),
+			L["Draws the energy tick on this bar in Cat Form, and hides the separate energy tick row."])
+		s:Check(L["Smooth"], ModuleGetter("powerbar", "smooth"), ModuleSetter("powerbar", "smooth"),
+			L["The bar glides to its new value instead of jumping."])
+		s:Slider(L["Width"], 80, 400, 5, ModuleGetter("powerbar", "width"), ModuleSetter("powerbar", "width"))
+		s:Slider(L["Height"], 4, 30, 1, ModuleGetter("powerbar", "height"), ModuleSetter("powerbar", "height"))
+	end,
+	fsr = function(s)
+		s:Check(L["Hide in Cat and Bear Form"], ModuleGetter("fsr", "casterOnly"), ModuleSetter("fsr", "casterOnly"),
+			L["Only show it in caster form. Leave it on in forms if you powershift."])
+		s:Slider(L["Width"], 80, 400, 5, ModuleGetter("fsr", "width"), ModuleSetter("fsr", "width"))
+		s:Slider(L["Height"], 2, 20, 1, ModuleGetter("fsr", "height"), ModuleSetter("fsr", "height"))
+	end,
 	manabar = function(s)
 		s:Cycle(L["Text"], ns.modules.manabar.TEXT_MODES, ModuleGetter("manabar", "text"), ModuleSetter("manabar", "text"),
 			L["What the bar's text shows: your mana, a percentage, both, or nothing."])

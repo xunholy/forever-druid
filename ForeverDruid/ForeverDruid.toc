@@ -16,6 +16,8 @@ Spells.lua
 Spec.lua
 Widgets.lua
 Modules\ManaBar.lua
+Modules\PowerBar.lua
+Modules\FiveSecondRule.lua
 Modules\EnergyTick.lua
 Modules\ComboPoints.lua
 Modules\Cooldowns.lua
@@ -26,5 +28,6 @@ Probe.lua
 Onboarding.lua
 Share.lua
 Macros.lua
+Ranks.lua
 Options.lua
 MinimapButton.lua

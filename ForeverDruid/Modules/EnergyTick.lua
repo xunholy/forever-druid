@@ -167,6 +167,10 @@ function M:ShouldShow()
 	if ns.db.unlocked then
 		return true
 	end
+	local power = ns.modules.powerbar
+	if power and power.CarriesTick and power:CarriesTick() then
+		return false -- the energy bar draws the spark itself
+	end
 	return ns.form == "cat" and stats.mode == "tick"
 end
 

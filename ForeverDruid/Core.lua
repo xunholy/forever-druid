@@ -199,6 +199,7 @@ ns.defaults = {
 	style = { icons = "minimal" },
 	preview = true, -- sample icons while unlocked
 	macros = { manage = false, enabled = {} }, -- enabled[key] = false to skip one
+	ranks = { auto = true, keep = {} }, -- keep[lower-case spell name] = true: leave its rank alone
 	grid = false, -- alignment grid while unlocked
 	scale = 1.0,
 	fadeOutOfCombat = 1.0, -- alpha of the combat HUD when out of combat
@@ -209,6 +210,8 @@ ns.defaults = {
 			alwaysShow = false, text = "value", colorByLevel = true, shiftMarker = true, smooth = true,
 		},
 		energytick = { enabled = true, scale = 1, width = 160, height = 4 },
+		powerbar = { enabled = true, scale = 1, width = 160, height = 12, text = true, smooth = true, tickSpark = true },
+		fsr = { enabled = true, scale = 1, width = 160, height = 4, casterOnly = false },
 		combopoints = { enabled = true, scale = 1, size = 14, spacing = 3, catOnly = true },
 		cooldowns = {
 			enabled = true, scale = 1, size = 30, spacing = 4,
@@ -537,7 +540,7 @@ end
 -- Top to bottom. "My effects on target" keeps its row with or without a target, so it goes first
 -- and the bars below it don't jump when a DoT lands. Reminders hold secure (click-to-cast)
 -- buttons, which may not follow a frame that moves in combat, so they keep their own position.
-ns.STACK_ORDER = { "targetauras", "manabar", "energytick", "combopoints", "cooldowns", "buffs" }
+ns.STACK_ORDER = { "targetauras", "powerbar", "manabar", "fsr", "energytick", "combopoints", "cooldowns", "buffs" }
 local STACKABLE = {}
 for _, key in ipairs(ns.STACK_ORDER) do
 	STACKABLE[key] = true

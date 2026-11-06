@@ -203,7 +203,10 @@ function ns.ScanSpellbook()
 		if info then
 			for slot = info.itemIndexOffset + 1, info.itemIndexOffset + info.numSpellBookItems do
 				local item = C_SpellBook.GetSpellBookItemInfo(slot, bank)
-				if item and item.spellID and item.name and not item.isOffSpec
+				-- With "Show all spell ranks" the book lists old ranks too: keep only the highest.
+				local lowRank = C_SpellBook.IsSpellBookItemLowRank
+					and ns.SafeReadable(C_SpellBook.IsSpellBookItemLowRank, slot, bank) == true
+				if item and item.spellID and item.name and not item.isOffSpec and not lowRank
 					and (spellType == nil or item.itemType == spellType) then
 					known[strlower(item.name)] = item.spellID
 					if ns.Readable(item.isPassive) == true then

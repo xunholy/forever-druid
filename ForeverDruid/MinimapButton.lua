@@ -159,6 +159,14 @@ function ns.BuildQuickMenu(root)
 	reminders:CreateCheckbox(L["Low reagents"], ModuleOption("reminders", "reagents"))
 	reminders:CreateCheckbox(L["Ley line (Skyborne)"], ModuleOption("reminders", "attuned"))
 
+	root:CreateCheckbox(L["Highest ranks on my action bars"], function()
+		return ns.db.ranks.auto
+	end, function()
+		ns.db.ranks.auto = not ns.db.ranks.auto
+		if ns.db.ranks.auto then
+			ns.ranks.Upgrade()
+		end
+	end)
 	local macros = root:CreateButton(L["Macros"])
 	macros:CreateCheckbox(L["Create and update my druid macros"], function()
 		return ns.db.macros.manage

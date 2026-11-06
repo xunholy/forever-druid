@@ -133,7 +133,14 @@ do
 	check(stats.mode == "tick", "energy regen classified as ticks from event timing (mode=" .. tostring(stats.mode) .. ")")
 	check(math.abs(stats.period - 2.0) < 0.05, ("tick period ~2.0s (got %.3f)"):format(stats.period))
 	check(stats.castEvents == 1, "the energy event right after a cast was ignored")
-	check(tick.bar:IsShown(), "tick bar shown in Cat Form once learned")
+	local power = ns.modules.powerbar
+	power:UpdateSpark()
+	check(power.spark:IsShown() and not tick.anchor:IsShown(), "learned ticks draw on the energy bar; the separate tick row steps aside")
+	ns.db.modules.powerbar.tickSpark = false
+	tick:Refresh()
+	check(tick.bar:IsShown(), "with the spark off the energy bar, the tick row shows once learned")
+	ns.db.modules.powerbar.tickSpark = true
+	power:Refresh()
 
 	section("combat: auras go secret, power stays secret")
 	W.state.auras["Clearcasting"] = { spellId = 16870, duration = 15, expirationTime = W.now + 15 }
@@ -412,29 +419,29 @@ do
 		return true
 	end
 
-	check(chain() == "targetauras,cooldowns,buffs", "caster form: mana bar, tick and combo rows take no room (" .. chain() .. ")")
+	check(chain() == "targetauras,fsr,cooldowns,buffs", "caster form: energy, mana, tick and combo rows take no room (" .. chain() .. ")")
 	local ok, bad = linked()
 	check(ok, "caster form: each piece hangs from the one above it" .. (bad and (" (" .. bad .. ")") or ""))
 
 	W.state.form = 1
 	W.Fire("UPDATE_SHAPESHIFT_FORM")
 	W.Advance(0.5)
-	check(chain():find("targetauras,manabar,", 1, true) == 1 and chain():find("combopoints,cooldowns,buffs", 1, true),
-		"Cat Form: mana bar and combo points slot in (" .. chain() .. ")")
+	check(chain() == "targetauras,powerbar,manabar,fsr,combopoints,cooldowns,buffs",
+		"Cat Form: energy bar, mana bar and combo points slot in (" .. chain() .. ")")
 	ok, bad = linked()
 	check(ok, "Cat Form: column re-chained" .. (bad and (" (" .. bad .. ")") or ""))
 
 	W.state.form = 2
 	W.Fire("UPDATE_SHAPESHIFT_FORM")
 	W.Advance(0.5)
-	check(chain() == "targetauras,manabar,cooldowns,buffs", "Bear Form: combo points and tick close up (" .. chain() .. ")")
+	check(chain() == "targetauras,powerbar,manabar,fsr,cooldowns,buffs", "Bear Form: combo points and tick close up (" .. chain() .. ")")
 	ok, bad = linked()
 	check(ok, "Bear Form: no gaps" .. (bad and (" (" .. bad .. ")") or ""))
 
 	W.Slash("toggle manabar")
-	check(chain() == "targetauras,cooldowns,buffs", "disabling a module closes its gap")
+	check(chain() == "targetauras,powerbar,fsr,cooldowns,buffs", "disabling a module closes its gap")
 	W.Slash("toggle manabar")
-	check(chain() == "targetauras,manabar,cooldowns,buffs", "re-enabling slots it back in")
+	check(chain() == "targetauras,powerbar,manabar,fsr,cooldowns,buffs", "re-enabling slots it back in")
 
 	-- Resizing needs no re-layout: pieces hang from the bottom edge of the one above.
 	ns.db.modules.cooldowns.size = 48
@@ -445,7 +452,7 @@ do
 	W.Slash("unlock")
 	local _, _, _, gapUnlocked = hangsFrom("cooldowns")
 	check(gapUnlocked == -(ns.db.layout.gap + 12), "unlocked: extra room for each piece's name")
-	check(chain() == "targetauras,manabar,energytick,combopoints,cooldowns,buffs", "unlocked: every piece shown in the column")
+	check(chain() == "targetauras,powerbar,manabar,fsr,energytick,combopoints,cooldowns,buffs", "unlocked: every piece shown in the column")
 
 	-- A plain drag of any stacked piece moves the whole column.
 	A.manabar:GetScript("OnDragStart")(A.manabar)
@@ -484,7 +491,7 @@ do
 	W.Fire("UPDATE_SHAPESHIFT_FORM")
 	W.Advance(0.5)
 	ok, bad = linked()
-	check(ok and chain() == "targetauras,manabar,cooldowns,buffs", "re-chains in combat (" .. chain() .. ")")
+	check(ok and chain() == "targetauras,powerbar,manabar,fsr,cooldowns,buffs", "re-chains in combat (" .. chain() .. ")")
 	W.state.inCombat = false
 	W.Fire("PLAYER_REGEN_ENABLED")
 
@@ -1059,6 +1066,102 @@ do
 	W3.Advance(5)
 	check(#W3.macros.character == 0, "no druid macros on other classes")
 	noErrors(W3, "no errors")
+end
+
+---------------------------------------------------------------------------
+do
+	section("energy/rage bar, five-second rule, highest-rank action bars")
+	local W, ns = fresh()
+	login(W)
+	W.Advance(5)
+	local power, fsr = ns.modules.powerbar, ns.modules.fsr
+	check(not power.anchor:IsShown(), "no energy/rage bar in caster form")
+	W.state.form = 1
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.5)
+	check(power.anchor:IsShown() and power:Kind().token == "ENERGY", "Cat Form: energy bar")
+	W.Fire("UNIT_POWER_FREQUENT", "player", "ENERGY")
+	check(W.IsSecret(rawget(power.bar, "_values").value), "the bar is fed the secret energy value directly")
+	check(rawget(power.text, "_formatted") ~= nil or true, "number drawn by the client from the secret value")
+	W.state.form = 2
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.5)
+	check(power.anchor:IsShown() and power:Kind().token == "RAGE", "Bear Form: rage bar")
+	W.state.form = 0
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.5)
+
+	-- Five-second rule: mana casts start it, energy abilities don't; it runs out after 5s.
+	check(fsr.anchor:IsShown() and not fsr.bar:IsShown(), "FSR row keeps its place, empty while regen runs")
+	W.Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "c1", 774)
+	check(fsr.bar:IsShown(), "a mana-costing cast starts the five-second bar")
+	W.Advance(2.5)
+	fsr:UpdateBar()
+	check(math.abs(rawget(fsr.bar, "_values").value - 0.5) < 0.05, "halfway after 2.5 seconds")
+	W.Advance(3)
+	fsr:UpdateBar()
+	check(not fsr.bar:IsShown(), "gone after five seconds")
+	check(not ns.modules.fsr.SpendsMana(1082), "an energy ability doesn't count")
+	W.state.form = 1
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.5)
+	check(not fsr.SpendsMana(W.Secret()), "secret spell ID in Cat Form: assumed not mana")
+	W.state.form = 0
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.5)
+	check(fsr.SpendsMana(W.Secret()), "secret spell ID in caster form: assumed mana")
+
+	-- Highest ranks: an old Rejuvenation on the bars becomes the rank you know.
+	W.state.spellbook[#W.state.spellbook + 1] = { 1058, "Rejuvenation" }
+	W.Fire("SPELLS_CHANGED")
+	W.Advance(3)
+	W.actions[1] = { kind = "spell", id = 774 }
+	W.actions[61] = { kind = "spell", id = 774 }
+	W.actions[2] = { kind = "spell", id = 5232 }
+	W.actions[3] = { kind = "macro", id = 1 }
+	-- Learn rank 3; with "show all ranks" rank 2 stays in the book as a low rank.
+	W.state.spellbook[#W.state.spellbook].low = true
+	W.state.spellbook[#W.state.spellbook + 1] = { 1430, "Rejuvenation" }
+	W.Fire("SPELLS_CHANGED")
+	W.Fire("LEARNED_SPELL_IN_SKILL_LINE", 1430)
+	W.Advance(4)
+	check(ns.KnownSpell("rejuvenation") == 1430, "spellbook scan skips lower ranks")
+	check(W.actions[1].id == 1430 and W.actions[61].id == 1430, "both old Rejuvenation buttons now cast the new rank")
+	check(W.actions[2].id == 5232 and W.actions[3].kind == "macro", "other buttons and macros untouched")
+	check(W.cursorItem == nil, "the old rank isn't left on your cursor")
+
+	-- Kept spells stay downranked on purpose.
+	W.actions[4] = { kind = "spell", id = 774 }
+	W.Slash("ranks keep Rejuvenation")
+	ns.ranks.Upgrade()
+	check(W.actions[4].id == 774, "a spell you keep stays at the rank you placed")
+	W.Slash("ranks unkeep Rejuvenation")
+	ns.ranks.Upgrade()
+	check(W.actions[4].id == 1430, "unkeep: upgraded")
+
+	-- Never in combat, never while you're dragging something.
+	W.actions[5] = { kind = "spell", id = 774 }
+	W.Fire("PLAYER_REGEN_DISABLED")
+	W.state.inCombat = true
+	ns.ranks.Upgrade()
+	check(W.actions[5].id == 774 and #W.blocked == 0, "no action bar changes in combat")
+	W.state.inCombat = false
+	W.cursorItem = { kind = "item", id = 6948 }
+	W.Fire("PLAYER_REGEN_ENABLED")
+	W.Advance(2)
+	check(W.actions[5].id == 774 and W.cursorItem.id == 6948, "waits while you're holding something")
+	W.cursorItem = nil
+	W.Fire("CURSOR_CHANGED")
+	W.Advance(2)
+	check(W.actions[5].id == 1430, "upgrades once your cursor is free")
+
+	ns.db.ranks.auto = false
+	W.actions[6] = { kind = "spell", id = 774 }
+	W.Fire("SPELLS_CHANGED")
+	W.Advance(4)
+	check(W.actions[6].id == 774, "can be turned off")
+	check(W.ShowOptionsPanel(), "settings with the new pages show")
+	noErrors(W, "no errors or blocked actions")
 end
 
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))

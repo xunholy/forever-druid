@@ -568,6 +568,8 @@ W.state = {
 	inCombat = false,
 	secretPower = true, -- probe: secret even out of combat
 	spellUsable = true, spellNoPower = false, spellInRange = nil,
+	manaCost = { [774] = 25, [1058] = 40, [1430] = 60, [5185] = 55 }, energyCost = { [1082] = 45 },
+	ranks = { [774] = { "Rejuvenation", 1 }, [1058] = { "Rejuvenation", 2 }, [1430] = { "Rejuvenation", 3 } },
 	secretAuras = false,
 	mounted = false,
 	form = 0,
@@ -587,7 +589,8 @@ W.state = {
 		{ 5232, "Mark of the Wild" }, { 782, "Thorns" }, { 1259705, "Read Leyline" }, { 1259416, "Walk on Air" },
 		{ 16689, "Nature's Grasp" },
 	},
-	extraNames = { [16870] = "Clearcasting", [1259691] = "Attuned", [1126] = "Mark of the Wild", [467] = "Thorns" },
+	extraNames = { [16870] = "Clearcasting", [1259691] = "Attuned", [1126] = "Mark of the Wild", [467] = "Thorns",
+		[774] = "Rejuvenation", [1058] = "Rejuvenation", [1430] = "Rejuvenation", [1082] = "Claw" },
 	trees = { { "Balance", 0 }, { "Feral Combat", 21 }, { "Restoration", 5 } },
 }
 local S = W.state
@@ -788,8 +791,18 @@ C_Spell = {
 		return { startTime = 0, duration = 0 }
 	end,
 	GetSpellPowerCost = function(id)
-		local cost = S.formCost[id]
+		local cost = S.formCost[id] or S.manaCost[id]
+		if S.energyCost[id] then
+			return { { type = 3, cost = S.energyCost[id] } }
+		end
 		return cost and { { type = 0, cost = cost } } or {}
+	end,
+	PickupSpell = function(id)
+		W.cursorItem = { kind = "spell", id = id }
+	end,
+	GetSpellSubtext = function(id)
+		local rank = S.ranks[id]
+		return rank and ("Rank " .. rank[2]) or ""
 	end,
 }
 
@@ -805,7 +818,57 @@ C_SpellBook = {
 		return entry and { spellID = entry[1], actionID = entry[1], name = entry[2], itemType = 1,
 			isPassive = entry.passive or false, isOffSpec = false }
 	end,
+	-- Entries marked low = true are lower ranks shown with "Show all spell ranks".
+	IsSpellBookItemLowRank = function(slot)
+		local entry = S.spellbook[slot]
+		return entry and entry.low or false
+	end,
 }
+
+-- Spell ranks: W.state.ranks[id] = { name, rankNumber }. The highest known rank is the spellbook
+-- entry (not marked low) with that name.
+local function HighestKnown(name)
+	for _, entry in ipairs(S.spellbook) do
+		if entry[2] == name and not entry.low then
+			return entry[1]
+		end
+	end
+end
+C_ActionBar = {
+	IsHighestSpellRank = function(id)
+		local rank = S.ranks[id]
+		if not rank then
+			return true
+		end
+		return HighestKnown(rank[1]) == id
+	end,
+}
+
+-- Action bars and the cursor, like the client: PlaceAction swaps the cursor into the slot and the
+-- slot's old action onto the cursor; refused in combat.
+W.actions = {}
+W.cursorItem = nil
+function GetActionInfo(slot)
+	local a = W.actions[slot]
+	if a then
+		return a.kind, a.id
+	end
+end
+function GetCursorInfo()
+	return W.cursorItem and W.cursorItem.kind or nil
+end
+function ClearCursor()
+	W.cursorItem = nil
+end
+function PlaceAction(slot)
+	if W.state.inCombat then
+		W.blocked[#W.blocked + 1] = "PlaceAction"
+		error("ADDON_ACTION_BLOCKED: PlaceAction in combat")
+	end
+	local old = W.actions[slot]
+	W.actions[slot] = W.cursorItem
+	W.cursorItem = old
+end
 
 local function AuraFor(name)
 	local a = S.auras[name]
