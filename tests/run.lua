@@ -426,7 +426,7 @@ do
 	W.state.form = 1
 	W.Fire("UPDATE_SHAPESHIFT_FORM")
 	W.Advance(0.5)
-	check(chain() == "targetauras,powerbar,manabar,fsr,combopoints,cooldowns,buffs",
+	check(chain() == "targetauras,powerbar,manabar,fsr,combopoints,powershift,cooldowns,buffs",
 		"Cat Form: energy bar, mana bar and combo points slot in (" .. chain() .. ")")
 	ok, bad = linked()
 	check(ok, "Cat Form: column re-chained" .. (bad and (" (" .. bad .. ")") or ""))
@@ -434,14 +434,14 @@ do
 	W.state.form = 2
 	W.Fire("UPDATE_SHAPESHIFT_FORM")
 	W.Advance(0.5)
-	check(chain() == "targetauras,powerbar,manabar,fsr,cooldowns,buffs", "Bear Form: combo points and tick close up (" .. chain() .. ")")
+	check(chain() == "targetauras,powerbar,manabar,fsr,powershift,cooldowns,buffs", "Bear Form: combo points and tick close up (" .. chain() .. ")")
 	ok, bad = linked()
 	check(ok, "Bear Form: no gaps" .. (bad and (" (" .. bad .. ")") or ""))
 
 	W.Slash("toggle manabar")
-	check(chain() == "targetauras,powerbar,fsr,cooldowns,buffs", "disabling a module closes its gap")
+	check(chain() == "targetauras,powerbar,fsr,powershift,cooldowns,buffs", "disabling a module closes its gap")
 	W.Slash("toggle manabar")
-	check(chain() == "targetauras,powerbar,manabar,fsr,cooldowns,buffs", "re-enabling slots it back in")
+	check(chain() == "targetauras,powerbar,manabar,fsr,powershift,cooldowns,buffs", "re-enabling slots it back in")
 
 	-- Resizing needs no re-layout: pieces hang from the bottom edge of the one above.
 	ns.db.modules.cooldowns.size = 48
@@ -452,7 +452,7 @@ do
 	W.Slash("unlock")
 	local _, _, _, gapUnlocked = hangsFrom("cooldowns")
 	check(gapUnlocked == -(ns.db.layout.gap + 12), "unlocked: extra room for each piece's name")
-	check(chain() == "targetauras,powerbar,manabar,fsr,energytick,combopoints,cooldowns,buffs", "unlocked: every piece shown in the column")
+	check(chain() == "targetauras,powerbar,manabar,fsr,energytick,combopoints,powershift,cooldowns,buffs", "unlocked: every piece shown in the column")
 
 	-- A plain drag of any stacked piece moves the whole column.
 	A.manabar:GetScript("OnDragStart")(A.manabar)
@@ -469,7 +469,7 @@ do
 	check(ns.db.layout.detached.combopoints and rawget(A.combopoints, "_moving"), "shift-drag detaches the piece being dragged")
 	A.combopoints._points = { { "CENTER", ns.root, "CENTER", 200, 0 } }
 	A.combopoints:GetScript("OnDragStop")(A.combopoints)
-	check(hangsFrom("cooldowns") == A.energytick, "the column closes up behind a detached piece")
+	check(hangsFrom("powershift") == A.energytick, "the column closes up behind a detached piece")
 	check(ns.db.positions.combopoints and ns.db.positions.combopoints[3] == 200, "the detached piece keeps its own spot")
 	W.Slash("lock")
 
@@ -491,7 +491,7 @@ do
 	W.Fire("UPDATE_SHAPESHIFT_FORM")
 	W.Advance(0.5)
 	ok, bad = linked()
-	check(ok and chain() == "targetauras,powerbar,manabar,fsr,cooldowns,buffs", "re-chains in combat (" .. chain() .. ")")
+	check(ok and chain() == "targetauras,powerbar,manabar,fsr,powershift,cooldowns,buffs", "re-chains in combat (" .. chain() .. ")")
 	W.state.inCombat = false
 	W.Fire("PLAYER_REGEN_ENABLED")
 
@@ -1618,6 +1618,135 @@ do
 	check(not nextAb.anchor:IsShown(), "only in combat by default")
 	local snap = ns.TakeSnapshot("assisted")
 	check(snap.capabilities.assistedCombat and snap.capabilities.assistedCombat.available == true, "probe records whether the helper is offered")
+	noErrors(W, "no errors or blocked actions")
+end
+
+---------------------------------------------------------------------------
+do
+	section("powershift pips and cue, heal frames, form bar, tooltips, Growl check")
+	local W, ns = fresh(function(W)
+		table.insert(W.state.spellbook, { 17061, "Furor", passive = true })
+		table.insert(W.state.spellbook, { 774, "Rejuvenation" })
+		table.insert(W.state.spellbook, { 8936, "Regrowth" })
+		table.insert(W.state.spellbook, { 5185, "Healing Touch" })
+		table.insert(W.state.spellbook, { 6795, "Growl" })
+	end)
+	login(W)
+	W.Advance(5)
+	local ps = ns.modules.powershift
+
+	-- Pips: in Cat Form, each pip's visibility comes from the client's own mana check.
+	W.state.form = 1
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.5)
+	check(ps.anchor:IsShown(), "Cat Form: shift pips show")
+	local secretPips = 0
+	for _, f in ipairs(W.frames) do
+		if rawget(f, "_parent") == ps.anchor and rawget(f, "_kind") == "Texture" and W.IsSecret(rawget(f, "_alpha")) then
+			secretPips = secretPips + 1
+		end
+	end
+	check(secretPips >= 1, "pips are shown or hidden by the game from your hidden mana (" .. secretPips .. ")")
+	check(ps.HasFuror(), "Furor is detected from your spellbook")
+
+	-- Cue in combat: two nested fades, energy and mana, both decided by the client.
+	W.Fire("PLAYER_REGEN_DISABLED")
+	W.state.inCombat = true
+	W.Advance(0.5)
+	check(ps.cueOuter:IsShown() and W.IsSecret(rawget(ps.cueOuter, "_alpha")) and W.IsSecret(rawget(ps.cueInner, "_alpha")),
+		"Powershift cue: energy and mana conditions both left to the client")
+	ns.energyTickStats.mode, ns.energyTickStats.phase, ns.energyTickStats.period = "tick", W.now - 1.8, 2
+	ps:Update()
+	check(not ps.cueOuter:IsShown(), "not right before an energy tick")
+	ns.energyTickStats.mode = "learning"
+	W.state.inCombat = false
+	W.Fire("PLAYER_REGEN_ENABLED")
+	W.state.form = 0
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.5)
+	check(not ps.anchor:IsShown(), "caster form: no pips")
+
+	-- Growl: a readable "still not tanking" after it lands says it missed.
+	W.state.form = 2
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.state.threat = 1
+	W.Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "g1", 6795)
+	W.Advance(1)
+	check(ns.modules.alerts.stats.growlMisses == 1, "Growl that didn't take aggro is flagged")
+	W.state.threat = nil
+	W.Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "g2", 6795)
+	W.Advance(1)
+	check(ns.modules.alerts.stats.growlMisses == 1 and ns.modules.alerts.stats.growlUnknown >= 1, "threat hidden: says nothing")
+	W.state.form = 0
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.5)
+
+	-- Heal frames: off by default; on, Blizzard's secure header makes click-to-cast buttons.
+	check(_G.ForeverDruidHealHeader == nil or not _G.ForeverDruidHealHeader:IsShown(), "heal frames are off by default")
+	W.state.party = { party1 = { name = "Tankard", class = "WARRIOR", role = "TANK" } }
+	ns.SetModuleEnabled("healframes", true)
+	local header = _G.ForeverDruidHealHeader
+	local you, tank = rawget(header, 1), rawget(header, 2)
+	check(you and tank and tank:GetAttribute("unit") == "party1", "a button for you and each party member")
+	check(tank:GetAttribute("*type1") == "spell" and tank:GetAttribute("*spell1") == "Rejuvenation"
+		and tank:GetAttribute("*spell2") == "Regrowth" and tank:GetAttribute("shift-spell1") == "Healing Touch",
+		"left-click Rejuvenation, right-click Regrowth, shift-left Healing Touch")
+	check(tank:GetAttribute("*type3") == "target", "middle-click targets")
+	check(tank:GetAttribute("shift-type2") == nil, "a spell you don't know (Remove Curse) isn't bound")
+	W.Advance(1)
+	check(ns.modules.healframes.stats.decorated >= 2, "bars drawn on the buttons out of combat")
+
+	-- Someone joins mid-fight: the header (secure code) adds a working button; settings wait.
+	W.Fire("PLAYER_REGEN_DISABLED")
+	W.state.inCombat = true
+	W.state.party.party2 = { name = "Healbot", class = "PRIEST", role = "HEALER" }
+	W.UpdateHeaders()
+	local joined = rawget(header, 3)
+	check(joined and joined:GetAttribute("*spell1") == "Rejuvenation", "a member who joins mid-fight can be clicked straight away")
+	ns.db.modules.healframes.clicks.left = "regrowth"
+	ns.modules.healframes.Configure()
+	check(joined:GetAttribute("*spell1") == "Rejuvenation" and #W.blocked == 0, "changing clicks in combat waits (nothing blocked)")
+	W.state.inCombat = false
+	W.Fire("PLAYER_REGEN_ENABLED")
+	W.Advance(1)
+	check(joined:GetAttribute("*spell1") == "Regrowth", "applied when the fight ends")
+	ns.SetModuleEnabled("healframes", false)
+	W.state.party = nil
+
+	-- Form bar: one secure button per form, current form lit.
+	ns.SetModuleEnabled("formbar", true)
+	local fb = ns.modules.formbar
+	check(fb.count and fb.count >= 2 and _G.ForeverDruidForm1:GetAttribute("type") == "spell", "form bar: a click-to-shift button per form")
+	W.state.form = 1
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	check(rawget(_G.ForeverDruidForm1.lit, "_alpha") == 1, "current form is lit")
+	check(_G.ForeverDruidForm1.cost:GetText() == "400", "mana cost shown")
+	W.Fire("PLAYER_REGEN_DISABLED")
+	W.state.inCombat = true
+	W.Fire("UPDATE_SHAPESHIFT_FORMS")
+	check(#W.blocked == 0, "no secure changes in combat (rebuild waits)")
+	W.state.inCombat = false
+	W.Fire("PLAYER_REGEN_ENABLED")
+	W.state.form = 0
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+
+	-- Tooltips: druid values with the change from what you wear.
+	W.itemStats["item:new"] = { ITEM_MOD_STRENGTH_SHORT = 10, ITEM_MOD_AGILITY_SHORT = 6 }
+	W.itemStats["item:old"] = { ITEM_MOD_STRENGTH_SHORT = 4, ITEM_MOD_AGILITY_SHORT = 8, ITEM_MOD_SPELL_HEALING_DONE_SHORT = 11 }
+	W.itemSlots["item:new"], W.itemSlots["item:old"] = "INVTYPE_CHEST", "INVTYPE_CHEST"
+	W.equipped[5] = "item:old"
+	local lines = W.ShowItemTooltip("item:new")
+	local text = {}
+	for _, l in ipairs(lines) do
+		text[#text + 1] = l.text
+	end
+	local all = table.concat(text, " | ")
+	check(all:find("Cat attack power +26 (+10)", 1, true), "Cat AP: 2x Str + Agi, with the change (" .. all .. ")")
+	check(all:find("Bear attack power +20 (+12)", 1, true), "Bear AP: 2x Str, with the change")
+	check(all:find("Healing +0 (-11)", 1, true), "shows healing you'd lose")
+	ns.db.tooltips.enabled = false
+	check(#W.ShowItemTooltip("item:new") == 0, "tooltips can be turned off")
+	check(W.ShowOptionsPanel(), "settings with the new pages show")
 	noErrors(W, "no errors or blocked actions")
 end
 

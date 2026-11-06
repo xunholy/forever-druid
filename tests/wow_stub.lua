@@ -123,12 +123,14 @@ local function NewObject(kind, parent, template)
 	return o
 end
 
+local SECURE_TEMPLATES = { SecureActionButtonTemplate = true, SecureUnitButtonTemplate = true,
+	SecureGroupHeaderTemplate = true }
 local function IsProtected(frame)
-	if rawget(frame, "_template") == "SecureActionButtonTemplate" then
+	if SECURE_TEMPLATES[rawget(frame, "_template") or ""] then
 		return true
 	end
 	for _, f in ipairs(W.frames) do
-		if rawget(f, "_template") == "SecureActionButtonTemplate" then
+		if SECURE_TEMPLATES[rawget(f, "_template") or ""] then
 			local p = rawget(f, "_parent")
 			while p do
 				if p == frame then
@@ -433,13 +435,24 @@ function MenuUtil.CreateContextMenu(owner, generator)
 end
 
 function CreateFrame(kind, name, parent, template)
-	if W.state and W.state.inCombat and template == "SecureActionButtonTemplate" then
+	if W.state and W.state.inCombat and SECURE_TEMPLATES[template or ""] then
 		W.blocked[#W.blocked + 1] = "CreateFrame secure"
 		error("ADDON_ACTION_BLOCKED: creating a secure frame in combat")
 	end
 	local f = NewObject(kind, parent, template)
 	if name then
 		_G[name] = f
+	end
+	if template == "SecureGroupHeaderTemplate" then
+		-- Like Blizzard's header: on Show and roster changes it makes one secure unit button per
+		-- member (player first), copying _initialAttribute-* onto new buttons.
+		W.headers = W.headers or {}
+		W.headers[#W.headers + 1] = f
+		local show = f.Show
+		rawset(f, "Show", function(self)
+			show(self)
+			W.UpdateHeaders()
+		end)
 	end
 	if template == "InputScrollFrameTemplate" then
 		f.EditBox = NewObject("EditBox", f)
@@ -553,6 +566,70 @@ for i = 1, 12 do
 	_G["ActionButton" .. i] = button
 end
 
+function W.UpdateHeaders()
+	for _, header in ipairs(W.headers or {}) do
+		if header:IsShown() then
+			local units = { "player" }
+			for i = 1, 4 do
+				if W.state.party and W.state.party["party" .. i] then
+					units[#units + 1] = "party" .. i
+				end
+			end
+			for i, unit in ipairs(units) do
+				local button = rawget(header, i)
+				if not button then
+					-- Created by the secure code, so allowed even in combat.
+					button = NewObject("Button", header, "SecureUnitButtonTemplate")
+					rawset(header, i, button)
+					local names = header:GetAttribute("_initialAttributeNames")
+					for name in tostring(names or ""):gmatch("[^,]+") do
+						button._attributes[name] = header:GetAttribute("_initialAttribute-" .. name)
+					end
+				end
+				button._attributes.unit = unit
+				button._shown = true
+			end
+			for i = #units + 1, 5 do
+				local button = rawget(header, i)
+				if button then
+					button._attributes.unit = nil
+					button._shown = false
+				end
+			end
+		end
+	end
+end
+function UnitInRange()
+	return W.Secret()
+end
+
+-- Tooltips: hooks registered through TooltipDataProcessor; W.ShowItemTooltip(link) runs them.
+W.tooltipHooks = {}
+TooltipDataProcessor = {
+	AddTooltipPostCall = function(kind, fn)
+		W.tooltipHooks[#W.tooltipHooks + 1] = { kind = kind, fn = fn }
+	end,
+}
+function W.ShowItemTooltip(link)
+	local tip = { lines = {} }
+	function tip:GetItem()
+		return "Item", link
+	end
+	function tip:AddLine(text, r, g, b)
+		self.lines[#self.lines + 1] = { text = text, r = r, g = g, b = b }
+	end
+	for _, hook in ipairs(W.tooltipHooks) do
+		if hook.kind == Enum.TooltipDataType.Item then
+			hook.fn(tip)
+		end
+	end
+	return tip.lines
+end
+W.itemStats, W.itemSlots, W.equipped = {}, {}, {}
+function GetInventoryItemLink(_, slot)
+	return W.equipped[slot]
+end
+
 -- Popups: recorded, and accepted or declined by the test.
 StaticPopupDialogs = {}
 UISpecialFrames = {}
@@ -634,6 +711,7 @@ RebuildNames()
 W.RebuildNames = RebuildNames
 
 Enum = {
+	TooltipDataType = { Item = 0, Spell = 1, Unit = 2 },
 	PowerType = { Mana = 0, Rage = 1, Focus = 2, Energy = 3, ComboPoints = 4 },
 	SpellBookSpellBank = { Player = 0, Pet = 1 },
 	SpellBookItemType = { None = 0, Spell = 1, FutureSpell = 2, PetAction = 3, Flyout = 4 },
@@ -1067,6 +1145,12 @@ C_UnitAuras = {
 C_Item = {
 	GetItemCount = function(id)
 		return S.items[id] or 0
+	end,
+	GetItemStats = function(link)
+		return W.itemStats[link]
+	end,
+	GetItemInfoInstant = function(link)
+		return 1, "Armor", "Leather", W.itemSlots[link]
 	end,
 }
 

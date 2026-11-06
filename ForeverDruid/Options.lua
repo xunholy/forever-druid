@@ -377,12 +377,13 @@ function Builder:Button(label, width, onClick, tip)
 	return button
 end
 
-function Builder:Cycle(label, values, get, set, tip)
+function Builder:Cycle(label, values, get, set, tip, display)
 	local button = CreateFrame("Button", nil, self.content, "UIPanelButtonTemplate")
-	button:SetSize(220, 22)
+	button:SetSize(display and 300 or 220, 22)
 	button:SetPoint("TOPLEFT", 20, self.y)
 	local function Render()
-		button:SetText(("%s: %s"):format(label, L[get()]))
+		local value = get()
+		button:SetText(("%s: %s"):format(label, display and display(value) or L[value]))
 	end
 	button:SetScript("OnClick", function()
 		local current = get()
@@ -430,6 +431,9 @@ local function ModuleGetter(module, field)
 end
 
 local MODULE_TITLES = {
+	powershift = "Powershift",
+	formbar = "Form bar",
+	healframes = "Heal frames",
 	nextability = "Next ability",
 	alerts = "Alerts",
 	party = "Party",
@@ -446,6 +450,9 @@ local MODULE_TITLES = {
 ns.MODULE_TITLES = MODULE_TITLES
 
 local MODULE_NOTES = {
+	powershift = "Pips for how many shifts your mana affords, and a Powershift cue in Cat or Bear Form when it's worth it (needs the Furor talent). The game checks your hidden mana and energy itself.", -- luacheck: no max line length
+	formbar = "A row of your forms next to the HUD: click to shift, current form lit, mana cost shown.",
+	healframes = "You and your party as click-to-heal bars: pick what each click casts. Off by default. Settings can only change out of combat.",
 	nextability = "Blizzard's own rotation suggestion: the game picks your next ability from the real numbers addons can't see, and ForeverDruid shows it and makes its button glow. Only if Forever's client offers it.", -- luacheck: no max line length
 	alerts = "Clearcasting and Nature's Grace the moment they trigger, and a warning when you're losing aggro in Bear Form. Only shows what the game lets addons see during a fight.", -- luacheck: no max line length
 	party = "In a group: your HoTs on each party member with timers, a Rebirth hint when someone is dead, and an Innervate hint when a healer runs low on mana.",
@@ -573,6 +580,12 @@ local function MainPage()
 		end
 	end, L["The cat icon on the minimap: left-click for quick settings, right-click to unlock, shift-click for this panel. ForeverDruid is also in the minimap addon menu."]) -- luacheck: no max line length
 
+	b:Check(L["Druid values in item tooltips"], function()
+		return ns.db.tooltips.enabled
+	end, function(value)
+		ns.db.tooltips.enabled = value
+	end, L["Adds Cat and Bear attack power and healing to item tooltips, with the change from what you're wearing."])
+
 	b:Header(L["Role"])
 	b:Cycle(L["In caster form I'm a"], ns.CASTER_ROLES, function()
 		return ns.db.role
@@ -628,7 +641,60 @@ local function MainPage()
 	return panel
 end
 
+local function ActionName(action)
+	if action == "target" then
+		return L["Target them"]
+	elseif action == "none" then
+		return L["Nothing"]
+	end
+	local name = ns.SpellName(action) or action
+	return ns.IsCastable(action) and name or (name .. " " .. L["(not learned)"])
+end
+
 local MODULE_PAGES = {
+	powershift = function(s)
+		s:Check(L["Shift pips"], ModuleGetter("powershift", "pips"), ModuleSetter("powershift", "pips"),
+			L["One pip per shift back into your form that your mana affords, up to five."])
+		s:Check(L["Powershift cue"], ModuleGetter("powershift", "cue"), ModuleSetter("powershift", "cue"),
+			L["In combat with Furor: shows when your energy (Cat) or rage (Bear) is low, you can afford the shift, and the next energy tick isn't about to land."])
+		s:Slider(L["Cat: energy at or below (%)"], 5, 60, 1, function()
+			return math.floor(ns.db.modules.powershift.energyBelow * 100 + 0.5)
+		end, function(value)
+			ns.db.modules.powershift.energyBelow = math.floor(value + 0.5) / 100
+		end)
+		s:Slider(L["Bear: rage at or below (%)"], 0, 50, 1, function()
+			return math.floor(ns.db.modules.powershift.rageBelow * 100 + 0.5)
+		end, function(value)
+			ns.db.modules.powershift.rageBelow = math.floor(value + 0.5) / 100
+		end)
+		s:Slider(L["Pip size"], 6, 24, 1, ModuleGetter("powershift", "size"), ModuleSetter("powershift", "size"))
+	end,
+	formbar = function(s)
+		s:Check(L["Show mana costs"], ModuleGetter("formbar", "showCost"), ModuleSetter("formbar", "showCost"))
+		s:Slider(L["Icon size"], 20, 48, 1, ModuleGetter("formbar", "size"), ModuleSetter("formbar", "size"))
+	end,
+	healframes = function(s)
+		local hf = ns.modules.healframes
+		s:Note(L["Click a frame to cast on that person. These settings apply out of combat."])
+		for _, click in ipairs(hf.CLICKS) do
+			s:Cycle(L[click.label], hf.ACTIONS, function()
+				return ns.db.modules.healframes.clicks[click.key] or "none"
+			end, function(value)
+				ns.db.modules.healframes.clicks[click.key] = value
+				if hf.enabled then
+					hf.Configure()
+				end
+			end, nil, ActionName)
+		end
+		s:Check(L["Show when solo"], ModuleGetter("healframes", "showSolo"), ModuleSetter("healframes", "showSolo"))
+		for _, move in ipairs({ { L["Move up"], 0, 10 }, { L["Move down"], 0, -10 }, { L["Move left"], -10, 0 }, { L["Move right"], 10, 0 } }) do
+			s:Button(move[1], 140, function()
+				if not hf.Move(move[2], move[3]) then
+					ns.Print(L["can't move frames during combat"])
+				end
+			end)
+		end
+	end,
 	nextability = function(s)
 		local available = ns.modules.nextability.Available()
 		local reason = ns.modules.nextability.stats.reason

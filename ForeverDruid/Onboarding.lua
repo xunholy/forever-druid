@@ -9,6 +9,9 @@ local L = ns.L
 
 ns.RELEASE_NOTES = {
 	{ version = "0.5.0", notes = {
+		"Powershift helpers: pips for how many shifts your mana affords, and a Powershift cue in Cat or Bear Form when it's worth it (with Furor).",
+		"Click-to-heal party frames (turn on in settings): pick what each click casts, with health, your HoTs and range on every bar.",
+		"A form bar to click-shift, item tooltips with Cat and Bear attack power and healing compared with what you wear, and a warning when a Growl doesn't take.", -- luacheck: no max line length
 		"Next ability: if Forever offers Blizzard's rotation suggestion, ForeverDruid shows your next ability by the HUD and makes its button glow.",
 		"\"Let it bleed\": when your Rake, Rip, Moonfire or Insect Swarm is ticking on an enemy that's nearly dead, the target row tells you to move on to the next one.", -- luacheck: no max line length
 		"A party panel shows your HoTs on each group member, with a Rebirth hint when someone dies and an Innervate hint when a healer runs low.", -- luacheck: no max line length

@@ -27,11 +27,15 @@ Modules\Reminders.lua
 Modules\Alerts.lua
 Modules\Party.lua
 Modules\NextAbility.lua
+Modules\Powershift.lua
+Modules\FormBar.lua
+Modules\HealFrames.lua
 Probe.lua
 Onboarding.lua
 Share.lua
 Macros.lua
 Ranks.lua
 Leveling.lua
+Tooltip.lua
 Options.lua
 MinimapButton.lua

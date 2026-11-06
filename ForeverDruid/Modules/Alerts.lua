@@ -22,7 +22,29 @@ end
 
 local MAX_PROC_SECONDS = 15 -- longest proc; a safety net if the "removed" event never comes
 
-M.stats = { procShown = 0, readableAdds = 0, secretAdds = 0, threatReadable = 0, threatSecret = 0, threatWarnings = 0 }
+M.stats = { procShown = 0, readableAdds = 0, secretAdds = 0, threatReadable = 0, threatSecret = 0, threatWarnings = 0,
+	growls = 0, growlMisses = 0, growlUnknown = 0 }
+
+local GROWL = 6795
+M.growlMissUntil = 0
+
+-- After a Growl: if the game says you still don't have the target, it probably missed (resisted).
+-- Needs a readable spell ID and threat status; otherwise says nothing.
+function M.CheckGrowl()
+	local cfg = ns.ModuleConfig("alerts")
+	if not cfg.growl or not UnitThreatSituation then
+		return
+	end
+	local ok, status = pcall(UnitThreatSituation, "player", "target")
+	if not ok or ns.IsSecret(status) or type(status) ~= "number" then
+		M.stats.growlUnknown = M.stats.growlUnknown + 1
+		return
+	end
+	if status < 3 then
+		M.stats.growlMisses = M.stats.growlMisses + 1
+		M.growlMissUntil = GetTime() + 2.5
+	end
+end
 M.active = {} -- auraInstanceID -> { proc=, shownAt=, aura= }
 
 local icons = {}
@@ -195,6 +217,16 @@ function M:Init()
 	ns.On("PLAYER_TARGET_CHANGED", function()
 		M.lastSecure = nil
 	end)
+	ns.OnUnit("UNIT_SPELLCAST_SUCCEEDED", "player", function(_, _, _, spellID)
+		if not self.enabled or ns.IsSecret(spellID) or type(spellID) ~= "number" then
+			return
+		end
+		local name = ns.SafeReadable(C_Spell.GetSpellName, spellID)
+		if spellID == GROWL or (name and name == ns.SpellName("growl")) then
+			M.stats.growls = M.stats.growls + 1
+			C_Timer.After(0.6, M.CheckGrowl) -- give the taunt a moment to land
+		end
+	end)
 end
 
 function M:Refresh()
@@ -229,13 +261,16 @@ function M:Refresh()
 		icons[i].fdShownFor = nil
 	end
 
+	local growlMissed = GetTime() < M.growlMissUntil
 	local losing = ns.Previewing() or M.LosingAggro()
-	if losing and not banner:IsShown() and not ns.Previewing() then
-		M.stats.threatWarnings = M.stats.threatWarnings + 1
+	if (losing or growlMissed) and not banner:IsShown() and not ns.Previewing() then
+		if losing then
+			M.stats.threatWarnings = M.stats.threatWarnings + 1
+		end
 		PlayAlertSound()
 	end
-	banner:SetText(L["Losing aggro!"])
-	banner:SetShown(losing and true or false)
+	banner:SetText(growlMissed and L["Growl missed - taunt again!"] or L["Losing aggro!"])
+	banner:SetShown((losing or growlMissed) and true or false)
 	self.anchor:Show()
 end
 

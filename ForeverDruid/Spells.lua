@@ -66,6 +66,10 @@ local SPELLS = {
 	moonfire = { "Moonfire", 8921 },
 	insectSwarm = { "Insect Swarm", 5570 },
 	rake = { "Rake", 1822 },
+	furor = { "Furor", 17061 }, -- passive talent: energy or rage when you shift
+	removeCurse = { "Remove Curse", 2782 },
+	abolishPoison = { "Abolish Poison", 2893 },
+	curePoison = { "Cure Poison", 8946 },
 	rip = { "Rip", 1079 },
 
 	-- Skyborne racials (probe)

@@ -3,6 +3,14 @@
 ## 0.5.0
 
 **New**
+- Shift pips (how many shifts your mana affords) and a Powershift cue in Cat or Bear Form with
+  Furor: energy or rage low, mana enough, and not just before an energy tick. Mana, energy and
+  rage stay hidden; the client decides each pip and the cue from them.
+- Click-to-heal party frames (off by default) on Blizzard's secure group header: five clicks you
+  assign (target, heals, cures, Innervate, Rebirth, buffs), health, your HoTs and range per bar.
+- Form bar (off by default): click-to-shift buttons, current form lit, mana costs.
+- Item tooltips: Cat and Bear attack power and healing, with the change from your equipped item.
+- "Growl missed" when threat shows you still don't have the mob after a Growl.
 - Next ability: Blizzard's own rotation suggestion (C_AssistedCombat), shown as an icon by the HUD
   with a glow on the Blizzard action button that holds it. The game picks the spell from values
   addons can't read; nothing shows if the client doesn't offer it, and the probe records why.

@@ -197,6 +197,7 @@ ns.defaults = {
 	layout = { stack = true, gap = 4, detached = {} },
 	minimap = { hide = false, angle = 200 }, -- degrees round the ring, 0 = right
 	style = { icons = "minimal" },
+	tooltips = { enabled = true, compare = true },
 	preview = true, -- sample icons while unlocked
 	macros = { manage = false, enabled = {} }, -- enabled[key] = false to skip one
 	ranks = { auto = true, keep = {} },
@@ -225,7 +226,14 @@ ns.defaults = {
 		targetauras = { enabled = true, scale = 1, size = 26, spacing = 3, max = 8, warnMissing = true,
 			letItBleed = true, bleedThreshold = 0.2 },
 		nextability = { enabled = true, scale = 1, size = 44, glow = true, combatOnly = true },
-		alerts = { enabled = true, scale = 1, size = 40, procs = true, threat = true, threatSolo = false, sound = false },
+		alerts = { enabled = true, scale = 1, size = 40, procs = true, threat = true, threatSolo = false, sound = false,
+			growl = true },
+		powershift = { enabled = true, scale = 1, size = 10, pips = true, cue = true, energyBelow = 0.25, rageBelow = 0.1,
+			tickWindow = 0.6 },
+		formbar = { enabled = false, scale = 1, size = 30, showCost = true },
+		healframes = { enabled = false, scale = 1, width = 140, height = 30, showSolo = false,
+			clicks = { left = "rejuvenation", right = "regrowth", middle = "target", shiftLeft = "healingTouch",
+				shiftRight = "removeCurse" } },
 		party = { enabled = true, scale = 1, size = 20, width = 200, includeSelf = true, healerOnly = false,
 			rebirthHint = true, innervateHint = true },
 		reminders = {
@@ -553,7 +561,7 @@ end
 -- Top to bottom. "My effects on target" keeps its row with or without a target, so it goes first
 -- and the bars below it don't jump when a DoT lands. Reminders hold secure (click-to-cast)
 -- buttons, which may not follow a frame that moves in combat, so they keep their own position.
-ns.STACK_ORDER = { "targetauras", "powerbar", "manabar", "fsr", "energytick", "combopoints", "cooldowns", "buffs" }
+ns.STACK_ORDER = { "targetauras", "powerbar", "manabar", "fsr", "energytick", "combopoints", "powershift", "cooldowns", "buffs" }
 local STACKABLE = {}
 for _, key in ipairs(ns.STACK_ORDER) do
 	STACKABLE[key] = true
