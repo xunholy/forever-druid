@@ -158,6 +158,28 @@ function ns.PrimaryTree()
 	return best
 end
 
+-- Unspent talent points from the class tree's currency, or nil if the client won't say.
+function ns.UnspentTalentPoints()
+	if not (C_Traits and C_Traits.GetTreeCurrencyInfo and C_Traits.GetConfigInfo) then
+		return nil
+	end
+	local ok, unspent = pcall(function()
+		local configID = ActiveConfigID()
+		local config = configID and C_Traits.GetConfigInfo(configID)
+		local treeID = config and config.treeIDs and config.treeIDs[1]
+		if not treeID then
+			return nil
+		end
+		local currencies = C_Traits.GetTreeCurrencyInfo(configID, treeID, false)
+		local first = type(currencies) == "table" and currencies[1]
+		return first and ns.Readable(first.quantity)
+	end)
+	if ok and type(unspent) == "number" then
+		return unspent
+	end
+	return nil
+end
+
 -- The role you picked for caster form ("auto" = from your talents). Cat and Bear Form always
 -- decide the role themselves.
 ns.CASTER_ROLES = { "auto", "healer", "balance", "feral" }

@@ -9,6 +9,10 @@ local L = ns.L
 
 ns.RELEASE_NOTES = {
 	{ version = "0.5.0", notes = {
+		"A party panel shows your HoTs on each group member, with a Rebirth hint when someone dies and an Innervate hint when a healer runs low.", -- luacheck: no max line length
+		"Big alerts for Clearcasting and Nature's Grace, and a warning when you're losing aggro in Bear Form, wherever the game lets addons see them in combat.", -- luacheck: no max line length
+		"Missing Faerie Fire, Demoralizing Roar, Moonfire or Insect Swarm on your enemy shows as a dimmed icon next to your effects.",
+		"Reminders for unspent talent points, and three more macros: mouseover Faerie Fire, Barkskin from any form, and an emergency Nature's Swiftness into Healing Touch.", -- luacheck: no max line length
 		"Your action bars now stay on your highest spell ranks: learn a new rank and every button with the old one switches to it. Downrank on purpose with /fd ranks keep <spell>.", -- luacheck: no max line length
 		"An energy bar in Cat Form and a rage bar in Bear Form, with the energy tick spark right on the bar.",
 		"A five-second-rule bar shows when your mana regeneration comes back after a cast.",

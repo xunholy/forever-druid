@@ -616,13 +616,36 @@ Enum = {
 	LuaCurveType = { Linear = 0, Step = 1 },
 }
 
-function UnitClass()
+-- Party members: W.state.party = { party1 = { name=, class=, role=, dead=, hots={...} }, ... }
+local function Member(unit)
+	return S.party and S.party[unit]
+end
+function UnitClass(unit)
+	local m = Member(unit)
+	if m then
+		return m.class, m.class
+	end
 	return "Druid", S.class
+end
+function UnitGroupRolesAssigned(unit)
+	local m = Member(unit)
+	return m and m.role or "NONE"
+end
+function IsInGroup()
+	return S.party ~= nil and next(S.party) ~= nil
+end
+W.sounds = {}
+function PlaySound(kit)
+	W.sounds[#W.sounds + 1] = kit
 end
 function UnitRace()
 	return "Skyborne", S.race
 end
-function UnitName()
+function UnitName(unit)
+	local m = Member(unit)
+	if m then
+		return S.secretNames and W.Secret() or m.name
+	end
 	return "Starfall"
 end
 function GetRealmName()
@@ -631,7 +654,11 @@ end
 function UnitLevel()
 	return W.state.level or 40
 end
+-- W.state.threat: a number (0-3) to make threat readable; otherwise secret in combat.
 function UnitThreatSituation()
+	if W.state.threat ~= nil then
+		return W.state.threat
+	end
 	return W.state.inCombat and W.Secret() or nil
 end
 function UnitAttackSpeed()
@@ -673,8 +700,9 @@ end
 function InCombatLockdown()
 	return S.inCombat
 end
-function UnitIsDeadOrGhost()
-	return false
+function UnitIsDeadOrGhost(unit)
+	local m = Member(unit)
+	return m and m.dead or false
 end
 function UnitOnTaxi()
 	return false
@@ -701,7 +729,12 @@ function hooksecurefunc(a, b, c)
 		return table.unpack(results, 1, results.n)
 	end)
 end
-function UnitExists()
+function UnitExists(unit)
+	if unit == "player" then
+		return true
+	elseif unit and unit:find("^party") then
+		return Member(unit) ~= nil
+	end
 	return S.targetExists
 end
 function UnitCanAttack()
@@ -940,8 +973,31 @@ C_UnitAuras = {
 		return nil
 	end,
 	GetUnitAuras = function(unit, filter, max)
+		local m = Member(unit)
+		if m or (unit == "player" and filter:find("HELPFUL", 1, true) and filter:find("PLAYER", 1, true)) then
+			local out = {}
+			for _, a in ipairs((m and m.hots) or S.selfHots or {}) do
+				if S.secretAuras then
+					out[#out + 1] = { icon = W.Secret(), expirationTime = W.Secret(), duration = W.Secret(), name = W.Secret() }
+				else
+					out[#out + 1] = { icon = a.icon, expirationTime = a.expirationTime, duration = a.duration, name = a.name }
+				end
+			end
+			return out
+		end
 		if unit ~= "target" or not S.targetExists then
 			return {}
+		end
+		-- "HARMFUL" without PLAYER: every debuff, including other players' (missing-debuff check).
+		if filter == "HARMFUL" then
+			local out = {}
+			for _, a in ipairs(S.targetAuras) do
+				out[#out + 1] = { name = S.secretAuras and W.Secret() or a.name }
+			end
+			for _, name in ipairs(S.targetOtherDebuffs or {}) do
+				out[#out + 1] = { name = S.secretAuras and W.Secret() or name }
+			end
+			return out
 		end
 		local wantHostile = filter:find("HARMFUL", 1, true) ~= nil
 		if wantHostile ~= S.targetHostile then
@@ -1024,6 +1080,9 @@ C_Traits = {
 			out[i] = { traitNodeGroupID = 100 + i, currencyInfos = { { spent = tree[2] } } }
 		end
 		return out
+	end,
+	GetTreeCurrencyInfo = function()
+		return { { quantity = S.unspentTalents or 0, spent = 0 } }
 	end,
 }
 

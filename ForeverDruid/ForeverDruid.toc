@@ -24,6 +24,8 @@ Modules\Cooldowns.lua
 Modules\Buffs.lua
 Modules\TargetAuras.lua
 Modules\Reminders.lua
+Modules\Alerts.lua
+Modules\Party.lua
 Probe.lua
 Onboarding.lua
 Share.lua

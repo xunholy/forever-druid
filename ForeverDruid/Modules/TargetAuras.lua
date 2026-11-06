@@ -59,6 +59,79 @@ function M.Collect(max)
 	return out
 end
 
+---------------------------------------------------------------------------
+-- Missing debuffs: what your role should keep on an enemy, shown dimmed when it isn't there.
+-- Only when every effect on the target can be identified; one hidden name and we say nothing.
+---------------------------------------------------------------------------
+
+-- Counted with the module's other stats so the probe saves them.
+M.stats.missingChecks, M.stats.missingUnknown, M.stats.missingWarnings = 0, 0, 0
+
+local function FaerieKey()
+	if (ns.form == "cat" or ns.form == "bear") and ns.IsCastable("faerieFireFeral") then
+		return "faerieFireFeral"
+	end
+	return ns.IsCastable("faerieFire") and "faerieFire" or nil
+end
+
+-- Spell keys your current role wants on an enemy target.
+function M.WantedDebuffs(role)
+	local wanted = {}
+	local faerie = FaerieKey()
+	if role == "cat" or role == "feral" then
+		wanted[#wanted + 1] = faerie
+	elseif role == "bear" then
+		wanted[#wanted + 1] = ns.IsCastable("demoralizingRoar") and "demoralizingRoar" or nil
+		wanted[#wanted + 1] = faerie
+	elseif role == "balance" then
+		wanted[#wanted + 1] = faerie
+		wanted[#wanted + 1] = ns.IsCastable("moonfire") and "moonfire" or nil
+		wanted[#wanted + 1] = ns.IsCastable("insectSwarm") and "insectSwarm" or nil
+	end
+	return wanted
+end
+
+-- Keys from WantedDebuffs not found among `auras` (the target's debuffs from anyone), or nil when
+-- any debuff's name is hidden, since then we can't tell.
+function M.MissingDebuffs(auras, role)
+	M.stats.missingChecks = M.stats.missingChecks + 1
+	local present = {}
+	for _, aura in ipairs(auras) do
+		local name = not ns.IsSecret(aura) and type(aura) == "table" and aura.name
+		if not name or ns.IsSecret(name) then
+			M.stats.missingUnknown = M.stats.missingUnknown + 1
+			return nil
+		end
+		present[name] = true
+	end
+	local missing = {}
+	local faerieNames = { ns.SpellName("faerieFire"), ns.SpellName("faerieFireFeral") }
+	for _, key in ipairs(M.WantedDebuffs(role)) do
+		local found = present[ns.SpellName(key)]
+		if key == "faerieFire" or key == "faerieFireFeral" then
+			-- Either kind of Faerie Fire does the same job.
+			found = (faerieNames[1] and present[faerieNames[1]]) or (faerieNames[2] and present[faerieNames[2]])
+		end
+		if not found then
+			missing[#missing + 1] = key
+		end
+	end
+	return missing
+end
+
+local function AllDebuffs()
+	if not (C_UnitAuras and C_UnitAuras.GetUnitAuras) then
+		return nil
+	end
+	local ok, list = pcall(C_UnitAuras.GetUnitAuras, "target", "HARMFUL", 40)
+	if not ok or ns.IsSecret(list) or type(list) ~= "table" then
+		return nil
+	end
+	return list
+end
+
+local missingIcons = {}
+
 local function StackText(aura)
 	-- Prefer the client's formatter (handles secret counts) when the instance ID is usable.
 	local id = aura.auraInstanceID
@@ -151,6 +224,38 @@ function M:Refresh()
 		icons[i]:Hide()
 	end
 	M.stats.shown = shown
+
+	-- Missing debuffs after your own, on enemies in combat.
+	local missing = {}
+	if previewing then
+		missing = { "faerieFire" }
+	elseif cfg.warnMissing and ns.InCombat() and ns.SafeReadable(UnitCanAttack, "player", "target") == true then
+		local debuffs = AllDebuffs()
+		missing = debuffs and M.MissingDebuffs(debuffs, ns.role) or {}
+	end
+	for i, key in ipairs(missing) do
+		local frame = missingIcons[i]
+		if not frame then
+			frame = ns.CreateIcon(self.anchor, size, { borderColor = { 0.9, 0.1, 0.1, 1 } })
+			missingIcons[i] = frame
+		end
+		frame:SetSize(size, size)
+		frame:ClearAllPoints()
+		frame:SetPoint("LEFT", self.anchor, "LEFT", (count + i - 1) * (size + spacing) + 6, 0)
+		local spellID = ns.KnownSpell(key) or (ns.SPELLS[key] and ns.SPELLS[key][2])
+		frame.icon:SetTexture(spellID and ns.SpellIcon(spellID) or 134400)
+		frame.icon:SetDesaturated(true)
+		frame:SetAlpha(0.85)
+		frame:Show()
+	end
+	if #missing > 0 and not previewing then
+		M.stats.missingWarnings = M.stats.missingWarnings + 1
+	end
+	for i = #missing + 1, #missingIcons do
+		missingIcons[i]:Hide()
+	end
+	local total = count + #missing
+	self.anchor:SetSize(math.max(size, total * size + math.max(total - 1, 0) * spacing + (#missing > 0 and 6 or 0)), size)
 	self.anchor:Show()
 end
 

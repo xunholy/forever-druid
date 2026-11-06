@@ -971,7 +971,7 @@ do
 		names[#names + 1] = m.name
 	end
 	table.sort(names)
-	check(table.concat(names, ",") == "FD Innervate,FD Mark,FD Rebirth,FD Shift Bear,FD Shift Cat,FD Thorns",
+	check(table.concat(names, ",") == "FD Barkskin,FD Innervate,FD Mark,FD Rebirth,FD Shift Bear,FD Shift Cat,FD Thorns",
 		"only macros whose spells are known: " .. table.concat(names, ","))
 	check(#W.macros.account == 0, "nothing in the account-wide slots")
 	local mark = W.CharacterMacro("FD Mark")
@@ -1384,6 +1384,103 @@ do
 	check(W.printed[#W.printed] and W.printed[#W.printed]:find("out of combat", 1, true), "/fd ranks now in combat says it will wait")
 	W.state.inCombat = false
 	W.Fire("PLAYER_REGEN_ENABLED")
+	noErrors(W, "no errors or blocked actions")
+end
+
+---------------------------------------------------------------------------
+do
+	section("alerts, party panel, missing debuffs, talent points, new macros")
+	local W, ns = fresh(function(W)
+		table.insert(W.state.spellbook, { 770, "Faerie Fire" })
+		table.insert(W.state.spellbook, { 99, "Demoralizing Roar" })
+		table.insert(W.state.spellbook, { 17116, "Nature's Swiftness" })
+		table.insert(W.state.spellbook, { 5185, "Healing Touch" })
+		table.insert(W.state.spellbook, { 774, "Rejuvenation" })
+	end)
+	login(W)
+	W.Advance(5)
+	local alerts, party, targets = ns.modules.alerts, ns.modules.party, ns.modules.targetauras
+
+	-- Clearcasting from a readable "aura added" event; a hidden one is ignored.
+	W.Fire("PLAYER_REGEN_DISABLED")
+	W.state.inCombat = true
+	W.Fire("UNIT_AURA", "player", { addedAuras = { { spellId = 16870, auraInstanceID = 55, icon = 136170,
+		expirationTime = W.now + 15, duration = 15 } } })
+	check(alerts.active[55] ~= nil, "Clearcasting gained in combat shows as an alert")
+	W.Fire("UNIT_AURA", "player", { addedAuras = { { spellId = W.Secret(), auraInstanceID = W.Secret() } } })
+	check(alerts.stats.secretAdds >= 1 and alerts.active[56] == nil, "a hidden spell ID never shows an alert")
+	W.Fire("UNIT_AURA", "player", { removedAuraInstanceIDs = { 55 } })
+	check(alerts.active[55] == nil, "removed when the buff is used up")
+	W.Fire("UNIT_AURA", "player", { addedAuras = { { spellId = 16870, auraInstanceID = 57, expirationTime = W.now + 15, duration = 15 } } })
+	W.Advance(16)
+	alerts:Refresh()
+	check(alerts.active[57] == nil, "expires on its own if the removal never arrives")
+
+	-- Threat in Bear Form: warns only on a readable "not tanking".
+	W.state.party = { party1 = { name = "Healbot", class = "PRIEST", role = "HEALER" } }
+	W.state.form = 2
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.state.targetExists, W.state.targetHostile = true, true
+	W.state.threat = 1
+	W.Advance(0.5)
+	check(alerts.LosingAggro() == true, "losing aggro (readable threat 1) warns")
+	W.state.threat = 3
+	check(alerts.LosingAggro() == false, "securely tanking: no warning")
+	W.state.threat = nil
+	check(alerts.LosingAggro() == false, "threat hidden by the game: stays quiet")
+
+	-- Missing debuffs on an enemy in Bear Form: Demoralizing Roar and Faerie Fire, unless present.
+	W.state.targetAuras = {}
+	W.state.targetOtherDebuffs = { "Faerie Fire" }
+	local missing = targets.MissingDebuffs({ { name = "Faerie Fire" } }, "bear")
+	check(#missing == 1 and missing[1] == "demoralizingRoar", "bear: Faerie Fire from anyone counts; Demoralizing Roar missing")
+	check(targets.MissingDebuffs({ { name = W.Secret() } }, "bear") == nil, "a hidden debuff name: no warning at all")
+	check(#targets.MissingDebuffs({}, "healer") == 0, "healers aren't nagged about debuffs")
+	W.state.inCombat = false
+	W.Fire("PLAYER_REGEN_ENABLED")
+	W.state.form = 0
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.5)
+
+	-- Party panel: HoTs per member, Rebirth when dead, Innervate fade for healers.
+	W.state.party = {
+		party1 = { name = "Tankard", class = "WARRIOR", role = "TANK",
+			hots = { { icon = 136081, expirationTime = W.now + 10, duration = 12, name = "Rejuvenation" } } },
+		party2 = { name = "Healbot", class = "PRIEST", role = "HEALER" },
+		party3 = { name = "Stabby", class = "ROGUE", dead = true },
+	}
+	W.Fire("GROUP_ROSTER_UPDATE")
+	W.Advance(1)
+	check(party.anchor:IsShown() and party.stats.rows == 4, "in a group: a row for you and each party member (" .. tostring(party.stats.rows) .. ")")
+	check(party.stats.failures == 0, "party HoT lookups succeed")
+	W.state.secretAuras = true
+	W.Advance(1)
+	check(#W.errors == 0, "hidden HoT details still draw without errors")
+	W.state.secretAuras = false
+	W.state.party = nil
+	W.Fire("GROUP_ROSTER_UPDATE")
+	W.Advance(1)
+	check(not party.anchor:IsShown(), "solo: no party panel")
+
+	-- Talent points.
+	W.state.unspentTalents = 2
+	W.Fire("TRAIT_CONFIG_UPDATED")
+	W.Advance(1)
+	check(labels(ns.modules.reminders.active)["Talents 2"], "unspent talent points show a reminder")
+	W.state.unspentTalents = 0
+	W.Fire("TRAIT_CONFIG_UPDATED")
+	W.Advance(1)
+	check(not labels(ns.modules.reminders.active)["Talents 2"], "spending them clears it")
+
+	-- New macros.
+	ns.macros.SetManaged(true)
+	local faerie = W.CharacterMacro("FD Faerie")
+	check(faerie and faerie.body:find("[@mouseover,harm,nodead][] Faerie Fire", 1, true), "FD Faerie: mouseover Faerie Fire")
+	local swift = W.CharacterMacro("FD Swift Heal")
+	check(swift and swift.body:find("/cast Nature's Swiftness", 1, true) and swift.body:find("Healing Touch", 1, true),
+		"FD Swift Heal: Nature's Swiftness into Healing Touch")
+	check(W.CharacterMacro("FD Barkskin") and #swift.body <= 255, "FD Barkskin created; bodies fit the macro limit")
+	check(W.ShowOptionsPanel(), "settings with Alerts and Party pages show")
 	noErrors(W, "no errors or blocked actions")
 end
 

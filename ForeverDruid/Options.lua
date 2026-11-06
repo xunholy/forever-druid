@@ -430,6 +430,8 @@ local function ModuleGetter(module, field)
 end
 
 local MODULE_TITLES = {
+	alerts = "Alerts",
+	party = "Party",
 	powerbar = "Energy / rage",
 	fsr = "Five-second rule",
 	manabar = "Mana bar",
@@ -443,6 +445,8 @@ local MODULE_TITLES = {
 ns.MODULE_TITLES = MODULE_TITLES
 
 local MODULE_NOTES = {
+	alerts = "Clearcasting and Nature's Grace the moment they trigger, and a warning when you're losing aggro in Bear Form. Only shows what the game lets addons see during a fight.", -- luacheck: no max line length
+	party = "In a group: your HoTs on each party member with timers, a Rebirth hint when someone is dead, and an Innervate hint when a healer runs low on mana.",
 	powerbar = "Energy in Cat Form and rage in Bear Form, with the energy tick spark on the bar.",
 	fsr = "After you spend mana, your normal mana regeneration pauses for five seconds. This bar fills over those five seconds.",
 	manabar = "Your mana while in Cat or Bear Form, with the cost of one shift marked.",
@@ -623,6 +627,24 @@ local function MainPage()
 end
 
 local MODULE_PAGES = {
+	alerts = function(s)
+		s:Check(L["Clearcasting and Nature's Grace"], ModuleGetter("alerts", "procs"), ModuleSetter("alerts", "procs"),
+			L["A big icon with its timer when the proc triggers. Needs the game to name the buff as it's gained in combat."])
+		s:Check(L["Losing aggro in Bear Form"], ModuleGetter("alerts", "threat"), ModuleSetter("alerts", "threat"),
+			L["Warns when your target is attacking, or about to attack, someone else. In groups only unless you tick the next box."])
+		s:Check(L["Also when solo"], ModuleGetter("alerts", "threatSolo"), ModuleSetter("alerts", "threatSolo"))
+		s:Check(L["Play a sound"], ModuleGetter("alerts", "sound"), ModuleSetter("alerts", "sound"))
+		s:Slider(L["Icon size"], 24, 80, 1, ModuleGetter("alerts", "size"), ModuleSetter("alerts", "size"))
+	end,
+	party = function(s)
+		s:Check(L["Include yourself"], ModuleGetter("party", "includeSelf"), ModuleSetter("party", "includeSelf"))
+		s:Check(L["Only when I'm healing"], ModuleGetter("party", "healerOnly"), ModuleSetter("party", "healerOnly"),
+			L["Show the panel only when your role is healer (Restoration talents, or picked in settings)."])
+		s:Check(L["Rebirth hint when someone dies"], ModuleGetter("party", "rebirthHint"), ModuleSetter("party", "rebirthHint"))
+		s:Check(L["Innervate hint when a healer is low on mana"], ModuleGetter("party", "innervateHint"), ModuleSetter("party", "innervateHint"),
+			L["Fades in under about a third of their mana. The game works out the fade itself; ForeverDruid never sees their mana."])
+		s:Slider(L["Icon size"], 14, 36, 1, ModuleGetter("party", "size"), ModuleSetter("party", "size"))
+	end,
 	powerbar = function(s)
 		s:Check(L["Show the number"], ModuleGetter("powerbar", "text"), ModuleSetter("powerbar", "text"),
 			L["Your energy or rage as a number on the bar."])
@@ -686,6 +708,8 @@ local MODULE_PAGES = {
 	targetauras = function(s)
 		s:Slider(L["Icon size"], 16, 64, 1, ModuleGetter("targetauras", "size"), ModuleSetter("targetauras", "size"))
 		s:Slider(L["Most shown"], 1, 16, 1, ModuleGetter("targetauras", "max"), ModuleSetter("targetauras", "max"))
+		s:Check(L["Show missing debuffs"], ModuleGetter("targetauras", "warnMissing"), ModuleSetter("targetauras", "warnMissing"),
+			L["In combat, a dimmed red-framed icon for Faerie Fire, Demoralizing Roar (Bear), or Moonfire and Insect Swarm (Balance) when they're not on your enemy target. Only shown when the game lets addons name the target's debuffs."]) -- luacheck: no max line length
 	end,
 	reminders = function(s)
 		s:Check(L["Click a reminder to cast it"], ModuleGetter("reminders", "clickToCast"), ModuleSetter("reminders", "clickToCast"))
@@ -733,7 +757,9 @@ local function ModulePage(key)
 			ns.SetStacked(key, value)
 		end, L["Untick to give this piece its own spot instead of sitting in the column."])
 	end
-	MODULE_PAGES[key](b)
+	if MODULE_PAGES[key] then
+		MODULE_PAGES[key](b)
+	end
 	Finish(b)
 	return panel
 end

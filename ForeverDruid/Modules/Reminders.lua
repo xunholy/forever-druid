@@ -71,6 +71,13 @@ function M.Collect(cfg)
 		-- Read Leyline only attunes you standing on a ley line, so the click casts it there.
 		Add("readLeyline", L["Ley line"], "readLeyline")
 	end
+	if cfg.talents then
+		local unspent = ns.UnspentTalentPoints and ns.UnspentTalentPoints()
+		if unspent and unspent > 0 then
+			list[#list + 1] = { label = L["Talents"] .. " " .. unspent, sampleIcon = "Interface\\Icons\\INV_Misc_Book_11",
+				tip = (L["%d unspent talent points: press N to open your talents."]):format(unspent) }
+		end
+	end
 	-- Trainer visit and class quests (Leveling.lua): information only, nothing to cast.
 	if ns.leveling then
 		for _, item in ipairs(ns.leveling.Reminders(cfg)) do
@@ -175,6 +182,8 @@ function M:Init()
 	ns.Listen("FD_FORM_CHANGED", Queue)
 	ns.Listen("FD_LOCK_CHANGED", Queue)
 	ns.Listen("FD_REMINDERS_CHANGED", Queue)
+	ns.On("TRAIT_CONFIG_UPDATED", Queue)
+	ns.On("PLAYER_LEVEL_UP", Queue)
 	-- Buffs expire without a combat event; re-check periodically.
 	C_Timer.NewTicker(10, Queue)
 end

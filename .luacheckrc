@@ -42,6 +42,7 @@ read_globals = {
 	"GetMerchantNumItems", "GetMerchantItemID", "BuyMerchantItem", "GetMoney", "C_MerchantFrame",
 	"GetMerchantItemMaxStack", "IsTradeskillTrainer",
 	"UnitThreatSituation", "UnitDetailedThreatSituation", "UnitAttackSpeed",
+	"IsInGroup", "UnitGroupRolesAssigned",
 	"_G",
 }
 

@@ -60,6 +60,11 @@ local SPELLS = {
 	entanglingRoots = { "Entangling Roots", 339 },
 	hibernate = { "Hibernate", 2637 },
 	ravage = { "Ravage", 6785 },
+	-- Debuffs worth keeping on a target (missing-debuff warning).
+	faerieFire = { "Faerie Fire", 770 },
+	demoralizingRoar = { "Demoralizing Roar", 99 },
+	moonfire = { "Moonfire", 8921 },
+	insectSwarm = { "Insect Swarm", 5570 },
 
 	-- Skyborne racials (probe)
 	readLeyline = { "Read Leyline", 1259705 },
@@ -70,6 +75,7 @@ ns.SPELLS = SPELLS
 -- Auras that are not spells in the spellbook, or whose aura ID differs from the spell.
 ns.AURAS = {
 	clearcasting = { "Clearcasting", 16870 },
+	naturesGrace = { "Nature's Grace", 16886 }, -- Balance proc: next spell casts faster
 	attuned = { "Attuned", 1259691 }, -- probe: Skyborne buff from Read Leyline at a ley line
 }
 

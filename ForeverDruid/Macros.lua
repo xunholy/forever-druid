@@ -89,6 +89,27 @@ M.LIST = {
 		body = function()
 			return ("#showtooltip\n/cast [nostealth] %s; %s"):format(S("prowl"), S("ravage"))
 		end },
+	{ key = "faerie", name = "FD Faerie", needs = { { "faerieFireFeral", "faerieFire" } },
+		desc = "Faerie Fire on the enemy under your mouse, or your target: the Feral version in Cat or Bear Form, the normal one otherwise.",
+		body = function()
+			local feral = ns.IsCastable("faerieFireFeral") and S("faerieFireFeral")
+			local normal = ns.IsCastable("faerieFire") and S("faerieFire")
+			if feral and normal then
+				return ("#showtooltip\n/cast [form,@mouseover,harm,nodead][form] %s; [@mouseover,harm,nodead][] %s"):format(feral, normal)
+			end
+			return ("#showtooltip\n/cast [@mouseover,harm,nodead][] %s"):format(feral or normal)
+		end },
+	{ key = "barkskin", name = "FD Barkskin", needs = { "barkskin" },
+		desc = "Drops your form and casts Barkskin, for when you need it now.",
+		body = function()
+			return ("#showtooltip %s\n/cancelform [form]\n/cast %s"):format(S("barkskin"), S("barkskin"))
+		end },
+	{ key = "swiftHeal", name = "FD Swift Heal", needs = { "naturesSwiftness", "healingTouch" },
+		desc = "Emergency heal: drops your form, Nature's Swiftness, then an instant Healing Touch on your mouseover, friendly target or yourself.",
+		body = function()
+			return ("#showtooltip %s\n/cancelform [form]\n/cast %s\n/cast [@mouseover,help,nodead][help,nodead][@player] %s"):format(
+				S("naturesSwiftness"), S("naturesSwiftness"), S("healingTouch"))
+		end },
 	{ key = "innervate", name = "FD Innervate", needs = { "innervate" },
 		desc = "Innervate on your mouseover, your friendly target, or yourself.",
 		body = function()

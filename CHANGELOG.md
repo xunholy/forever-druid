@@ -3,6 +3,14 @@
 ## 0.5.0
 
 **New**
+- Party panel (in a group): your HoTs on each member with timers, a Rebirth hint when one is
+  dead, and an Innervate hint that fades in when a healer is under about a third of their mana
+  (the game does the fade from their hidden mana; the addon never reads it).
+- Alerts: Clearcasting and Nature's Grace the moment they trigger, and "Losing aggro!" in Bear
+  Form in groups. Each only shows when Forever lets addons read it in combat.
+- Missing-debuff icons on enemy targets for your role: Faerie Fire, Demoralizing Roar (Bear),
+  Moonfire and Insect Swarm (Balance). Only when the target's debuffs can be identified.
+- Unspent talent point reminder; macros FD Faerie, FD Barkskin and FD Swift Heal.
 - Highest-rank action bars: when you learn a new rank, every button holding an older rank of
   that spell switches to it (out of combat, never while you're dragging something).
   `/fd ranks keep <spell>` leaves a spell downranked on purpose; `/fd ranks now` runs it by hand.
