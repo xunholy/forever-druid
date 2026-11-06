@@ -1,0 +1,65 @@
+# Changelog
+
+## 0.4.0
+
+**New**
+- Minimap button. Left-click opens quick settings: turn any part of the HUD on or off, HUD size,
+  fading out of combat, hide while mounted, mana bar text and forms, which reminders you get
+  (Thorns never / in Bear Form / always), profiles, reset positions. Right-click unlocks the HUD
+  for moving, shift-click opens all settings. Drag it to move it round the minimap.
+- The minimap addon menu entry opens the same quick settings.
+- Hide the button from its own menu or the options; `/fd minimap` brings it back.
+
+## 0.3.0
+
+**New**
+- The HUD arranges itself into one column under your character. Pieces that aren't showing take
+  no room, so changing form no longer leaves gaps, and making something bigger pushes the rest down
+  instead of overlapping.
+- Drag any piece to move the whole column. Shift-drag one to give it a spot of its own; "Part of
+  the stack" in the options puts it back.
+- Options: turn automatic stacking off, and set the space between pieces. `/fd stack on | off`.
+- `/fd reset` also puts every piece back in the column.
+
+**Fixed**
+- Omen of Clarity can't be cast on Forever, so a reminder for it would never clear. Reminders now
+  skip any spell the spellbook marks as passive, and the probe records which spells those are.
+
+## 0.2.0
+
+Built from what the 0.1.0 probe recorded on a live Forever client (1.60.1.70790): your mana, rage
+and energy are hidden from addons even out of combat, maximums and combo points are readable, and
+auras are hidden in combat.
+
+**New**
+- Combo point pips under the HUD, turning red at five points.
+- Buffs & procs row: Clearcasting, Tiger's Fury, Barkskin, Nature's Grasp, Enrage, Frenzied
+  Regeneration, Innervate, Dash and Nature's Swiftness, with timers.
+- My effects on target: your DoTs on an enemy, or your HoTs on a friend, with timers that keep
+  running in combat.
+- Reminders are clickable: click Mark of the Wild, Thorns, Omen of Clarity or the ley line reminder
+  to cast it.
+- Thorns reminder in Bear Form (on by default); the all-forms Thorns reminder stays optional.
+- Cooldown row: Faerie Fire (Feral), Feral Charge, Starfall, Force of Nature and Nature's Grasp,
+  your Skyborne racials (Read Leyline, Walk on Air), countdown numbers, optional tooltips, and your
+  own spells via `/fd cd add <role|all> <spell>`.
+- Mana bar colours itself by mana level, can show a percentage, and marks what one shift costs.
+- Profiles shared across characters: `/fd profile`.
+- Full options panel (Options > AddOns > ForeverDruid) with sliders for size and scale.
+- ForeverDruid in the minimap addon menu: left-click for options, right-click to unlock.
+- Fade the HUD out of combat, and hide it while mounted, dead or on a taxi.
+
+**Fixed**
+- The energy tick timer couldn't learn on Forever because energy is never readable. It now works
+  from the timing of energy updates and ignores the ones caused by your own casts.
+- The Skyborne ley line reminder used the wrong spell name. It now uses Read Leyline (1259705) and
+  the Attuned buff (1259691).
+- Unlocking, locking and resetting positions are refused in combat instead of failing.
+
+**Changed**
+- Settings moved from per-character storage into profiles. Your 0.1.0 settings carry over.
+
+## 0.1.0
+
+First version: mana bar in Cat/Bear Form, energy tick timer, role-aware cooldown row, buff and
+reagent reminders, Skyborne ley line reminder, and the diagnostic probe.

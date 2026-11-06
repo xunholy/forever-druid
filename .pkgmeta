@@ -1,0 +1,10 @@
+package-as: ForeverDruid
+
+move-folders:
+  ForeverDruid/ForeverDruid: ForeverDruid
+
+ignore:
+  - tests
+  - scripts
+  - dist
+  - README.md
