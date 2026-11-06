@@ -677,7 +677,7 @@ local MODULE_PAGES = {
 		local hf = ns.modules.healframes
 		s:Note(L["Click a frame to cast on that person. These settings apply out of combat."])
 		for _, click in ipairs(hf.CLICKS) do
-			s:Cycle(L[click.label], hf.ACTIONS, function()
+			s:Cycle(L[click.label], click.target and hf.TARGET_ACTIONS or hf.ACTIONS, function()
 				return ns.db.modules.healframes.clicks[click.key] or "none"
 			end, function(value)
 				ns.db.modules.healframes.clicks[click.key] = value

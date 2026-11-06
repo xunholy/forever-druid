@@ -232,7 +232,7 @@ ns.defaults = {
 			tickWindow = 0.6 },
 		formbar = { enabled = false, scale = 1, size = 30, showCost = true },
 		healframes = { enabled = false, scale = 1, width = 140, height = 30, showSolo = false,
-			clicks = { left = "rejuvenation", right = "regrowth", middle = "target", shiftLeft = "healingTouch",
+			clicks = { left = "rejuvenation", right = "regrowth", middle = "none", shiftLeft = "healingTouch",
 				shiftRight = "removeCurse" } },
 		party = { enabled = true, scale = 1, size = 20, width = 200, includeSelf = true, healerOnly = false,
 			rebirthHint = true, innervateHint = true },

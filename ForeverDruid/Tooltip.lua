@@ -91,7 +91,8 @@ function M.Lines(link)
 end
 
 local function OnItem(tooltip)
-	if not (ns.isDruid and tooltip and tooltip.GetItem) then
+	-- The main and linked-item tooltips only, not the side-by-side comparison ones.
+	if not (ns.isDruid and tooltip and tooltip.GetItem) or (tooltip ~= GameTooltip and tooltip ~= ItemRefTooltip) then
 		return
 	end
 	local ok, _, link = pcall(tooltip.GetItem, tooltip)

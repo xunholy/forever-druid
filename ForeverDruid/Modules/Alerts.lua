@@ -40,7 +40,9 @@ function M.CheckGrowl()
 		M.stats.growlUnknown = M.stats.growlUnknown + 1
 		return
 	end
-	if status < 3 then
+	-- 0 or 1: the mob is on someone else. 2 is normal right after a Growl (your threat now
+	-- equals the top holder's), so it isn't a miss.
+	if status < 2 then
 		M.stats.growlMisses = M.stats.growlMisses + 1
 		M.growlMissUntil = GetTime() + 2.5
 	end

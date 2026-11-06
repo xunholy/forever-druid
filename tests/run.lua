@@ -1688,11 +1688,15 @@ do
 	local header = _G.ForeverDruidHealHeader
 	local you, tank = rawget(header, 1), rawget(header, 2)
 	check(you and tank and tank:GetAttribute("unit") == "party1", "a button for you and each party member")
-	check(tank:GetAttribute("*type1") == "spell" and tank:GetAttribute("*spell1") == "Rejuvenation"
-		and tank:GetAttribute("*spell2") == "Regrowth" and tank:GetAttribute("shift-spell1") == "Healing Touch",
+	check(tank:GetAttribute("type1") == "spell" and tank:GetAttribute("spell1") == "Rejuvenation"
+		and tank:GetAttribute("spell2") == "Regrowth" and tank:GetAttribute("shift-spell1") == "Healing Touch",
 		"left-click Rejuvenation, right-click Regrowth, shift-left Healing Touch")
-	check(tank:GetAttribute("*type3") == "target", "middle-click targets")
-	check(tank:GetAttribute("shift-type2") == nil, "a spell you don't know (Remove Curse) isn't bound")
+	check(tank:GetAttribute("type3") == "" and tank:GetAttribute("ctrl-type1") == "" and tank:GetAttribute("alt-type2") == "",
+		"unassigned clicks (middle, ctrl, alt) are explicit no-ops, not a fall-through")
+	check(tank:GetAttribute("shift-type2") == "" and tank:GetAttribute("shift-spell2") == nil,
+		"a spell you don't know (Remove Curse) isn't bound")
+	check(rawget(header, 5) ~= nil, "all five buttons made up front, out of combat")
+	check(rawget(header, 5)._clicks and rawget(header, 5)._clicks[1] == "AnyUp", "right and middle clicks registered on every button")
 	W.Advance(1)
 	check(ns.modules.healframes.stats.decorated >= 2, "bars drawn on the buttons out of combat")
 
@@ -1702,14 +1706,15 @@ do
 	W.state.party.party2 = { name = "Healbot", class = "PRIEST", role = "HEALER" }
 	W.UpdateHeaders()
 	local joined = rawget(header, 3)
-	check(joined and joined:GetAttribute("*spell1") == "Rejuvenation", "a member who joins mid-fight can be clicked straight away")
+	check(joined and joined:GetAttribute("spell1") == "Rejuvenation" and joined._clicks,
+		"a member who joins mid-fight gets a button that already has every click")
 	ns.db.modules.healframes.clicks.left = "regrowth"
 	ns.modules.healframes.Configure()
-	check(joined:GetAttribute("*spell1") == "Rejuvenation" and #W.blocked == 0, "changing clicks in combat waits (nothing blocked)")
+	check(joined:GetAttribute("spell1") == "Rejuvenation" and #W.blocked == 0, "changing clicks in combat waits (nothing blocked)")
 	W.state.inCombat = false
 	W.Fire("PLAYER_REGEN_ENABLED")
 	W.Advance(1)
-	check(joined:GetAttribute("*spell1") == "Regrowth", "applied when the fight ends")
+	check(joined:GetAttribute("spell1") == "Regrowth", "applied when the fight ends")
 	ns.SetModuleEnabled("healframes", false)
 	W.state.party = nil
 
@@ -1744,6 +1749,7 @@ do
 	check(all:find("Cat attack power +26 (+10)", 1, true), "Cat AP: 2x Str + Agi, with the change (" .. all .. ")")
 	check(all:find("Bear attack power +20 (+12)", 1, true), "Bear AP: 2x Str, with the change")
 	check(all:find("Healing +0 (-11)", 1, true), "shows healing you'd lose")
+	check(#W.ShowItemTooltip("item:new", ShoppingTooltip1) == 0, "not added to the side-by-side comparison tooltips")
 	ns.db.tooltips.enabled = false
 	check(#W.ShowItemTooltip("item:new") == 0, "tooltips can be turned off")
 	check(W.ShowOptionsPanel(), "settings with the new pages show")

@@ -248,6 +248,10 @@ function Frame:GetPoint()
 	end
 	return p[1], p[2], p[3], p[4], p[5]
 end
+function Frame:RegisterForClicks(...)
+	GuardProtected(self, "RegisterForClicks")
+	self._clicks = { ... }
+end
 function Frame:EnableKeyboard(v)
 	self._keyboard = v and true or false
 end
@@ -352,6 +356,8 @@ end
 
 UIParent = NewObject("Frame")
 GameTooltip = NewObject("GameTooltip")
+ItemRefTooltip = NewObject("GameTooltip")
+ShoppingTooltip1 = NewObject("GameTooltip")
 
 function Frame:GetCenter()
 	return rawget(self, "_cx") or 0, rawget(self, "_cy") or 0
@@ -575,6 +581,16 @@ function W.UpdateHeaders()
 					units[#units + 1] = "party" .. i
 				end
 			end
+			-- A negative startingIndex makes the header create extra (empty) buttons up front.
+			local start = tonumber(header:GetAttribute("startingIndex")) or 1
+			local make = math.max(#units, start < 1 and (#units - start + 1) or 0)
+			for i = #units + 1, math.min(make, 5) do
+				if not rawget(header, i) then
+					local button = NewObject("Button", header, "SecureUnitButtonTemplate")
+					rawset(header, i, button)
+					button._shown = false
+				end
+			end
 			for i, unit in ipairs(units) do
 				local button = rawget(header, i)
 				if not button then
@@ -610,20 +626,22 @@ TooltipDataProcessor = {
 		W.tooltipHooks[#W.tooltipHooks + 1] = { kind = kind, fn = fn }
 	end,
 }
-function W.ShowItemTooltip(link)
-	local tip = { lines = {} }
-	function tip:GetItem()
+-- Shows an item on GameTooltip (or `tooltip`) and returns the lines hooks added.
+function W.ShowItemTooltip(link, tooltip)
+	local tip = tooltip or GameTooltip
+	local lines = {}
+	rawset(tip, "GetItem", function()
 		return "Item", link
-	end
-	function tip:AddLine(text, r, g, b)
-		self.lines[#self.lines + 1] = { text = text, r = r, g = g, b = b }
-	end
+	end)
+	rawset(tip, "AddLine", function(_, text, r, g, b)
+		lines[#lines + 1] = { text = text, r = r, g = g, b = b }
+	end)
 	for _, hook in ipairs(W.tooltipHooks) do
 		if hook.kind == Enum.TooltipDataType.Item then
 			hook.fn(tip)
 		end
 	end
-	return tip.lines
+	return lines
 end
 W.itemStats, W.itemSlots, W.equipped = {}, {}, {}
 function GetInventoryItemLink(_, slot)

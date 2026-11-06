@@ -161,7 +161,11 @@ function M:Init()
 			self:Refresh()
 		end
 	end)
-	C_Timer.NewTicker(0.2, Update) -- tick timing moves without events
+	C_Timer.NewTicker(0.2, function() -- tick timing moves without events
+		if self.anchor:IsShown() then
+			Update()
+		end
+	end)
 end
 
 function M:Layout()
@@ -206,7 +210,12 @@ function M:Update()
 			local curve = pipCurves[i]
 			if curve then
 				local ok, alpha = pcall(UnitPowerPercent, "player", MANA, false, curve)
-				pip:SetAlpha(ok and alpha or 0) -- the client applies the hidden value
+				-- Never "ok and alpha or 0": that would test the hidden value.
+				if ok then
+					pip:SetAlpha(alpha) -- the client applies the hidden value
+				else
+					pip:SetAlpha(0)
+				end
 				pip.back:SetShown(true)
 			else
 				pip:SetAlpha(0)
@@ -220,7 +229,10 @@ function M:Update()
 		end
 	end
 
-	-- The cue.
+	-- The cue (curves follow the current form's cost even with the pips off).
+	if cost and cost > 0 then
+		BuildCurves(cost)
+	end
 	local kind = Kind()
 	local show = false
 	if previewing then
@@ -238,7 +250,7 @@ function M:Update()
 			if tickOk then
 				local low = LowCurve(kind == ENERGY and cfg.energyBelow or cfg.rageBelow)
 				local okLow, lowAlpha = pcall(UnitPowerPercent, "player", kind, false, low)
-				local okMana, manaAlpha = pcall(UnitPowerPercent, "player", MANA, false, manaCurve or Step(cost))
+				local okMana, manaAlpha = pcall(UnitPowerPercent, "player", MANA, false, manaCurve)
 				if okLow and okMana then
 					self.cueOuter:SetAlpha(lowAlpha)
 					self.cueInner:SetAlpha(manaAlpha)

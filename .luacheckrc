@@ -43,7 +43,7 @@ read_globals = {
 	"GetMerchantItemMaxStack", "IsTradeskillTrainer",
 	"UnitThreatSituation", "UnitDetailedThreatSituation", "UnitAttackSpeed",
 	"IsInGroup", "UnitGroupRolesAssigned", "UnitHealthPercent", "C_AssistedCombat", "ActionButtonUtil",
-	"TooltipDataProcessor", "ItemRefTooltip", "GetInventoryItemLink", "UnitInRange",
+	"TooltipDataProcessor", "ItemRefTooltip", "GetInventoryItemLink", "UnitInRange", "ATTRIBUTE_NOOP",
 	"_G",
 }
 

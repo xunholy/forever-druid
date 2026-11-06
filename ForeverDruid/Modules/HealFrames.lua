@@ -14,41 +14,57 @@ local _, ns = ...
 local M = ns.RegisterModule("healframes", {})
 
 M.CLICKS = {
-	{ key = "left", attr = "1", label = "Left-click" },
-	{ key = "right", attr = "2", label = "Right-click" },
-	{ key = "middle", attr = "3", label = "Middle-click" },
-	{ key = "shiftLeft", attr = "1", modifier = "shift-", label = "Shift + left-click" },
-	{ key = "shiftRight", attr = "2", modifier = "shift-", label = "Shift + right-click" },
+	{ key = "left", button = "1", label = "Left-click", target = true },
+	{ key = "right", button = "2", label = "Right-click", target = true },
+	{ key = "middle", button = "3", label = "Middle-click" },
+	{ key = "shiftLeft", button = "1", modifier = "shift-", label = "Shift + left-click" },
+	{ key = "shiftRight", button = "2", modifier = "shift-", label = "Shift + right-click" },
 }
--- What a click can do: "target" or a spell key. Only spells you know are applied.
-M.ACTIONS = { "target", "rejuvenation", "regrowth", "healingTouch", "removeCurse", "abolishPoison", "curePoison",
+-- What a click can do: a spell key, "target" (left and right click only: only they have the game's
+-- default targeting binding) or "none". Only spells you know are applied.
+M.ACTIONS = { "rejuvenation", "regrowth", "healingTouch", "removeCurse", "abolishPoison", "curePoison",
+	"innervate", "rebirth", "markOfTheWild", "thorns", "none" }
+M.TARGET_ACTIONS = { "target", "rejuvenation", "regrowth", "healingTouch", "removeCurse", "abolishPoison", "curePoison",
 	"innervate", "rebirth", "markOfTheWild", "thorns", "none" }
 
 M.stats = { configured = 0, decorated = 0, deferred = 0 }
 local header
 local decorated = setmetatable({}, { __mode = "k" })
 local pending = false
+local MODIFIERS = { "", "shift-", "ctrl-", "alt-" }
+local NOOP = ATTRIBUTE_NOOP or ""
 
--- The attribute pairs one click needs, e.g. { "shift-type1", "spell", "shift-spell1", "Regrowth" }.
-function M.AttributesFor(click, action)
-	local typeKey = (click.modifier or "*") .. "type" .. click.attr
-	local spellKey = (click.modifier or "*") .. "spell" .. click.attr
-	if action == "target" then
-		return { typeKey, "target", spellKey, nil }
+-- type and spell values for one action.
+local function TypeAndSpell(action, allowTarget)
+	if action == "target" and allowTarget then
+		return "target", nil
 	end
-	local name = action ~= "none" and ns.IsCastable(action) and ns.SpellName(action)
+	local name = action and action ~= "none" and action ~= "target" and ns.IsCastable(action) and ns.SpellName(action)
 	if name then
-		return { typeKey, "spell", spellKey, name }
+		return "spell", name
 	end
-	return { typeKey, nil, spellKey, nil }
+	return NOOP, nil
 end
+M.TypeAndSpell = TypeAndSpell
 
-local function AllAttributes()
+-- Every attribute the click setup needs, with no wildcards: each button (1-3) with no modifier,
+-- shift, ctrl and alt gets its own explicit entry, so a click set to "none" really does nothing
+-- instead of falling through to another click's spell.
+function M.Attributes()
 	local cfg = ns.ModuleConfig("healframes")
-	local list = {}
+	local chosen = {} -- [modifier .. button] = click
 	for _, click in ipairs(M.CLICKS) do
-		local pair = M.AttributesFor(click, cfg.clicks[click.key] or "none")
-		list[#list + 1] = pair
+		chosen[(click.modifier or "") .. click.button] = click
+	end
+	local list = {}
+	for _, buttonNumber in ipairs({ "1", "2", "3" }) do
+		for _, modifier in ipairs(MODIFIERS) do
+			local click = chosen[modifier .. buttonNumber]
+			local action = click and (cfg.clicks[click.key] or "none") or "none"
+			local kind, spell = TypeAndSpell(action, click and click.target)
+			list[#list + 1] = { modifier .. "type" .. buttonNumber, kind }
+			list[#list + 1] = { modifier .. "spell" .. buttonNumber, spell }
+		end
 	end
 	return list
 end
@@ -68,7 +84,7 @@ local function Children()
 end
 
 -- Applies the click setup to the header (for buttons it creates later) and to every existing
--- button. Out of combat only.
+-- button, and registers right/middle clicks (a protected call). Out of combat only.
 function M.Configure()
 	if not header then
 		return false
@@ -78,19 +94,19 @@ function M.Configure()
 		M.stats.deferred = M.stats.deferred + 1
 		return false
 	end
-	pending = false
 	local names = {}
-	for _, pair in ipairs(AllAttributes()) do
-		for n = 1, 3, 2 do
-			local attr, value = pair[n], pair[n + 1]
-			names[#names + 1] = attr
-			header:SetAttribute("_initialAttribute-" .. attr, value)
-			for _, child in ipairs(Children()) do
-				child:SetAttribute(attr, value)
-			end
+	for _, pair in ipairs(M.Attributes()) do
+		local attr, value = pair[1], pair[2]
+		names[#names + 1] = attr
+		header:SetAttribute("_initialAttribute-" .. attr, value)
+		for _, child in ipairs(Children()) do
+			child:SetAttribute(attr, value)
 		end
 	end
 	header:SetAttribute("_initialAttributeNames", table.concat(names, ","))
+	for _, child in ipairs(Children()) do
+		child:RegisterForClicks("AnyUp")
+	end
 	M.stats.configured = M.stats.configured + 1
 	return true
 end
@@ -213,11 +229,11 @@ local function CreateHeader()
 	header:SetAttribute("template", "SecureUnitButtonTemplate")
 	header:SetAttribute("templateType", "Button")
 	header:SetAttribute("unitsPerColumn", 5)
-	-- Runs in Blizzard's secure environment for each new button, even in combat.
+	-- Runs in Blizzard's secure environment for each new button. (Clicks are registered from
+	-- Configure: RegisterForClicks isn't available there.)
 	header:SetAttribute("initialConfigFunction", ([[
 		self:SetWidth(%d)
 		self:SetHeight(%d)
-		self:RegisterForClicks("AnyUp")
 	]]):format(cfg.width, cfg.height))
 	local saved = ns.db.positions.healframes
 	header:ClearAllPoints()
@@ -245,10 +261,9 @@ function M:Init()
 		end
 	end)
 	ns.On("PLAYER_REGEN_ENABLED", function()
-		if self.enabled then
-			if pending then
-				M.Configure()
-			end
+		if pending then
+			self:Apply() -- replay whatever was asked for during the fight
+		elseif self.enabled then
 			self:Paint()
 		end
 	end)
@@ -264,43 +279,55 @@ function M:Init()
 	end)
 end
 
-function M:Refresh()
-	if not header or InCombatLockdown() then
+-- Brings the frames in line with the settings: shown or hidden, solo option, click setup. Out of
+-- combat only; asked for in combat, it runs as the fight ends.
+function M:Apply()
+	if InCombatLockdown() then
 		pending = true
-		return
+		return false
+	end
+	pending = false
+	if not self.enabled then
+		if header then
+			header:Hide()
+		end
+		return true
+	end
+	if not header then
+		CreateHeader()
+		self.anchor = header
 	end
 	header:SetAttribute("showSolo", ns.ModuleConfig("healframes").showSolo and true or false)
+	-- Make all five buttons now, out of combat (the usual group-frame trick: a negative starting
+	-- index), so their clicks can be registered before anyone joins mid-fight.
+	header:SetAttribute("startingIndex", -4)
+	header:Show()
+	header:SetAttribute("startingIndex", 1)
 	M.Configure()
 	self:Paint()
+	return true
+end
+
+function M:Refresh()
+	self:Apply()
 end
 
 function M:Enable()
-	if not header then
-		if InCombatLockdown() then
-			pending = true
-			return
-		end
+	if not header and not InCombatLockdown() then
 		self:Init()
 	end
-	if InCombatLockdown() then
-		pending = true
-		return
-	end
-	M.Configure()
-	header:Show()
-	self:Paint()
+	self:Apply()
 end
 
 function M:Disable()
-	if header and not InCombatLockdown() then
-		header:Hide()
-	end
+	self:Apply()
 end
 
 -- Logged in mid-fight: build the frames as soon as it ends.
 ns.On("PLAYER_REGEN_ENABLED", function()
 	if M.enabled and not header then
-		M:Enable()
+		M:Init()
+		M:Apply()
 	end
 end)
 
