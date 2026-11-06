@@ -106,8 +106,13 @@ function M.MissingDebuffs(auras, role)
 	end
 	local missing = {}
 	local faerieNames = { ns.SpellName("faerieFire"), ns.SpellName("faerieFireFeral") }
+	-- A warrior's Demoralizing Shout does Demoralizing Roar's job.
+	local shout = C_Spell and C_Spell.GetSpellName and ns.SafeReadable(C_Spell.GetSpellName, 1160)
 	for _, key in ipairs(M.WantedDebuffs(role)) do
 		local found = present[ns.SpellName(key)]
+		if key == "demoralizingRoar" and type(shout) == "string" and present[shout] then
+			found = true
+		end
 		if key == "faerieFire" or key == "faerieFireFeral" then
 			-- Either kind of Faerie Fire does the same job.
 			found = (faerieNames[1] and present[faerieNames[1]]) or (faerieNames[2] and present[faerieNames[2]])
@@ -229,7 +234,8 @@ function M:Refresh()
 	local missing = {}
 	if previewing then
 		missing = { "faerieFire" }
-	elseif cfg.warnMissing and ns.InCombat() and ns.SafeReadable(UnitCanAttack, "player", "target") == true then
+	elseif cfg.warnMissing and ns.InCombat() and #M.WantedDebuffs(ns.role) > 0
+		and ns.SafeReadable(UnitCanAttack, "player", "target") == true then
 		local debuffs = AllDebuffs()
 		missing = debuffs and M.MissingDebuffs(debuffs, ns.role) or {}
 	end

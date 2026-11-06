@@ -17,6 +17,7 @@ local MANA = (Enum and Enum.PowerType and Enum.PowerType.Mana) or 0
 local UNITS = { "player", "party1", "party2", "party3", "party4" }
 local HEALER_CLASSES = { PRIEST = true, DRUID = true, SHAMAN = true, PALADIN = true }
 local MAX_HOTS = 4
+local HOT_KEYS = { "rejuvenation", "regrowth" }
 
 M.stats = { queries = 0, failures = 0, secretEntries = 0, shown = 0, rows = 0 }
 local rows = {}
@@ -60,29 +61,54 @@ function M.HotsOn(unit)
 		return out
 	end
 	M.stats.queries = M.stats.queries + 1
-	local ok, list = pcall(C_UnitAuras.GetUnitAuras, unit, "HELPFUL|PLAYER", MAX_HOTS)
+	-- Ask for all of your buffs, then keep the HoTs: Mark of the Wild and Thorns would otherwise
+	-- crowd them out of a short list.
+	local ok, list = pcall(C_UnitAuras.GetUnitAuras, unit, "HELPFUL|PLAYER", 40)
 	if not ok or ns.IsSecret(list) or type(list) ~= "table" then
 		M.stats.failures = M.stats.failures + 1
 		return out
 	end
+	local hotNames = {}
+	for _, key in ipairs(HOT_KEYS) do
+		local name = ns.SpellName(key)
+		if name then
+			hotNames[name] = true
+		end
+	end
 	for _, aura in ipairs(list) do
+		if #out >= MAX_HOTS then
+			break
+		end
 		if ns.IsSecret(aura) then
 			M.stats.secretEntries = M.stats.secretEntries + 1
-		elseif #out < MAX_HOTS then
-			out[#out + 1] = aura
+		else
+			local name = aura.name
+			if ns.IsSecret(name) then
+				-- Can't tell what it is in combat: show it rather than hide a HoT.
+				M.stats.secretEntries = M.stats.secretEntries + 1
+				out[#out + 1] = aura
+			elseif name and hotNames[name] then
+				out[#out + 1] = aura
+			end
 		end
 	end
 	return out
 end
 
-local function IsHealer(unit)
+local function AssignedRole(unit)
+	local role = UnitGroupRolesAssigned and ns.SafeReadable(UnitGroupRolesAssigned, unit)
+	return type(role) == "string" and role or "NONE"
+end
+
+-- Healer by assigned role; by class only when nobody in the group has a role assigned.
+local function IsHealer(unit, groupHasRoles)
 	if unit == "player" then
 		return false -- you don't Innervate-hint yourself
 	end
-	local role = UnitGroupRolesAssigned and ns.SafeReadable(UnitGroupRolesAssigned, unit)
+	local role = AssignedRole(unit)
 	if role == "HEALER" then
 		return true
-	elseif role == "TANK" or role == "DAMAGER" then
+	elseif role ~= "NONE" or groupHasRoles then
 		return false
 	end
 	local ok, _, classFile = pcall(UnitClass, unit)
@@ -99,7 +125,6 @@ local function RowFor(index)
 	end
 	local cfg = ns.ModuleConfig("party")
 	row = CreateFrame("Frame", nil, M.anchor)
-	row:SetSize(cfg.width, cfg.size)
 	local name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	name:SetPoint("LEFT", row, "LEFT", 0, 0)
 	name:SetWidth(70)
@@ -108,21 +133,40 @@ local function RowFor(index)
 	row.hots = {}
 	for i = 1, MAX_HOTS do
 		local icon = ns.CreateIcon(row, cfg.size, { reverse = true, count = true, borderColor = { 0.1, 0.6, 0.2, 0.9 } })
-		icon:SetPoint("LEFT", row, "LEFT", 74 + (i - 1) * (cfg.size + 2), 0)
 		icon:Hide()
 		row.hots[i] = icon
 	end
-	local hintX = 74 + MAX_HOTS * (cfg.size + 2) + 6
 	row.rebirth = ns.CreateIcon(row, cfg.size)
-	row.rebirth:SetPoint("LEFT", row, "LEFT", hintX, 0)
 	row.rebirth.icon:SetTexture(ns.SpellIcon(20484))
 	row.rebirth:Hide()
 	row.innervate = ns.CreateIcon(row, cfg.size)
-	row.innervate:SetPoint("LEFT", row, "LEFT", hintX, 0)
 	row.innervate.icon:SetTexture(ns.SpellIcon(29166))
 	row.innervate:Hide()
 	rows[index] = row
 	return row
+end
+
+local NAME_WIDTH = 74
+
+-- Width of a row's content at an icon size.
+local function RowWidth(size)
+	return NAME_WIDTH + MAX_HOTS * (size + 2) + 6 + size
+end
+
+-- Sizes and positions every part of a row, so the size slider applies to rows already made.
+local function LayoutRow(row, size)
+	row:SetSize(RowWidth(size), size)
+	for i, icon in ipairs(row.hots) do
+		icon:SetSize(size, size)
+		icon:ClearAllPoints()
+		icon:SetPoint("LEFT", row, "LEFT", NAME_WIDTH + (i - 1) * (size + 2), 0)
+	end
+	local hintX = NAME_WIDTH + MAX_HOTS * (size + 2) + 6
+	for _, hint in ipairs({ row.rebirth, row.innervate }) do
+		hint:SetSize(size, size)
+		hint:ClearAllPoints()
+		hint:SetPoint("LEFT", row, "LEFT", hintX, 0)
+	end
 end
 
 function M:ShouldShow()
@@ -161,8 +205,13 @@ function M:Refresh()
 	local rebirthKnown = ns.IsCastable("rebirth")
 	local innervateKnown = ns.IsCastable("innervate")
 	local curve = BuildCurve()
+	local groupHasRoles = false
+	for _, unit in ipairs(units) do
+		groupHasRoles = groupHasRoles or (unit ~= "player" and AssignedRole(unit) ~= "NONE")
+	end
 	for i, unit in ipairs(units) do
 		local row = RowFor(i)
+		LayoutRow(row, cfg.size)
 		row:ClearAllPoints()
 		row:SetPoint("TOPLEFT", self.anchor, "TOPLEFT", 0, -(i - 1) * (cfg.size + 4))
 		if ns.Previewing() then
@@ -183,8 +232,10 @@ function M:Refresh()
 				end
 			end
 			local dead = ns.SafeReadable(UnitIsDeadOrGhost, unit) == true
-			row.rebirth:SetShown(cfg.rebirthHint and rebirthKnown and dead or false)
-			local hintInnervate = cfg.innervateHint and innervateKnown and not dead and IsHealer(unit) and curve and UnitPowerPercent
+			-- You can't Rebirth yourself.
+			row.rebirth:SetShown(cfg.rebirthHint and rebirthKnown and dead and unit ~= "player" or false)
+			local hintInnervate = cfg.innervateHint and innervateKnown and not dead and IsHealer(unit, groupHasRoles)
+				and curve and UnitPowerPercent
 			if hintInnervate then
 				local ok, alpha = pcall(UnitPowerPercent, unit, MANA, false, curve)
 				if ok then
@@ -203,12 +254,13 @@ function M:Refresh()
 		rows[i]:Hide()
 	end
 	M.stats.rows = #units
-	self.anchor:SetSize(cfg.width, math.max(cfg.size, #units * (cfg.size + 4) - 4))
+	self.anchor:SetSize(RowWidth(cfg.size), math.max(cfg.size, #units * (cfg.size + 4) - 4))
 end
 
 function M:Init()
 	local cfg = ns.ModuleConfig("party")
-	self.anchor = ns.CreateAnchor("party", cfg.width, cfg.size, { "CENTER", "CENTER", -320, 0 }, L["Party"], { fade = true })
+	-- Anchored by its top edge so it grows downwards as people join instead of shifting.
+	self.anchor = ns.CreateAnchor("party", RowWidth(cfg.size), cfg.size, { "TOP", "CENTER", -320, 80 }, L["Party"], { fade = true })
 	local function Queue()
 		if self.enabled then
 			ns.Debounce("party", 0.1, function()

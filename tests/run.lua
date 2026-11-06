@@ -1396,6 +1396,8 @@ do
 		table.insert(W.state.spellbook, { 17116, "Nature's Swiftness" })
 		table.insert(W.state.spellbook, { 5185, "Healing Touch" })
 		table.insert(W.state.spellbook, { 774, "Rejuvenation" })
+		W.state.extraNames[1160] = "Demoralizing Shout"
+		W.RebuildNames()
 	end)
 	login(W)
 	W.Advance(5)
@@ -1423,9 +1425,15 @@ do
 	W.state.targetExists, W.state.targetHostile = true, true
 	W.state.threat = 1
 	W.Advance(0.5)
-	check(alerts.LosingAggro() == true, "losing aggro (readable threat 1) warns")
+	check(alerts.LosingAggro() == false, "a mob someone else holds (threat 1, never yours): no warning")
 	W.state.threat = 3
 	check(alerts.LosingAggro() == false, "securely tanking: no warning")
+	W.state.threat = 2
+	check(alerts.LosingAggro() == true, "about to lose it (threat 2): warns")
+	W.state.threat = 1
+	check(alerts.LosingAggro() == true, "just lost it (threat 1 right after holding it): warns")
+	W.Advance(6)
+	check(alerts.LosingAggro() == false, "long after: no longer treated as yours")
 	W.state.threat = nil
 	check(alerts.LosingAggro() == false, "threat hidden by the game: stays quiet")
 
@@ -1436,6 +1444,8 @@ do
 	check(#missing == 1 and missing[1] == "demoralizingRoar", "bear: Faerie Fire from anyone counts; Demoralizing Roar missing")
 	check(targets.MissingDebuffs({ { name = W.Secret() } }, "bear") == nil, "a hidden debuff name: no warning at all")
 	check(#targets.MissingDebuffs({}, "healer") == 0, "healers aren't nagged about debuffs")
+	local withShout = targets.MissingDebuffs({ { name = "Faerie Fire" }, { name = "Demoralizing Shout" } }, "bear")
+	check(#withShout == 0, "a warrior's Demoralizing Shout counts for Demoralizing Roar")
 	W.state.inCombat = false
 	W.Fire("PLAYER_REGEN_ENABLED")
 	W.state.form = 0
@@ -1452,11 +1462,33 @@ do
 	W.Fire("GROUP_ROSTER_UPDATE")
 	W.Advance(1)
 	check(party.anchor:IsShown() and party.stats.rows == 4, "in a group: a row for you and each party member (" .. tostring(party.stats.rows) .. ")")
+	W.state.party.party1.hots = {
+		{ icon = 136078, expirationTime = W.now + 1700, duration = 1800, name = "Mark of the Wild" },
+		{ icon = 136104, expirationTime = W.now + 500, duration = 600, name = "Thorns" },
+		{ icon = 136081, expirationTime = W.now + 10, duration = 12, name = "Rejuvenation" },
+	}
+	local hots = party.HotsOn("party1")
+	check(#hots == 1 and hots[1].name == "Rejuvenation", "only HoTs show: Mark of the Wild and Thorns are left out")
+	ns.db.modules.party.size = 30
+	party:Refresh()
+	local rowIcon = nil
+	for _, f in ipairs(W.frames) do
+		if rawget(f, "_w") == 30 and rawget(f, "_kind") == "Frame" and rawget(f, "_parent") and rawget(rawget(f, "_parent"), "_parent") == party.anchor then
+			rowIcon = f
+		end
+	end
+	check(rowIcon ~= nil, "changing the size resizes rows already on screen")
+	ns.db.modules.party.size = 20
 	check(party.stats.failures == 0, "party HoT lookups succeed")
 	W.state.secretAuras = true
 	W.Advance(1)
 	check(#W.errors == 0, "hidden HoT details still draw without errors")
 	W.state.secretAuras = false
+	-- Dead yourself: no Rebirth hint on your own row.
+	party.HotsOn("player")
+	W.state.party = { party1 = { name = "Tankard", class = "WARRIOR", role = "TANK" } }
+	W.Fire("GROUP_ROSTER_UPDATE")
+	W.Advance(1)
 	W.state.party = nil
 	W.Fire("GROUP_ROSTER_UPDATE")
 	W.Advance(1)
@@ -1476,6 +1508,7 @@ do
 	ns.macros.SetManaged(true)
 	local faerie = W.CharacterMacro("FD Faerie")
 	check(faerie and faerie.body:find("[@mouseover,harm,nodead][] Faerie Fire", 1, true), "FD Faerie: mouseover Faerie Fire")
+	check(not faerie.body:find("[form,", 1, true), "FD Faerie never uses a bare [form] (Moonkin or Travel would pick the Feral spell)")
 	local swift = W.CharacterMacro("FD Swift Heal")
 	check(swift and swift.body:find("/cast Nature's Swiftness", 1, true) and swift.body:find("Healing Touch", 1, true),
 		"FD Swift Heal: Nature's Swiftness into Healing Touch")

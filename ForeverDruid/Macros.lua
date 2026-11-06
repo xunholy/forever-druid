@@ -94,8 +94,17 @@ M.LIST = {
 		body = function()
 			local feral = ns.IsCastable("faerieFireFeral") and S("faerieFireFeral")
 			local normal = ns.IsCastable("faerieFire") and S("faerieFire")
-			if feral and normal then
-				return ("#showtooltip\n/cast [form,@mouseover,harm,nodead][form] %s; [@mouseover,harm,nodead][] %s"):format(feral, normal)
+			-- Form numbers depend on which forms you've learned, so read them from your stance bar.
+			local catBear = {}
+			for _, f in ipairs(ns.ShapeshiftForms()) do
+				if f.form == "cat" or f.form == "bear" then
+					catBear[#catBear + 1] = f.index
+				end
+			end
+			if feral and normal and #catBear > 0 then
+				local forms = "form:" .. table.concat(catBear, "/")
+				return ("#showtooltip\n/cast [%s,@mouseover,harm,nodead][%s] %s; [@mouseover,harm,nodead][] %s"):format(
+					forms, forms, feral, normal)
 			end
 			return ("#showtooltip\n/cast [@mouseover,harm,nodead][] %s"):format(feral or normal)
 		end },

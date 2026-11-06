@@ -75,6 +75,20 @@ function M.ApplyAuraUpdate(info)
 			end
 		end
 	end
+	-- A proc refreshed in place: take its new timer if the client shows it.
+	local updated = info.updatedAuraInstanceIDs
+	if not ns.IsSecret(updated) and type(updated) == "table" and C_UnitAuras and C_UnitAuras.GetAuraDataByAuraInstanceID then
+		for _, instance in ipairs(updated) do
+			local entry = not ns.IsSecret(instance) and M.active[instance]
+			if entry then
+				local ok, aura = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, "player", instance)
+				if ok and type(aura) == "table" and not ns.IsSecret(aura) then
+					entry.aura, entry.shownAt = aura, GetTime()
+					changed = true
+				end
+			end
+		end
+	end
 	local removed = info.removedAuraInstanceIDs
 	if not ns.IsSecret(removed) and type(removed) == "table" then
 		for _, instance in ipairs(removed) do
@@ -101,7 +115,9 @@ end
 -- Threat (Bear Form)
 ---------------------------------------------------------------------------
 
--- 3 = securely tanking; anything lower means the target is on, or turning to, someone else.
+-- Threat status: 3 = securely tanking, 2 = tanking but someone is about to pull it off you,
+-- 0/1 = it's on someone else. Warn on 2, and on 0/1 only right after you held it (losing it),
+-- not for mobs another tank is meant to hold.
 function M.LosingAggro()
 	local cfg = ns.ModuleConfig("alerts")
 	if not cfg.threat or ns.form ~= "bear" or not ns.InCombat() then
@@ -122,7 +138,22 @@ function M.LosingAggro()
 		return false
 	end
 	M.stats.threatReadable = M.stats.threatReadable + 1
-	return type(status) == "number" and status < 3
+	if type(status) ~= "number" then
+		return false
+	end
+	local now = GetTime()
+	if status == 3 then
+		M.lastSecure = now
+		return false
+	end
+	if status == 2 then
+		return true
+	end
+	return M.lastSecure ~= nil and now - M.lastSecure < 5
+end
+
+function M.ResetThreat()
+	M.lastSecure = nil
 end
 
 ---------------------------------------------------------------------------
@@ -155,8 +186,14 @@ function M:Init()
 	end)
 	C_Timer.NewTicker(0.25, function()
 		if self.enabled then
-			self:Refresh()
+			local ok, err = pcall(self.Refresh, self)
+			if not ok then
+				ns.ReportError(err)
+			end
 		end
+	end)
+	ns.On("PLAYER_TARGET_CHANGED", function()
+		M.lastSecure = nil
 	end)
 end
 
@@ -178,7 +215,8 @@ function M:Refresh()
 		frame:SetSize(size, size)
 		frame:ClearAllPoints()
 		frame:SetPoint("LEFT", self.anchor, "LEFT", (i - 1) * (size + spacing), 0)
-		frame.icon:SetTexture(entry.aura.icon or ns.SpellIcon(entry.proc.id))
+		-- The proc's own icon: the aura's icon field may be hidden in combat.
+		frame.icon:SetTexture(ns.SpellIcon(entry.proc.id))
 		pcall(frame.cooldown.SetCooldownFromExpirationTime, frame.cooldown, entry.aura.expirationTime, entry.aura.duration)
 		if frame.fdShownFor ~= entry then
 			frame.fdShownFor = entry

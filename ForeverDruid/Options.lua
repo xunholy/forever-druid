@@ -709,7 +709,7 @@ local MODULE_PAGES = {
 		s:Slider(L["Icon size"], 16, 64, 1, ModuleGetter("targetauras", "size"), ModuleSetter("targetauras", "size"))
 		s:Slider(L["Most shown"], 1, 16, 1, ModuleGetter("targetauras", "max"), ModuleSetter("targetauras", "max"))
 		s:Check(L["Show missing debuffs"], ModuleGetter("targetauras", "warnMissing"), ModuleSetter("targetauras", "warnMissing"),
-			L["In combat, a dimmed red-framed icon for Faerie Fire, Demoralizing Roar (Bear), or Moonfire and Insect Swarm (Balance) when they're not on your enemy target. Only shown when the game lets addons name the target's debuffs."]) -- luacheck: no max line length
+			L["In combat, a dimmed red-framed icon for Faerie Fire, Demoralizing Roar (Bear), or Moonfire and Insect Swarm (Balance) when they're not on your enemy target. Only shown when the game lets addons name the target's debuffs. Targets immune to a debuff will keep showing it."]) -- luacheck: no max line length
 	end,
 	reminders = function(s)
 		s:Check(L["Click a reminder to cast it"], ModuleGetter("reminders", "clickToCast"), ModuleSetter("reminders", "clickToCast"))
