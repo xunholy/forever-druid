@@ -64,6 +64,13 @@
 - German, French and Spanish translations of the menus, settings and welcome tour.
 - `/fd status` and the probe report ForeverDruid's own CPU use when the game's profiler is on.
 
+**Fixed**
+- FD macros no longer depend on a form change taking effect within one key press, which Forever's
+  client doesn't do reliably. FD Shift Cat / Bear only shift you in (they could leave you in
+  caster form). Caster-spell macros drop your form and stop if you're still shifted (one press or
+  two, never an error). FD Prowl is now Cat Form, then a Prowl toggle. New FD Powershift and FD
+  Opener (Ravage). Form numbers come from your stance bar and follow new forms.
+
 ## 0.4.0
 
 **New**

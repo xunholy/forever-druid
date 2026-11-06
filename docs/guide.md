@@ -229,16 +229,25 @@ for the spells you know, and adds more as you learn them:
 
 | Macro | Does |
 |---|---|
-| FD Rejuv, FD Regrowth, FD Heal Touch | Drop your form, heal your mouseover, friendly target or yourself |
+| FD Rejuv, FD Regrowth, FD Heal Touch | Heal your mouseover, friendly target or yourself, dropping your form first |
 | FD Mark, FD Thorns, FD Innervate | Buff your mouseover, friendly target or yourself without changing target |
+| FD Rebirth | Rebirth your dead mouseover or target |
 | FD Maul, FD Claw | The ability plus auto-attack |
 | FD Faerie | Faerie Fire on your mouseover or target, the Feral version in Cat and Bear Form |
-| FD Roots, FD Hibernate | Crowd control your mouseover or target |
-| FD Shift Cat, FD Shift Bear | Shift in, or re-shift while in the form (powershift); won't break Prowl |
-| FD Rebirth | Rebirth your dead mouseover or target |
-| FD Barkskin | Drop your form and Barkskin |
+| FD Roots, FD Hibernate | Crowd control your mouseover or target, dropping your form first |
+| FD Shift Cat, FD Shift Bear | Into that form from caster or the other form, in one press; never takes you out of it |
+| FD Powershift | Leave Cat Form and shift straight back in (Furor's energy); won't break Prowl |
+| FD Prowl | Tap: Cat Form. Tap: Prowl. Tap while prowling: leave Prowl, staying in Cat Form |
+| FD Opener | Cat Form, then Prowl, then Ravage from stealth |
+| FD Barkskin | Barkskin, dropping your form first |
 | FD Swift Heal | Nature's Swiftness into an instant Healing Touch |
-| FD Prowl | Prowl, then Ravage from stealth |
+
+**Why some take two presses.** The game only lets you use Prowl, or a caster spell, once it has
+confirmed your form change, and that happens after a key press has finished. So the macros that
+drop your form for a caster spell do it in one press when the game updates straight away, and
+otherwise drop the form on the first press and cast on the second. They never cast blind or
+leave you in a form you didn't ask for, and they never drop Prowl. FD Prowl and FD Powershift
+work the same way.
 
 Click **Pick up** next to a macro, then click an action bar slot. If you edit an FD macro,
 ForeverDruid leaves it alone from then on ("Restore edited macros" puts its version back). It never

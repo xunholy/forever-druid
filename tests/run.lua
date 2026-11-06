@@ -980,13 +980,33 @@ do
 		names[#names + 1] = m.name
 	end
 	table.sort(names)
-	check(table.concat(names, ",") == "FD Barkskin,FD Innervate,FD Mark,FD Rebirth,FD Shift Bear,FD Shift Cat,FD Thorns",
+	check(table.concat(names, ",") == "FD Barkskin,FD Innervate,FD Mark,FD Powershift,FD Prowl,FD Rebirth,FD Shift Bear,FD Shift Cat,FD Thorns",
 		"only macros whose spells are known: " .. table.concat(names, ","))
 	check(#W.macros.account == 0, "nothing in the account-wide slots")
 	local mark = W.CharacterMacro("FD Mark")
 	check(mark.body:find("/cast [@mouseover,help,nodead][help,nodead][@player] Mark of the Wild", 1, true), "Mark macro body uses the spell name")
 	check(W.CharacterMacro("FD Shift Cat").body:find("/cast !Cat Form", 1, true), "powershift macro uses !Cat Form")
-	check(W.CharacterMacro("FD Prowl") == nil, "Prowl/Ravage waits for Ravage")
+	check(W.CharacterMacro("FD Opener") == nil, "the Ravage opener waits for Ravage")
+	-- No macro may rely on a form change taking effect within the same key press.
+	for _, m in ipairs(W.macros.character) do
+		local body = m.body
+		check(#body <= 255, m.name .. " fits the macro limit")
+		if body:find("/cancelform", 1, true) then
+			local cancelAt = body:find("/cancelform", 1, true)
+			local stopAt = body:find("/stopmacro", 1, true)
+			check(stopAt and stopAt > cancelAt, m.name .. ": stops after /cancelform if you're still shifted, instead of casting blind")
+			check(body:find("nostealth", 1, true) ~= nil, m.name .. ": never drops your form while prowling")
+		end
+	end
+	local cat = W.CharacterMacro("FD Shift Cat").body
+	check(not cat:find("/cancelform", 1, true) and cat:find("/cast !Cat Form", 1, true),
+		"FD Shift Cat only shifts in: it never takes you out of Cat Form")
+	local prowl = W.CharacterMacro("FD Prowl").body
+	check(prowl:find("/cast [noform:1] !Cat Form; Prowl", 1, true),
+		"FD Prowl: Cat Form first, then Prowl as a toggle, using your stance-bar number for Cat (" .. prowl:gsub("\n", " | ") .. ")")
+	local power = W.CharacterMacro("FD Powershift").body
+	check(power:find("/cancelform [form:1,nostealth]", 1, true) and power:find("/stopmacro [form:1]", 1, true),
+		"FD Powershift leaves and re-enters Cat Form, safely in one or two presses")
 	check(mac.Status("mark") == "ready" and mac.Status("rejuv") == "needs", "status: ready / needs a spell")
 
 	-- Learning a spell adds its macro.
@@ -994,7 +1014,8 @@ do
 	W.Fire("SPELLS_CHANGED")
 	W.Advance(3)
 	local rejuv = W.CharacterMacro("FD Rejuv")
-	check(rejuv and rejuv.body:find("/cancelform [form]", 1, true), "learning Rejuvenation creates FD Rejuv")
+	check(rejuv and rejuv.body:find("/cancelform [form,nostealth]\n/stopmacro [form]\n/cast", 1, true),
+		"learning Rejuvenation creates FD Rejuv (drops your form, then heals)")
 
 	-- An empty spellbook for a moment (login) never deletes anything.
 	local saved = W.state.spellbook
@@ -1836,6 +1857,32 @@ do
 	W.Slash("help")
 	check(W.printed[#W.printed]:find("/fd tour", 1, true), "/fd help is grouped")
 	noErrors(W, "no errors or blocked actions")
+end
+
+---------------------------------------------------------------------------
+do
+	section("macros follow your stance bar: Bear 1, Aquatic 2, Cat 3 (a real level-21 layout)")
+	local W, ns = fresh(function(W)
+		W.state.forms = { 5487, 1066, 768 }
+		W.state.extraNames[1066] = "Aquatic Form"
+		W.RebuildNames()
+		table.insert(W.state.spellbook, { 1066, "Aquatic Form" })
+	end)
+	login(W)
+	W.Advance(5)
+	ns.macros.SetManaged(true)
+	local prowl = W.CharacterMacro("FD Prowl").body
+	check(prowl:find("[noform:3] !Cat Form; Prowl", 1, true), "FD Prowl uses Cat = 3")
+	local power = W.CharacterMacro("FD Powershift").body
+	check(power:find("[form:3,nostealth]", 1, true) and power:find("/stopmacro [form:3]", 1, true), "FD Powershift uses Cat = 3")
+	local faerie = W.CharacterMacro("FD Faerie")
+	check(faerie == nil or not faerie.body:find("form:2", 1, true), "Aquatic Form (2) never counts as Cat or Bear")
+	-- Learning Travel Form adds a 4th form: macros are rebuilt and Cat stays 3.
+	W.state.forms[4] = 783
+	W.Fire("UPDATE_SHAPESHIFT_FORMS")
+	W.Advance(3)
+	check(W.CharacterMacro("FD Prowl").body:find("[noform:3]", 1, true), "still Cat = 3 after learning another form")
+	noErrors(W, "no errors")
 end
 
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))

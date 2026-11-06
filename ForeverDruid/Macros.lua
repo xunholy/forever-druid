@@ -21,32 +21,70 @@ local function S(key)
 	return ns.SpellName(key)
 end
 
+-- Every macro is written so it never depends on your form changing partway through one key
+-- press: on Forever's client a /cancelform doesn't reliably take effect before the next line, so
+-- "/cancelform" then "/cast <form or caster spell>" could leave you in caster form with the spell
+-- not cast. Spells that need caster form use CASTER below: drop the form, and stop there if the
+-- game still has you shapeshifted (then the next press casts). That's one press when the client
+-- updates at once, two when it doesn't, and never an error spam or a stray form change.
+
+-- Drop your form for a caster spell (never while prowling), and stop if you're still shifted.
+local CASTER = "/cancelform [form,nostealth]\n/stopmacro [form]\n"
+
+-- Your stance-bar number for a form ("cat", "bear"), which depends on which forms you know.
+local function FormIndex(form)
+	for _, f in ipairs(ns.ShapeshiftForms()) do
+		if f.form == form then
+			return f.index
+		end
+	end
+end
+M.FormIndex = FormIndex
+
+local function Helpful(spell)
+	return ("#showtooltip %s\n" .. CASTER .. "/cast [@mouseover,help,nodead][help,nodead][@player] %s"):format(spell, spell)
+end
+
+local function Harmful(spell)
+	return ("#showtooltip %s\n" .. CASTER .. "/cast [@mouseover,harm,nodead][] %s"):format(spell, spell)
+end
+
 -- key, macro name (16 chars max), spells it needs, body builder, what it does.
 M.LIST = {
 	{ key = "rejuv", name = "FD Rejuv", needs = { "rejuvenation" },
-		desc = "Drops your form and casts Rejuvenation on your mouseover, your friendly target, or yourself.",
+		desc = "Rejuvenation on your mouseover, your friendly target, or yourself. In a form it drops the form first (press again if it needs a second press).",
 		body = function()
-			return ("#showtooltip %s\n/cancelform [form]\n/cast [@mouseover,help,nodead][help,nodead][@player] %s"):format(S("rejuvenation"), S("rejuvenation"))
+			return Helpful(S("rejuvenation"))
 		end },
 	{ key = "regrowth", name = "FD Regrowth", needs = { "regrowth" },
-		desc = "Drops your form and casts Regrowth on your mouseover, your friendly target, or yourself.",
+		desc = "Regrowth on your mouseover, your friendly target, or yourself, dropping your form first.",
 		body = function()
-			return ("#showtooltip %s\n/cancelform [form]\n/cast [@mouseover,help,nodead][help,nodead][@player] %s"):format(S("regrowth"), S("regrowth"))
+			return Helpful(S("regrowth"))
 		end },
 	{ key = "healingTouch", name = "FD Heal Touch", needs = { "healingTouch" },
-		desc = "Drops your form and casts Healing Touch on your mouseover, your friendly target, or yourself.",
+		desc = "Healing Touch on your mouseover, your friendly target, or yourself, dropping your form first.",
 		body = function()
-			return ("#showtooltip %s\n/cancelform [form]\n/cast [@mouseover,help,nodead][help,nodead][@player] %s"):format(S("healingTouch"), S("healingTouch"))
+			return Helpful(S("healingTouch"))
 		end },
 	{ key = "mark", name = "FD Mark", needs = { "markOfTheWild" },
 		desc = "Mark of the Wild on your mouseover, your friendly target, or yourself, without changing target.",
 		body = function()
-			return ("#showtooltip %s\n/cast [@mouseover,help,nodead][help,nodead][@player] %s"):format(S("markOfTheWild"), S("markOfTheWild"))
+			return Helpful(S("markOfTheWild"))
 		end },
 	{ key = "thorns", name = "FD Thorns", needs = { "thorns" },
 		desc = "Thorns on your mouseover, your friendly target, or yourself.",
 		body = function()
-			return ("#showtooltip %s\n/cast [@mouseover,help,nodead][help,nodead][@player] %s"):format(S("thorns"), S("thorns"))
+			return Helpful(S("thorns"))
+		end },
+	{ key = "innervate", name = "FD Innervate", needs = { "innervate" },
+		desc = "Innervate on your mouseover, your friendly target, or yourself.",
+		body = function()
+			return Helpful(S("innervate"))
+		end },
+	{ key = "rebirth", name = "FD Rebirth", needs = { "rebirth" },
+		desc = "Rebirth on the dead party member under your mouse, or your dead target.",
+		body = function()
+			return ("#showtooltip %s\n" .. CASTER .. "/cast [@mouseover,help,dead][help,dead] %s"):format(S("rebirth"), S("rebirth"))
 		end },
 	{ key = "maul", name = "FD Maul", needs = { "maul" },
 		desc = "Maul, making sure you're auto-attacking (Maul only adds to your next swing).",
@@ -59,35 +97,53 @@ M.LIST = {
 			return ("#showtooltip %s\n/startattack\n/cast %s"):format(S("claw"), S("claw"))
 		end },
 	{ key = "roots", name = "FD Roots", needs = { "entanglingRoots" },
-		desc = "Entangling Roots on the enemy under your mouse, or your target, without changing target.",
+		desc = "Entangling Roots on the enemy under your mouse, or your target, dropping your form first.",
 		body = function()
-			return ("#showtooltip %s\n/cast [@mouseover,harm,nodead][] %s"):format(S("entanglingRoots"), S("entanglingRoots"))
+			return Harmful(S("entanglingRoots"))
 		end },
 	{ key = "hibernate", name = "FD Hibernate", needs = { "hibernate" },
-		desc = "Hibernate on the beast under your mouse, or your target, without changing target.",
+		desc = "Hibernate on the beast under your mouse, or your target, dropping your form first.",
 		body = function()
-			return ("#showtooltip %s\n/cast [@mouseover,harm,nodead][] %s"):format(S("hibernate"), S("hibernate"))
+			return Harmful(S("hibernate"))
 		end },
 	{ key = "shiftCat", name = "FD Shift Cat", needs = { "catForm" },
-		desc = "Into Cat Form from anywhere, or re-shift while in it. With Furor that refills 40 energy. Won't break Prowl.",
+		desc = "Into Cat Form from caster or Bear Form, in one press. Never takes you out of Cat Form.",
 		body = function()
-			return ("#showtooltip %s\n/cancelform [form,nostealth]\n/cast !%s"):format(S("catForm"), S("catForm"))
+			return ("#showtooltip %s\n/cast !%s"):format(S("catForm"), S("catForm"))
 		end },
 	{ key = "shiftBear", name = "FD Shift Bear", needs = { { "direBearForm", "bearForm" } },
-		desc = "Into Bear Form from anywhere, or re-shift while in it. With Furor that gives 10 rage.",
+		desc = "Into Bear Form from caster or Cat Form, in one press. Never takes you out of Bear Form.",
 		body = function()
 			local bear = ns.BearFormKey()
-			return ("#showtooltip %s\n/cancelform [form]\n/cast !%s"):format(S(bear), S(bear))
+			return ("#showtooltip %s\n/cast !%s"):format(S(bear), S(bear))
 		end },
-	{ key = "rebirth", name = "FD Rebirth", needs = { "rebirth" },
-		desc = "Rebirth on the dead party member under your mouse, or your dead target.",
+	{ key = "powershift", name = "FD Powershift", needs = { "catForm" },
+		desc = "Powershift: leave Cat Form and shift straight back in, for Furor's energy. One press if the game allows it, otherwise press twice (out, then in). Never breaks Prowl.", -- luacheck: no max line length
 		body = function()
-			return ("#showtooltip %s\n/cast [@mouseover,help,dead][help,dead] %s"):format(S("rebirth"), S("rebirth"))
+			local cat = FormIndex("cat")
+			if not cat then
+				return nil
+			end
+			return ("#showtooltip %s\n/cancelform [form:%d,nostealth]\n/stopmacro [form:%d]\n/cast !%s"):format(
+				S("catForm"), cat, cat, S("catForm"))
 		end },
-	{ key = "prowl", name = "FD Prowl", needs = { "prowl", "ravage" },
-		desc = "Prowl, then Ravage from stealth: one button for the opener.",
+	{ key = "prowl", name = "FD Prowl", needs = { "catForm", "prowl" },
+		desc = "Tap: into Cat Form. Tap again: Prowl. Tap while prowling: leave Prowl, staying in Cat Form.",
 		body = function()
-			return ("#showtooltip\n/cast [nostealth] %s; %s"):format(S("prowl"), S("ravage"))
+			local cat = FormIndex("cat")
+			if not cat then
+				return nil
+			end
+			return ("#showtooltip %s\n/cast [noform:%d] !%s; %s"):format(S("prowl"), cat, S("catForm"), S("prowl"))
+		end },
+	{ key = "opener", name = "FD Opener", needs = { "catForm", "prowl", "ravage" },
+		desc = "Into Cat Form, then Prowl, then Ravage from stealth: one key for the whole opener.",
+		body = function()
+			local cat = FormIndex("cat")
+			if not cat then
+				return nil
+			end
+			return ("#showtooltip\n/cast [noform:%d] !%s; [nostealth] %s; %s"):format(cat, S("catForm"), S("prowl"), S("ravage"))
 		end },
 	{ key = "faerie", name = "FD Faerie", needs = { { "faerieFireFeral", "faerieFire" } },
 		desc = "Faerie Fire on the enemy under your mouse, or your target: the Feral version in Cat or Bear Form, the normal one otherwise.",
@@ -109,20 +165,15 @@ M.LIST = {
 			return ("#showtooltip\n/cast [@mouseover,harm,nodead][] %s"):format(feral or normal)
 		end },
 	{ key = "barkskin", name = "FD Barkskin", needs = { "barkskin" },
-		desc = "Drops your form and casts Barkskin, for when you need it now.",
+		desc = "Barkskin, dropping your form first if you're in one.",
 		body = function()
-			return ("#showtooltip %s\n/cancelform [form]\n/cast %s"):format(S("barkskin"), S("barkskin"))
+			return ("#showtooltip %s\n" .. CASTER .. "/cast %s"):format(S("barkskin"), S("barkskin"))
 		end },
 	{ key = "swiftHeal", name = "FD Swift Heal", needs = { "naturesSwiftness", "healingTouch" },
 		desc = "Emergency heal: drops your form, Nature's Swiftness, then an instant Healing Touch on your mouseover, friendly target or yourself.",
 		body = function()
-			return ("#showtooltip %s\n/cancelform [form]\n/cast %s\n/cast [@mouseover,help,nodead][help,nodead][@player] %s"):format(
+			return ("#showtooltip %s\n" .. CASTER .. "/cast %s\n/cast [@mouseover,help,nodead][help,nodead][@player] %s"):format(
 				S("naturesSwiftness"), S("naturesSwiftness"), S("healingTouch"))
-		end },
-	{ key = "innervate", name = "FD Innervate", needs = { "innervate" },
-		desc = "Innervate on your mouseover, your friendly target, or yourself.",
-		body = function()
-			return ("#showtooltip %s\n/cast [@mouseover,help,nodead][help,nodead][@player] %s"):format(S("innervate"), S("innervate"))
 		end },
 }
 
@@ -363,6 +414,8 @@ function M.PickUp(key)
 end
 
 ns.Listen("FD_SPELLS_CHANGED", Queue)
+-- Learning a form can renumber your stance bar; the form-numbered macros follow it.
+ns.On("UPDATE_SHAPESHIFT_FORMS", Queue)
 ns.Listen("FD_LOGIN", function()
 	if ns.isDruid then
 		Queue()

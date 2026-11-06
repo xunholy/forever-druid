@@ -9,6 +9,7 @@ local L = ns.L
 
 ns.RELEASE_NOTES = {
 	{ version = "0.5.0", notes = {
+		"Druid macros fixed for Forever: shift macros no longer drop you out of your form, FD Prowl takes you into Cat Form and Prowl and back out of Prowl, and the new FD Powershift and FD Opener cover powershifting and the Ravage opener.", -- luacheck: no max line length
 		"Tell ForeverDruid how you play (levelling, Feral, tank, healer or Balance) and it sets itself up for it. Change it any time from the minimap menu.", -- luacheck: no max line length
 		"Right-click any piece while unlocked for its own menu, and the settings now open with an at-a-glance list of every part and how it's doing.", -- luacheck: no max line length
 		"Powershift helpers: pips for how many shifts your mana affords, and a Powershift cue in Cat or Bear Form when it's worth it (with Furor).",
@@ -200,7 +201,7 @@ ns.PLAYSTYLES = {
 	{ key = "feral", label = "Feral damage (Cat Form)", role = "feral",
 		desc = "Energy, combo points, ticks, powershifting, bleeds and Let it bleed. Healing extras off.",
 		off = { "party", "healframes", "fsr", "formbar" },
-		macros = { "claw", "shiftCat", "shiftBear", "faerie", "prowl", "rejuv", "mark", "thorns" } },
+		macros = { "claw", "shiftCat", "shiftBear", "powershift", "faerie", "prowl", "opener", "rejuv", "mark", "thorns" } },
 	{ key = "bear", label = "Tank (Bear Form)", role = "feral",
 		desc = "Rage, tanking cooldowns, aggro and Growl warnings, Demoralizing Roar and Faerie Fire upkeep.",
 		off = { "healframes", "fsr", "energytick", "combopoints", "formbar" },
