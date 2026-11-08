@@ -71,6 +71,7 @@
 **Changed**
 - The addon is now called Forever Druid in the AddOns list, settings, key bindings and chat. Its
   folder is still `ForeverDruid`, so your settings and macros carry over.
+- Licensed under the Apache License 2.0 (was MIT).
 
 **Removed** (Forever can't support them, confirmed from play data)
 - The energy tick row and the tick spark on the energy bar: Forever's energy refills

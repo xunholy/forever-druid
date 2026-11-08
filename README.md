@@ -81,4 +81,4 @@ explains what's in them and what to blank out before posting.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

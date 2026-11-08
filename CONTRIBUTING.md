@@ -28,3 +28,8 @@ the feature needs. Keep pull requests to one change, and describe what a player 
 Add or correct strings in `ForeverDruid/Locale.lua`. English strings are the keys; anything
 untranslated falls back to English. Spell and item names never need translating: they come from
 the client in the player's language.
+
+## Licence
+
+By contributing you agree that your contribution is licensed under the [Apache License 2.0](LICENSE),
+the same as the rest of the project.

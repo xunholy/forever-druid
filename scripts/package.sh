@@ -15,7 +15,7 @@ stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 
 cp -r ForeverDruid "$stage/ForeverDruid"
-cp LICENSE CHANGELOG.md "$stage/ForeverDruid/"
+cp LICENSE NOTICE CHANGELOG.md "$stage/ForeverDruid/"
 mkdir -p dist
 rm -f "dist/ForeverDruid-$version.zip"
 (cd "$stage" && zip -qr "$repo/dist/ForeverDruid-$version.zip" ForeverDruid)
