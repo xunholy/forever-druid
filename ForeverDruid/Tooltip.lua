@@ -103,7 +103,7 @@ local function OnItem(tooltip)
 	if #lines == 0 then
 		return
 	end
-	tooltip:AddLine("ForeverDruid", 1, 0.49, 0.04)
+	tooltip:AddLine(ns.DISPLAY_NAME, 1, 0.49, 0.04)
 	for _, line in ipairs(lines) do
 		tooltip:AddLine(line[1], line[2], line[3], line[4])
 	end

@@ -14,19 +14,16 @@
 - Quick menu regrouped; `/fd <part>` opens a part's settings; mistyped commands suggest the
   closest one; grouped `/fd help`.
 - Shift pips (how many shifts your mana affords) and a Powershift cue in Cat or Bear Form with
-  Furor: energy or rage low, mana enough, and not just before an energy tick. Mana, energy and
+  Furor: energy or rage low and mana enough. Mana, energy and
   rage stay hidden; the client decides each pip and the cue from them.
 - Click-to-heal party frames (off by default) on Blizzard's secure group header: five clicks you
   assign (target, heals, cures, Innervate, Rebirth, buffs), health, your HoTs and range per bar.
 - Form bar (off by default): click-to-shift buttons, current form lit, mana costs.
 - Item tooltips: Cat and Bear attack power and healing, with the change from your equipped item.
 - "Growl missed" when threat shows you still don't have the mob after a Growl.
-- Next ability: Blizzard's own rotation suggestion (C_AssistedCombat), shown as an icon by the HUD
-  with a glow on the Blizzard action button that holds it. The game picks the spell from values
-  addons can't read; nothing shows if the client doesn't offer it, and the probe records why.
 - "Let it bleed - next target" above the target row when one of your bleeds or DoTs is ticking on
   an enemy under a health threshold you set (20% by default). The game evaluates the target's
-  health itself; ForeverDruid never reads it.
+  health itself; Forever Druid never reads it.
 - Party panel (in a group): your HoTs on each member with timers, a Rebirth hint when one is
   dead, and an Innervate hint that fades in when a healer is under about a third of their mana
   (the game does the fade from their hidden mana; the addon never reads it).
@@ -38,17 +35,17 @@
 - Highest-rank action bars: when you learn a new rank, every button holding an older rank of
   that spell switches to it (out of combat, never while you're dragging something).
   `/fd ranks keep <spell>` leaves a spell downranked on purpose; `/fd ranks now` runs it by hand.
-- Energy bar in Cat Form and rage bar in Bear Form, with the energy tick spark on the bar.
+- Energy bar in Cat Form and rage bar in Bear Form.
 - Five-second-rule bar after every mana-costing cast.
 - Choose your caster-form role (auto, healer, Balance, Feral). A talent split within two points
   now counts as Feral.
 - Reminders for a trainer visit after each even level and for the Bear Form (10) and Cat Form
   (20) class quests. Optional reagent restock at vendors (off by default: it spends gold).
-- Macro manager: turn it on and ForeverDruid creates druid macros in your character's own slots
+- Macro manager: turn it on and Forever Druid creates druid macros in your character's own slots
   (Rejuvenation, Regrowth and Healing Touch that drop your form first, mouseover Mark of the Wild,
   Thorns and Innervate, Maul and Claw with auto-attack, Cat and Bear powershifts, mouseover
   Entangling Roots, Hibernate and Rebirth, Prowl into Ravage). Each one appears when you learn its
-  spells. Untick one to delete it; edit one and ForeverDruid leaves it alone. Pick them up from
+  spells. Untick one to delete it; edit one and Forever Druid leaves it alone. Pick them up from
   the Macros settings page or the minimap menu. `/fd macros on | off | sync | restore`.
 - Unlocking fills empty rows with sample buffs, DoTs, combo points and reminders, so you can see
   what you're arranging. Arrow keys nudge the piece under your mouse (Shift: 10px), and an
@@ -62,7 +59,7 @@
 - Key bindings under Key Bindings > AddOns: unlock, quick settings, all settings.
 - Share a profile as a text string and import someone else's as a new profile.
 - German, French and Spanish translations of the menus, settings and welcome tour.
-- `/fd status` and the probe report ForeverDruid's own CPU use when the game's profiler is on.
+- `/fd status` and the probe report Forever Druid's own CPU use when the game's profiler is on.
 
 **New macros**
 - FD Reshift: powershift whatever form you're in. A hidden secure button remembers your last form
@@ -70,6 +67,16 @@
   back into Cat or Bear, whichever you came from.
 - FD Bear Rejuv: out of Bear Form, Rejuvenation, back into Bear Form, by pressing one key; it waits
   out the global cooldown before shifting back.
+
+**Changed**
+- The addon is now called Forever Druid in the AddOns list, settings, key bindings and chat. Its
+  folder is still `ForeverDruid`, so your settings and macros carry over.
+
+**Removed** (Forever can't support them, confirmed from play data)
+- The energy tick row and the tick spark on the energy bar: Forever's energy refills
+  continuously, so there are no ticks to time.
+- Next ability: Forever doesn't offer Blizzard's rotation helper.
+- Their saved settings are cleared from your profiles.
 
 **Fixed**
 - Existing FD macros weren't being updated: the game stores macro text with a trailing line
@@ -130,8 +137,8 @@ auras are hidden in combat.
   own spells via `/fd cd add <role|all> <spell>`.
 - Mana bar colours itself by mana level, can show a percentage, and marks what one shift costs.
 - Profiles shared across characters: `/fd profile`.
-- Full options panel (Options > AddOns > ForeverDruid) with sliders for size and scale.
-- ForeverDruid in the minimap addon menu: left-click for options, right-click to unlock.
+- Full options panel (Options > AddOns > Forever Druid) with sliders for size and scale.
+- Forever Druid in the minimap addon menu: left-click for options, right-click to unlock.
 - Fade the HUD out of combat, and hide it while mounted, dead or on a taxi.
 
 **Fixed**

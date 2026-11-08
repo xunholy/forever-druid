@@ -7,7 +7,7 @@ mistyped command suggests the closest one.
 
 | Command | Does |
 |---|---|
-| `/fd config` | Open the settings (Options > AddOns > ForeverDruid) |
+| `/fd config` | Open the settings (Options > AddOns > Forever Druid) |
 | `/fd style` | Choose how you play (levelling, Feral, tank, healer, Balance) |
 | `/fd <part>` | Open that part's settings, e.g. `/fd heal`, `/fd macros`, `/fd cooldowns`, `/fd energy` |
 | `/fd unlock` / `/fd lock` | Unlock the HUD to move it, lock it again (not in combat) |
@@ -25,9 +25,9 @@ mistyped command suggests the closest one.
 | `/fd stack on` / `off` | Automatic stacking of the HUD column |
 | `/fd toggle <part>` | Turn one part on or off |
 
-Part names for `/fd toggle`: `manabar`, `powerbar`, `fsr` (five-second rule), `energytick`,
+Part names for `/fd toggle`: `manabar`, `powerbar`, `fsr` (five-second rule),
 `combopoints`, `powershift`, `cooldowns`, `buffs`, `targetauras`, `reminders`, `alerts`,
-`nextability`, `party`, `healframes`, `formbar`.
+`party`, `healframes`, `formbar`.
 
 ## Cooldowns
 
@@ -42,9 +42,9 @@ Part names for `/fd toggle`: `manabar`, `powerbar`, `fsr` (five-second rule), `e
 | Command | Does |
 |---|---|
 | `/fd macros` | List the FD macros and their state |
-| `/fd macros on` / `off` | Turn macro management on or off (off deletes the FD macros ForeverDruid made, not ones you edited) |
+| `/fd macros on` / `off` | Turn macro management on or off (off deletes the FD macros Forever Druid made, not ones you edited) |
 | `/fd macros sync` | Bring the macros up to date now |
-| `/fd macros restore` | Overwrite FD macros you edited with ForeverDruid's version (asks first) |
+| `/fd macros restore` | Overwrite FD macros you edited with Forever Druid's version (asks first) |
 
 ## Spell ranks
 
@@ -76,7 +76,7 @@ Part names for `/fd toggle`: `manabar`, `powerbar`, `fsr` (five-second rule), `e
 
 ## Key bindings
 
-Under **Key Bindings > AddOns > ForeverDruid**:
+Under **Key Bindings > AddOns > Forever Druid**:
 
 - **Unlock / lock the HUD**
 - **Quick settings menu**

@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Something in ForeverDruid looks wrong, is missing or errors
+about: Something in Forever Druid looks wrong, is missing or errors
 labels: bug
 ---
 

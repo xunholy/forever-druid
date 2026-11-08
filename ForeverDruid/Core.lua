@@ -14,6 +14,9 @@ ForeverDruid = ns -- for /dump and debugging
 local L = ns.L
 
 ns.name = ADDON
+-- The name players see. The folder, saved variables and frame names stay "ForeverDruid": renaming
+-- them would lose everyone's settings and macros.
+ns.DISPLAY_NAME = "Forever Druid"
 ns.VERSION = (C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata(ADDON, "Version")) or "dev"
 ns.modules = {}
 ns.moduleOrder = {}
@@ -23,7 +26,7 @@ ns.anchors = {}
 -- Output
 ---------------------------------------------------------------------------
 
-local PREFIX = "|cffff7d0aForeverDruid|r:"
+local PREFIX = "|cffff7d0a" .. ns.DISPLAY_NAME .. "|r:"
 
 function ns.Print(...)
 	print(PREFIX, ...)
@@ -212,8 +215,7 @@ ns.defaults = {
 			enabled = true, scale = 1, width = 160, height = 10,
 			alwaysShow = false, text = "value", colorByLevel = true, shiftMarker = true, smooth = true,
 		},
-		energytick = { enabled = true, scale = 1, width = 160, height = 4 },
-		powerbar = { enabled = true, scale = 1, width = 160, height = 12, text = true, smooth = true, tickSpark = true },
+		powerbar = { enabled = true, scale = 1, width = 160, height = 12, text = true, smooth = true },
 		fsr = { enabled = true, scale = 1, width = 160, height = 4, casterOnly = false },
 		combopoints = { enabled = true, scale = 1, size = 14, spacing = 3, catOnly = true },
 		cooldowns = {
@@ -225,11 +227,9 @@ ns.defaults = {
 		buffs = { enabled = true, scale = 1, size = 28, spacing = 4 },
 		targetauras = { enabled = true, scale = 1, size = 26, spacing = 3, max = 8, warnMissing = true,
 			letItBleed = true, bleedThreshold = 0.2 },
-		nextability = { enabled = true, scale = 1, size = 44, glow = true, combatOnly = true },
 		alerts = { enabled = true, scale = 1, size = 40, procs = true, threat = true, threatSolo = false, sound = false,
 			growl = true },
-		powershift = { enabled = true, scale = 1, size = 10, pips = true, cue = true, energyBelow = 0.25, rageBelow = 0.1,
-			tickWindow = 0.6 },
+		powershift = { enabled = true, scale = 1, size = 10, pips = true, cue = true, energyBelow = 0.25, rageBelow = 0.1 },
 		formbar = { enabled = false, scale = 1, size = 30, showCost = true },
 		healframes = { enabled = false, scale = 1, width = 140, height = 30, showSolo = false,
 			clicks = { left = "rejuvenation", right = "regrowth", middle = "none", shiftLeft = "healingTouch",
@@ -244,6 +244,34 @@ ns.defaults = {
 	},
 	probe = { auto = true },
 }
+
+-- Settings of parts that were removed because Forever can't support them: the energy tick (Forever's
+-- energy refills continuously, there are no ticks) and Next ability (Forever doesn't offer
+-- Blizzard's rotation helper). Dropped from saved profiles so they don't linger.
+local RETIRED_PARTS = { "energytick", "nextability" }
+
+local function PruneRetired(profile)
+	for _, key in ipairs(RETIRED_PARTS) do
+		if type(profile.modules) == "table" then
+			profile.modules[key] = nil
+		end
+		if type(profile.positions) == "table" then
+			profile.positions[key] = nil
+		end
+		if type(profile.layout) == "table" and type(profile.layout.detached) == "table" then
+			profile.layout.detached[key] = nil
+		end
+	end
+	local modules = type(profile.modules) == "table" and profile.modules or {}
+	if type(modules.powerbar) == "table" then
+		modules.powerbar.tickSpark = nil
+	end
+	if type(modules.powershift) == "table" then
+		modules.powershift.tickWindow = nil
+	end
+	return profile
+end
+ns.PruneRetired = PruneRetired
 
 local function CopyDefaults(target, defaults)
 	for key, value in pairs(defaults) do
@@ -299,7 +327,7 @@ end
 
 -- Point ns.db at the stored profile again so edits made before the reload aren't lost.
 local function RebindProfile()
-	ns.db = CopyDefaults(ns.global.profiles[ns.profileName], ns.defaults)
+	ns.db = CopyDefaults(PruneRetired(ns.global.profiles[ns.profileName]), ns.defaults)
 end
 
 function ns.CopyProfileFrom(name)
@@ -354,6 +382,11 @@ local function InitDatabase()
 
 	ns.global = global
 	ns.profileName = profileName
+	for _, profile in pairs(global.profiles) do
+		if type(profile) == "table" then
+			PruneRetired(profile)
+		end
+	end
 	ns.db = CopyDefaults(global.profiles[profileName], ns.defaults)
 end
 
@@ -573,7 +606,7 @@ end
 -- Top to bottom. "My effects on target" keeps its row with or without a target, so it goes first
 -- and the bars below it don't jump when a DoT lands. Reminders hold secure (click-to-cast)
 -- buttons, which may not follow a frame that moves in combat, so they keep their own position.
-ns.STACK_ORDER = { "targetauras", "powerbar", "manabar", "fsr", "energytick", "combopoints", "powershift", "cooldowns", "buffs" }
+ns.STACK_ORDER = { "targetauras", "powerbar", "manabar", "fsr", "combopoints", "powershift", "cooldowns", "buffs" }
 local STACKABLE = {}
 for _, key in ipairs(ns.STACK_ORDER) do
 	STACKABLE[key] = true

@@ -250,14 +250,6 @@ end
 local function CapabilitySnapshot()
 	local out = {
 		auraAdded = Copy(caps.auraAdded),
-		assistedCombat = ns.modules.nextability and {
-			available = ns.modules.nextability.Available(),
-			reason = ns.modules.nextability.stats.reason,
-			rotationSpells = C_AssistedCombat and C_AssistedCombat.GetRotationSpells
-				and Describe(#(select(2, pcall(C_AssistedCombat.GetRotationSpells)) or {})) or "<missing>",
-			next = C_AssistedCombat and C_AssistedCombat.GetNextCastSpell
-				and Describe(select(2, pcall(C_AssistedCombat.GetNextCastSpell, false))) or "<missing>",
-		},
 		threat = Describe(ns.SafeReadable(UnitThreatSituation, "player", "target")),
 		threatRaw = UnitThreatSituation and Describe(select(2, pcall(UnitThreatSituation, "player", "target"))) or "<missing>",
 		attackSpeed = UnitAttackSpeed and Describe(select(2, pcall(UnitAttackSpeed, "player"))) or "<missing>",
@@ -334,7 +326,6 @@ function ns.TakeSnapshot(tag)
 		restrictions = RestrictionSnapshot(),
 		cooldowns = CooldownSnapshot(),
 		auras = AuraSnapshot(),
-		energyTick = ns.energyTickStats and Copy(ns.energyTickStats),
 		reagents = ReagentSnapshot(),
 		auraSecrecy = AuraSecrecySnapshot(),
 		moduleStats = ModuleStats(),
@@ -369,11 +360,6 @@ function ns.PrintSnapshot(s)
 	end
 	ns.Print(("  cooldowns secret=%s durationApi=%s"):format(tostring(s.cooldowns.shouldCooldownsBeSecret), tostring(s.cooldowns.hasDurationApi)))
 	ns.Print(("  auras secret=%s"):format(tostring(s.auras.shouldAurasBeSecret)))
-	if s.energyTick then
-		local tick = s.energyTick
-		ns.Print(("  energy tick: mode=%s period=%s events=%s (cast-related %s)"):format(
-			tostring(tick.mode), tostring(tick.period), tostring(tick.events), tostring(tick.castEvents)))
-	end
 	local secretAuras = {}
 	for key, info in pairs(s.auraSecrecy or {}) do
 		if info.secret == true then

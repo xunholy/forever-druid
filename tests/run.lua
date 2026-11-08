@@ -1,5 +1,5 @@
 -- Runs ForeverDruid against the WoW Forever stub: login, every form, combat with secret values,
--- energy tick learning, target auras, click-to-cast reminders, profiles, slash commands and the
+-- target auras, click-to-cast reminders, profiles, slash commands and the
 -- options panel. Exits non-zero on any Lua error, blocked protected action or failed expectation.
 --   lua tests/run.lua
 
@@ -93,7 +93,7 @@ do
 	W.Advance(1)
 	check(#reminders.active == 0, "reminders clear once buffed, attuned and stocked (" .. #reminders.active .. " left)")
 
-	section("Cat Form: mana bar, combo points, energy ticks from event timing")
+	section("Cat Form: mana bar and combo points")
 	W.state.form = 1
 	W.Fire("UPDATE_SHAPESHIFT_FORM")
 	W.Advance(0.1)
@@ -111,36 +111,6 @@ do
 
 	local cooldowns = ns.modules.cooldowns
 	check(cooldowns.count == 8, "cat row: 6 cat spells + 2 Skyborne racials (got " .. tostring(cooldowns.count) .. ")")
-
-	-- Ticks every 2.0s; a Shred at +0.6s after the third tick produces an energy event right after
-	-- the cast, which must be ignored.
-	local tick = ns.modules.energytick
-	local base = W.now
-	local function advanceTo(t)
-		W.Advance(t - W.now)
-	end
-	for i = 1, 6 do
-		advanceTo(base + 2.0 * i)
-		W.Fire("UNIT_POWER_FREQUENT", "player", "ENERGY")
-		if i == 3 then
-			advanceTo(base + 2.0 * i + 0.6)
-			W.Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-1", 5221)
-			advanceTo(base + 2.0 * i + 0.65)
-			W.Fire("UNIT_POWER_FREQUENT", "player", "ENERGY")
-		end
-	end
-	local stats = ns.energyTickStats
-	check(stats.mode == "tick", "energy regen classified as ticks from event timing (mode=" .. tostring(stats.mode) .. ")")
-	check(math.abs(stats.period - 2.0) < 0.05, ("tick period ~2.0s (got %.3f)"):format(stats.period))
-	check(stats.castEvents == 1, "the energy event right after a cast was ignored")
-	local power = ns.modules.powerbar
-	power:UpdateSpark()
-	check(power.spark:IsShown() and not tick.anchor:IsShown(), "learned ticks draw on the energy bar; the separate tick row steps aside")
-	ns.db.modules.powerbar.tickSpark = false
-	tick:Refresh()
-	check(tick.bar:IsShown(), "with the spark off the energy bar, the tick row shows once learned")
-	ns.db.modules.powerbar.tickSpark = true
-	power:Refresh()
 
 	section("combat: auras go secret, power stays secret")
 	W.state.auras["Clearcasting"] = { spellId = 16870, duration = 15, expirationTime = W.now + 15 }
@@ -186,7 +156,6 @@ do
 	check(during.tigersFury == "stale", "Tiger's Fury kept, dimmed, when the client refuses the lookup")
 	check(target.stats.shown == 2, "target debuffs still drawn from secret fields in combat")
 	check(#reminders.active == 0, "reminders hidden in combat")
-	check(tick.bar._values.value ~= nil, "tick spark keeps moving in combat")
 
 	W.Advance(5) -- Tiger's Fury (6s) has now expired
 	W.Fire("UNIT_AURA", "player", {})
@@ -199,7 +168,12 @@ do
 
 	check(ForeverDruidProbe and #ForeverDruidProbe.snapshots >= 2, "probe auto-snapshots at login and first combat")
 	local snaps = ForeverDruidProbe and ForeverDruidProbe.snapshots or {}
-	local snap = snaps[#snaps] or { power = { mana = {} } }
+	local snap = { power = { mana = {} } }
+	for _, each in ipairs(snaps) do
+		if each.tag == "combat" then
+			snap = each
+		end
+	end
 	check(snap.tag == "combat" and snap.power.mana.value == "<secret>", "combat snapshot records mana as <secret>")
 	check(snap.auraSecrecy and snap.auraSecrecy.clearcasting and snap.auraSecrecy.clearcasting.secret == false, "probe records per-aura secrecy")
 	check(snap.moduleStats and snap.moduleStats.targetauras, "probe records module stats")
@@ -216,7 +190,6 @@ do
 	W.Advance(1)
 	check(ns.role == "bear", "role = bear")
 	check(cooldowns.count == 6, "bear row: Enrage, Barkskin, Innervate, Rebirth + 2 racials (got " .. tostring(cooldowns.count) .. ")")
-	check(not tick.bar:IsShown(), "tick bar hidden outside Cat Form")
 	check(labels(reminders.active)["Thorns"], "Thorns reminder in Bear Form")
 
 	section("mounting hides the HUD")
@@ -256,23 +229,6 @@ do
 	ForeverDruid_OnAddonCompartmentClick(nil, "RightButton")
 	ForeverDruid_OnAddonCompartmentClick(nil, "LeftButton")
 	noErrors(W, "addon compartment entry works")
-end
-
----------------------------------------------------------------------------
-do
-	local W, ns = fresh()
-	section("continuous energy regen is detected and the tick bar stays hidden")
-	login(W)
-	W.state.form = 1
-	W.Fire("UPDATE_SHAPESHIFT_FORM")
-	W.Advance(0.1)
-	for _ = 1, 20 do
-		W.Advance(0.1)
-		W.Fire("UNIT_POWER_FREQUENT", "player", "ENERGY")
-	end
-	check(ns.energyTickStats.mode == "continuous", "mode = continuous (got " .. tostring(ns.energyTickStats.mode) .. ")")
-	check(not ns.modules.energytick.bar:IsShown(), "tick bar hidden for continuous regen")
-	noErrors(W, "no errors")
 end
 
 ---------------------------------------------------------------------------
@@ -419,7 +375,7 @@ do
 		return true
 	end
 
-	check(chain() == "targetauras,fsr,cooldowns,buffs", "caster form: energy, mana, tick and combo rows take no room (" .. chain() .. ")")
+	check(chain() == "targetauras,fsr,cooldowns,buffs", "caster form: energy, mana and combo rows take no room (" .. chain() .. ")")
 	local ok, bad = linked()
 	check(ok, "caster form: each piece hangs from the one above it" .. (bad and (" (" .. bad .. ")") or ""))
 
@@ -434,7 +390,7 @@ do
 	W.state.form = 2
 	W.Fire("UPDATE_SHAPESHIFT_FORM")
 	W.Advance(0.5)
-	check(chain() == "targetauras,powerbar,manabar,fsr,powershift,cooldowns,buffs", "Bear Form: combo points and tick close up (" .. chain() .. ")")
+	check(chain() == "targetauras,powerbar,manabar,fsr,powershift,cooldowns,buffs", "Bear Form: combo points close up (" .. chain() .. ")")
 	ok, bad = linked()
 	check(ok, "Bear Form: no gaps" .. (bad and (" (" .. bad .. ")") or ""))
 
@@ -452,7 +408,7 @@ do
 	W.Slash("unlock")
 	local _, _, _, gapUnlocked = hangsFrom("cooldowns")
 	check(gapUnlocked == -(ns.db.layout.gap + 12), "unlocked: extra room for each piece's name")
-	check(chain() == "targetauras,powerbar,manabar,fsr,energytick,combopoints,powershift,cooldowns,buffs", "unlocked: every piece shown in the column")
+	check(chain() == "targetauras,powerbar,manabar,fsr,combopoints,powershift,cooldowns,buffs", "unlocked: every piece shown in the column")
 
 	-- A plain drag of any stacked piece moves the whole column.
 	A.manabar:GetScript("OnDragStart")(A.manabar)
@@ -469,7 +425,7 @@ do
 	check(ns.db.layout.detached.combopoints and rawget(A.combopoints, "_moving"), "shift-drag detaches the piece being dragged")
 	A.combopoints._points = { { "CENTER", ns.root, "CENTER", 200, 0 } }
 	A.combopoints:GetScript("OnDragStop")(A.combopoints)
-	check(hangsFrom("powershift") == A.energytick, "the column closes up behind a detached piece")
+	check(hangsFrom("powershift") == A.fsr, "the column closes up behind a detached piece")
 	check(ns.db.positions.combopoints and ns.db.positions.combopoints[3] == 200, "the detached piece keeps its own spot")
 	W.Slash("lock")
 
@@ -548,7 +504,7 @@ do
 
 	button:GetScript("OnClick")(button, "LeftButton")
 	local menu = W.lastMenu
-	check(menu and menu:Find("ForeverDruid"), "left-click opens the quick menu")
+	check(menu and menu:Find("Forever Druid"), "left-click opens the quick menu")
 
 	local entry = menu:Find("HUD parts", "Combo points")
 	check(entry and entry:Selected(), "HUD parts > Combo points is ticked")
@@ -725,7 +681,7 @@ do
 	check(chooser and chooser:IsShown() and _G.ForeverDruidTour == nil, "first install asks how you play, before the tour")
 	chooser.buttons.healer:GetScript("OnClick")(chooser.buttons.healer)
 	check(ns.db.playstyle == "healer" and ns.db.role == "healer", "picking Healer sets the play style and role")
-	check(ns.db.modules.healframes.enabled and not ns.db.modules.combopoints.enabled and not ns.db.modules.energytick.enabled,
+	check(ns.db.modules.healframes.enabled and not ns.db.modules.combopoints.enabled and not ns.db.modules.powershift.enabled,
 		"Healer: click-to-heal frames on, Cat parts off")
 	check(ns.db.macros.manage and ns.db.macros.enabled.swiftHeal and ns.db.macros.enabled.claw == false,
 		"Healer: the matching macros are switched on, others off")
@@ -769,6 +725,36 @@ do
 	W3.Advance(2)
 	check(_G.ForeverDruidWhatsNew and _G.ForeverDruidWhatsNew:IsShown(), "shows once the fight is over")
 	noErrors(W3, "no errors")
+
+	section("settings of parts Forever can't support are cleared from saved profiles")
+	_G.ForeverDruidWhatsNew = nil
+	local W4, ns4 = fresh(function()
+		local old = {
+			modules = {
+				energytick = { enabled = true, width = 200 },
+				nextability = { enabled = true, glow = true },
+				powerbar = { enabled = true, width = 222, tickSpark = true },
+				powershift = { enabled = true, tickWindow = 0.6, energyBelow = 0.3 },
+			},
+			positions = { energytick = { "CENTER", "CENTER", 0, -182 }, nextability = { "CENTER", "CENTER", -110, -160 } },
+			layout = { stack = true, detached = { energytick = true, combopoints = true } },
+		}
+		ForeverDruidDB = { profiles = { Default = old, Other = { modules = { nextability = { enabled = true } } } },
+			chars = {}, lastVersion = "0.4.0" }
+	end)
+	login(W4)
+	W4.Advance(5)
+	local saved = ForeverDruidDB.profiles
+	check(saved.Default.modules.energytick == nil and saved.Default.modules.nextability == nil
+		and saved.Other.modules.nextability == nil, "energy tick and Next ability settings are gone, in every profile")
+	check(saved.Default.positions.energytick == nil and saved.Default.positions.nextability == nil
+		and saved.Default.layout.detached.energytick == nil, "their positions and column state are gone")
+	check(saved.Default.modules.powerbar.tickSpark == nil and saved.Default.modules.powershift.tickWindow == nil,
+		"the tick options on the energy bar and Powershift are gone")
+	check(ns4.db.modules.powerbar.width == 222 and ns4.db.modules.powershift.energyBelow == 0.3
+		and ns4.db.layout.detached.combopoints, "everything else you set is kept")
+	check(ns4.modules.energytick == nil and ns4.modules.nextability == nil, "neither part exists any more")
+	noErrors(W4, "no errors")
 end
 
 ---------------------------------------------------------------------------
@@ -811,7 +797,7 @@ do
 	ForeverDruid_ToggleUnlock()
 	ForeverDruid_OpenQuickMenu()
 	check(W.lastMenu and W.lastMenu:Find("HUD parts"), "quick-menu keybinding")
-	check(BINDING_NAME_FOREVERDRUID_UNLOCK and BINDING_HEADER_FOREVERDRUID == "ForeverDruid", "keybinding names defined")
+	check(BINDING_NAME_FOREVERDRUID_UNLOCK and BINDING_HEADER_FOREVERDRUID == "Forever Druid", "keybinding names defined")
 	local f = io.open("ForeverDruid/Bindings.xml")
 	local xml = f and f:read("*a") or ""
 	if f then
@@ -1600,59 +1586,6 @@ end
 
 ---------------------------------------------------------------------------
 do
-	section("next ability: Blizzard's rotation suggestion as an icon and a button glow")
-	local W, ns = fresh(function(W)
-		W.state.assisted = { available = false, reason = "disabled for this game" }
-	end)
-	login(W)
-	W.Advance(5)
-	local nextAb = ns.modules.nextability
-	W.Fire("PLAYER_REGEN_DISABLED")
-	W.state.inCombat = true
-	W.Advance(0.5)
-	check(not nextAb.anchor:IsShown() and nextAb.stats.reason == "disabled for this game",
-		"helper not offered: nothing shows, and the reason is recorded")
-
-	W.state.assisted = { available = true, next = 1082 }
-	W.actions[3] = { kind = "spell", id = 1082 }
-	W.Advance(0.5)
-	check(nextAb.anchor:IsShown() and nextAb.Current() == 1082, "offered: shows the suggested spell (Claw)")
-	local glowing = 0
-	for _, f in ipairs(W.frames) do
-		local p = rawget(f, "_points")[1]
-		if p and p[2] == _G.ActionButton3 and f:IsShown() then
-			glowing = glowing + 1
-		end
-	end
-	check(glowing == 1, "the button holding Claw glows")
-	check(rawget(_G.ActionButton3, "_parent") == UIParent and #W.blocked == 0, "the glow is laid over the button; the secure button is untouched")
-
-	W.state.assisted.next = W.Secret()
-	W.Advance(0.5)
-	check(nextAb.Current() == nil and nextAb.stats.secret > 0, "a hidden suggestion is never guessed")
-	W.state.assisted.next = 1082
-	W.Advance(0.5)
-	ns.db.modules.nextability.glow = false
-	nextAb:Update()
-	local still = 0
-	for _, f in ipairs(W.frames) do
-		local p = rawget(f, "_points")[1]
-		if p and p[2] == _G.ActionButton3 and f:IsShown() then
-			still = still + 1
-		end
-	end
-	check(still == 0, "glow can be turned off")
-	W.state.inCombat = false
-	W.Fire("PLAYER_REGEN_ENABLED")
-	W.Advance(0.5)
-	check(not nextAb.anchor:IsShown(), "only in combat by default")
-	local snap = ns.TakeSnapshot("assisted")
-	check(snap.capabilities.assistedCombat and snap.capabilities.assistedCombat.available == true, "probe records whether the helper is offered")
-	noErrors(W, "no errors or blocked actions")
-end
-
----------------------------------------------------------------------------
-do
 	section("powershift pips and cue, heal frames, form bar, tooltips, Growl check")
 	_G.ForeverDruidHealHeader = nil
 	local W, ns = fresh(function(W)
@@ -1686,10 +1619,6 @@ do
 	W.Advance(0.5)
 	check(ps.cueOuter:IsShown() and W.IsSecret(rawget(ps.cueOuter, "_alpha")) and W.IsSecret(rawget(ps.cueInner, "_alpha")),
 		"Powershift cue: energy and mana conditions both left to the client")
-	ns.energyTickStats.mode, ns.energyTickStats.phase, ns.energyTickStats.period = "tick", W.now - 1.8, 2
-	ps:Update()
-	check(not ps.cueOuter:IsShown(), "not right before an energy tick")
-	ns.energyTickStats.mode = "learning"
 	W.state.inCombat = false
 	W.Fire("PLAYER_REGEN_ENABLED")
 	W.state.form = 0
@@ -1842,11 +1771,9 @@ do
 	check(W.lastMenu == nil, "no piece menu while locked")
 
 	-- At a glance.
-	check(ns.ModuleStatus("energytick"):find("learning", 1, true), "status: energy tick learning")
 	check(ns.ModuleStatus("healframes"):find("off", 1, true), "status: click-to-heal frames off")
-	check(ns.ModuleStatus("nextability"):find("not offered", 1, true), "status: next ability not offered")
 	local ok, pages = W.ShowOptionsPanel()
-	check(ok and pages >= 17, "settings with the overview show")
+	check(ok and pages >= 15, "settings with the overview show")
 
 	-- Slash shortcuts.
 	W.openedCategory = nil

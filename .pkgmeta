@@ -1,5 +1,9 @@
 package-as: ForeverDruid
 
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
 move-folders:
   ForeverDruid/ForeverDruid: ForeverDruid
 

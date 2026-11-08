@@ -19,10 +19,17 @@ and tests every push and pull request that touches the addon.
 
 ## 3. CurseForge and Wago (optional)
 
-1. Create the project on CurseForge (game: World of Warcraft, flavour: Forever) and/or Wago Addons.
+1. Create the project at https://authors.curseforge.com (game: World of Warcraft) and/or on Wago
+   Addons, named "Forever Druid" (text for the page is in `listing.md`). New CurseForge projects are reviewed by moderators before they go public.
 2. Add the IDs to the TOC: `## X-Curse-Project-ID: <id>` and `## X-Wago-ID: <id>`.
-3. Add repository secrets `CF_API_KEY` (CurseForge > API tokens) and `WAGO_API_TOKEN`.
+3. Add repository secrets `CF_API_TOKEN` (authors.curseforge.com > settings > API tokens) and
+   `WAGO_API_TOKEN` (addons.wago.io > account > API keys), e.g. `gh secret set CF_API_TOKEN`.
 4. The next tag uploads there too, so players with the CurseForge app get updates automatically.
+   The packager reads `## Interface: 16001` as Forever and tags the file for game version 1.60.1;
+   the CurseForge changelog comes from `CHANGELOG.md`.
+
+Check a build without uploading: download the packager's `release.sh` and run
+`bash release.sh -d -r /tmp/fd-release` in the repository.
 
 ## Screenshots
 

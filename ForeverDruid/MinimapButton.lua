@@ -57,8 +57,8 @@ end
 -- Builds the menu into a rootDescription from Blizzard's Menu system. Kept separate from the
 -- opening code so the tests can walk it.
 local PART_GROUPS = {
-	{ "Cat & Bear", { "powerbar", "manabar", "energytick", "combopoints", "powershift" } },
-	{ "Combat", { "targetauras", "cooldowns", "buffs", "alerts", "nextability", "fsr" } },
+	{ "Cat & Bear", { "powerbar", "manabar", "combopoints", "powershift" } },
+	{ "Combat", { "targetauras", "cooldowns", "buffs", "alerts", "fsr" } },
 	{ "Group", { "party", "healframes" } },
 	{ "Extras", { "reminders", "formbar" } },
 }
@@ -75,7 +75,7 @@ end
 -- Builds the menu into a rootDescription from Blizzard's Menu system. Kept separate from the
 -- opening code so the tests can walk it.
 function ns.BuildQuickMenu(root)
-	root:CreateTitle("ForeverDruid " .. ns.VERSION)
+	root:CreateTitle(ns.DISPLAY_NAME .. " " .. ns.VERSION)
 
 	-- The three things people reach for most.
 	local style = root:CreateButton(L["Play style"] .. ": " .. PlaystyleLabel())
@@ -409,7 +409,7 @@ local function ShowTooltip(owner)
 		return
 	end
 	GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
-	GameTooltip:SetText("ForeverDruid " .. ns.VERSION)
+	GameTooltip:SetText(ns.DISPLAY_NAME .. " " .. ns.VERSION)
 	GameTooltip:AddLine(L["Left-click: quick settings"], 1, 1, 1)
 	GameTooltip:AddLine(L["Right-click: unlock / lock to move the HUD"], 1, 1, 1)
 	GameTooltip:AddLine(L["Shift-click: all settings"], 1, 1, 1)

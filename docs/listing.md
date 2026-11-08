@@ -1,16 +1,17 @@
 # Listing text (CurseForge / Wago)
 
-**Summary:** A druid HUD built for WoW Forever: mana while shapeshifted, energy ticks, combo
+**Name:** Forever Druid (the addon folder stays `ForeverDruid`)
+
+**Summary:** A druid HUD built for WoW Forever: mana while shapeshifted, energy and rage, combo
 points, cooldowns for the form you're in, your DoTs and HoTs on target, and click-to-cast buff
 reminders.
 
 **Description**
 
-ForeverDruid puts what a Forever druid needs in one column under your character, and the column
-changes with your form.
+Forever Druid puts everything a druid needs on Forever in one column under your character, and
+the column changes with your form.
 
-- **Cat Form:** mana bar with the cost of shifting back marked, an energy tick spark it learns from
-  Forever's own timing, combo points that turn red at five, and Tiger's Fury, Dash and Prowl.
+- **Cat Form:** mana bar with the cost of shifting back marked, an energy bar, combo points that turn red at five, and Tiger's Fury, Dash and Prowl.
 - **Bear Form:** Enrage, Bash, Frenzied Regeneration, Feral Charge and Barkskin.
 - **Caster form:** Nature's Swiftness, Innervate, Rebirth and your healing or Balance cooldowns,
   depending on where your talent points are.

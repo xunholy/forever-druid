@@ -1,13 +1,13 @@
-# ForeverDruid
+# Forever Druid
 
 A druid addon for **World of Warcraft: Forever** (client 1.60, interface 16001). One addon in place
 of the usual stack of druid add-ons: a mana bar for your forms, energy and combo points, cooldowns,
-procs, your DoTs and HoTs, buff reminders, powershifting help, macros, click-to-heal party frames,
-and a "next ability" helper. It's built around what Forever's client actually lets addons see,
-which is less than Classic allowed.
+procs, your DoTs and HoTs, buff reminders, powershifting help, macros and click-to-heal party
+frames. It's built around what Forever's client actually lets addons see, which is less than
+Classic allowed, and it leaves out anything Forever can't support.
 
 It changes with your form. Shift into Cat Form and the column under your character becomes energy,
-combo points, the energy tick and your bleeds; Bear Form swaps in rage and your tanking cooldowns;
+combo points and your bleeds; Bear Form swaps in rage and your tanking cooldowns;
 caster form shows healing or Balance cooldowns, depending on your talents or the role you pick.
 
 > **Status:** 0.5.0, in active development and playtesting on Forever's launch client. Everything is
@@ -16,10 +16,9 @@ caster form shows healing or Balance cooldowns, depending on your talents or the
 
 ## What's in it
 
-**In Cat Form.** Energy bar with a tick spark that learns Forever's energy timing from the game
-itself. Five combo pips that turn red at five. Shift pips showing how many powershifts your mana
-still covers, and a "Powershift" cue when energy is low, the shift is affordable and the next tick
-isn't about to land (with Furor). Your Rake and Rip on the target with timers, and "Let it bleed -
+**In Cat Form.** Energy bar and five combo pips that turn red at five. Shift pips showing how many
+powershifts your mana still covers, and a "Powershift" cue when energy is low and the shift is
+affordable (with Furor). Your Rake and Rip on the target with timers, and "Let it bleed -
 next target" when a bleeding mob is nearly dead.
 
 **In Bear Form.** Rage bar, Enrage, Bash, Frenzied Regeneration and Feral Charge on the cooldown
@@ -39,8 +38,6 @@ Moonfire and Insect Swarm upkeep warnings for Balance.
 - Druid macros written for you and kept up to date as you learn spells, and action bars kept on
   your highest spell ranks
 - Item tooltips showing Cat and Bear attack power and healing, compared with what you're wearing
-- Next ability: Blizzard's own rotation suggestion, with a glow on the button to press, when the
-  client offers it
 - Optional reagent restock at vendors, and an optional click-to-shift form bar
 
 Everything is arranged from a minimap button: drag the whole HUD, pull pieces out, turn parts on
@@ -50,16 +47,16 @@ and off, change size and fading. Profiles can be shared as a text string.
 
 1. Download the latest `ForeverDruid-*.zip` from [Releases](../../releases).
 2. Extract the `ForeverDruid` folder into `World of Warcraft/_forever_/Interface/AddOns/`.
-3. Start the game (a `/reload` isn't enough for a first install) and tick ForeverDruid in the AddOns
+3. Start the game (a `/reload` isn't enough for a first install) and tick Forever Druid in the AddOns
    list at character select.
 
-On your first login ForeverDruid asks how you play (levelling, Feral, tank, healer or Balance) and
+On your first login Forever Druid asks how you play (levelling, Feral, tank, healer or Balance) and
 sets itself up for it, then a short tour shows where things are. After that: click the cat icon on your minimap for
 quick settings, right-click it to move things, shift-click it for everything else.
 
-**Turn off overlapping addons.** ForeverDruid replaces druid mana bars, combo bars and rotation
-helpers. MaxDps in particular doesn't work on Forever's client (it errors constantly on hidden
-values).
+**Turn off overlapping addons.** Forever Druid replaces druid mana bars and combo bars. Rotation
+helpers such as MaxDps don't work on Forever's client: they error constantly on hidden values, and
+Forever doesn't offer Blizzard's own rotation helper either.
 
 ## Documentation
 
@@ -67,7 +64,7 @@ values).
 |---|---|
 | [Player guide](docs/guide.md) | Every feature, what it shows and how to set it up |
 | [Commands and key bindings](docs/commands.md) | All `/fd` commands |
-| [How it works on Forever](docs/forever-restrictions.md) | What the client hides from addons, how ForeverDruid works around it, and what can't be done |
+| [How it works on Forever](docs/forever-restrictions.md) | What the client hides from addons, how Forever Druid works around it, and what can't be done |
 | [Troubleshooting](docs/troubleshooting.md) | When something doesn't show, and how to report a bug |
 | [Development](docs/development.md) | Code layout, the test stub, rules for working with hidden values |
 | [Changelog](CHANGELOG.md) | What changed in each version |

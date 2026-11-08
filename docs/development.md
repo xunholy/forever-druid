@@ -1,6 +1,6 @@
 # Development
 
-ForeverDruid is plain Lua 5.1 for the WoW client, with no libraries. A test suite runs the whole
+Forever Druid is plain Lua 5.1 for the WoW client, with no libraries. A test suite runs the whole
 addon against a model of the Forever client in standard Lua, so most work happens without starting
 the game.
 

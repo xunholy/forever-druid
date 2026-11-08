@@ -50,11 +50,11 @@ local PAGE_ALIASES = {
 	heal = "healframes", heals = "healframes", healing = "healframes", frames = "healframes", click = "healframes",
 	hots = "party", hot = "party", tracker = "party",
 	mana = "manabar", energy = "powerbar", rage = "powerbar", power = "powerbar",
-	tick = "energytick", ticks = "energytick", combo = "combopoints", cp = "combopoints",
+	combo = "combopoints", cp = "combopoints",
 	shift = "powershift", powershift = "powershift", pips = "powershift",
 	cooldown = "cooldowns", cds = "cooldowns", buff = "buffs", procs = "buffs",
 	target = "targetauras", dots = "targetauras", bleed = "targetauras", debuffs = "targetauras",
-	alert = "alerts", aggro = "alerts", next = "nextability", rotation = "nextability",
+	alert = "alerts", aggro = "alerts",
 	remind = "reminders", reminder = "reminders", forms = "formbar", fsr = "fsr", regen = "fsr",
 }
 
@@ -161,7 +161,7 @@ local function CooldownCommand(rest)
 end
 
 -- Key Bindings > AddOns > ForeverDruid (Bindings.xml calls these).
-BINDING_HEADER_FOREVERDRUID = "ForeverDruid"
+BINDING_HEADER_FOREVERDRUID = ns.DISPLAY_NAME
 BINDING_NAME_FOREVERDRUID_UNLOCK = L["Unlock / lock the HUD"]
 BINDING_NAME_FOREVERDRUID_MENU = L["Quick settings menu"]
 BINDING_NAME_FOREVERDRUID_OPTIONS = L["All settings"]
@@ -223,7 +223,7 @@ SlashCmdList.FOREVERDRUID = function(input)
 			local _, result = ns.macros.Sync()
 			ns.macros.Report(result)
 		elseif action == "restore" then
-			ns.Confirm(L["Overwrite the FD macros you edited with ForeverDruid's version?"], function()
+			ns.Confirm(L["Overwrite the FD macros you edited with Forever Druid's version?"], function()
 				ns.Print(L["restored"] .. " " .. ns.macros.Restore())
 			end)
 		else
@@ -332,7 +332,7 @@ function ns.OpenOptions(category)
 			return
 		end
 	end
-	ns.Print(L["Open Options > AddOns > ForeverDruid."])
+	ns.Print(L["Open Options > AddOns > Forever Druid."])
 end
 
 -- Opens a part's own settings page (falls back to the main page).
@@ -520,13 +520,11 @@ local MODULE_TITLES = {
 	powershift = "Powershift",
 	formbar = "Form bar",
 	healframes = "Click-to-heal frames",
-	nextability = "Next ability",
 	alerts = "Alerts",
 	party = "HoT tracker",
 	powerbar = "Energy / rage",
 	fsr = "Five-second rule",
 	manabar = "Mana bar",
-	energytick = "Energy tick",
 	combopoints = "Combo points",
 	cooldowns = "Cooldowns",
 	buffs = "Buffs & procs",
@@ -537,8 +535,8 @@ ns.MODULE_TITLES = MODULE_TITLES
 
 -- Settings pages in a sensible reading order, grouped: the HUD column, combat helpers, group, extras.
 ns.PAGE_ORDER = {
-	"targetauras", "powerbar", "manabar", "fsr", "energytick", "combopoints", "powershift", "cooldowns", "buffs",
-	"alerts", "nextability",
+	"targetauras", "powerbar", "manabar", "fsr", "combopoints", "powershift", "cooldowns", "buffs",
+	"alerts",
 	"party", "healframes",
 	"reminders", "formbar",
 }
@@ -548,13 +546,11 @@ local MODULE_NOTES = {
 	powershift = "Pips for how many shifts your mana affords, and a Powershift cue in Cat or Bear Form when it's worth it (needs the Furor talent). The game checks your hidden mana and energy itself.", -- luacheck: no max line length
 	formbar = "A row of your forms next to the HUD: click to shift, current form lit, mana cost shown.",
 	healframes = "You and your party as click-to-heal bars: pick what each click casts. Off by default. Settings can only change out of combat.",
-	nextability = "Blizzard's own rotation suggestion: the game picks your next ability from the real numbers addons can't see, and ForeverDruid shows it and makes its button glow. Only if Forever's client offers it.", -- luacheck: no max line length
 	alerts = "Clearcasting and Nature's Grace the moment they trigger, and a warning when you're losing aggro in Bear Form. Only shows what the game lets addons see during a fight.", -- luacheck: no max line length
 	party = "In a group: your HoTs on each party member with timers, a Rebirth hint when someone is dead, and an Innervate hint when a healer runs low on mana.",
-	powerbar = "Energy in Cat Form and rage in Bear Form, with the energy tick spark on the bar.",
+	powerbar = "Energy in Cat Form and rage in Bear Form.",
 	fsr = "After you spend mana, your normal mana regeneration pauses for five seconds. This bar fills over those five seconds.",
 	manabar = "Your mana while in Cat or Bear Form, with the cost of one shift marked.",
-	energytick = "Learns Forever's energy ticks in Cat Form and sweeps a spark to the next one.",
 	combopoints = "Five pips that turn red at five points.",
 	cooldowns = "Cooldowns for what you're doing right now, limited to spells you know.",
 	buffs = "Clearcasting, Tiger's Fury, Barkskin, Enrage and other buffs, with timers.",
@@ -614,21 +610,8 @@ function ns.ModuleStatus(key)
 	if not (cfg and cfg.enabled) then
 		return "|cff808080" .. L["off"] .. "|r"
 	end
-	local m = ns.modules[key]
 	local note
-	if key == "energytick" then
-		local stats = ns.energyTickStats or {}
-		if stats.mode == "tick" then
-			note = L["learned"] .. (" (%.1fs)"):format(stats.period or 2)
-		elseif stats.mode == "continuous" then
-			note = L["not needed: energy regenerates continuously"]
-		else
-			note = L["learning in Cat Form"]
-		end
-	elseif key == "nextability" and m and m.Available then
-		note = m.Available() and L["offered by this client"]
-			or (L["not offered by this client"] .. (m.stats.reason and (": " .. tostring(m.stats.reason)) or ""))
-	elseif key == "powershift" then
+	if key == "powershift" then
 		note = ns.IsKnown("furor") and L["Furor found: cue active"] or L["pips only (the cue needs Furor)"]
 	elseif key == "party" then
 		note = L["shows in a group"]
@@ -712,7 +695,7 @@ local function Overview(b)
 end
 
 local function MainPage()
-	local panel, b = NewPage("ForeverDruid", "ForeverDruid |cffffffff" .. ns.VERSION .. "|r",
+	local panel, b = NewPage(ns.DISPLAY_NAME, ns.DISPLAY_NAME .. " |cffffffff" .. ns.VERSION .. "|r",
 		L["A druid HUD for WoW Forever. Each part of the HUD has its own page in the list on the left."])
 	b:Button(L["Choose how you play..."], 220, function()
 		ns.ShowPlaystyle()
@@ -781,7 +764,7 @@ local function MainPage()
 		else
 			ns.db.minimap.hide = not value
 		end
-	end, L["The cat icon on the minimap: left-click for quick settings, right-click to unlock, shift-click for this panel. ForeverDruid is also in the minimap addon menu."]) -- luacheck: no max line length
+	end, L["The cat icon on the minimap: left-click for quick settings, right-click to unlock, shift-click for this panel. Forever Druid is also in the minimap addon menu."]) -- luacheck: no max line length
 
 	b:Check(L["Druid values in item tooltips"], function()
 		return ns.db.tooltips.enabled
@@ -816,7 +799,7 @@ local function MainPage()
 		ns.ShowShareWindow("import")
 	end, L["Paste a profile string from someone else. It's added as a new profile; yours isn't changed."])
 	b:Button(L["Reset this profile"], 180, function()
-		ns.Confirm(L["Reset every ForeverDruid setting in this profile to its default? This reloads your interface."], function()
+		ns.Confirm(L["Reset every Forever Druid setting in this profile to its default? This reloads your interface."], function()
 			ns.ResetProfile()
 			ReloadUI()
 		end)
@@ -829,14 +812,14 @@ local function MainPage()
 	b:Button(L["What's new"], 180, function()
 		ns.ShowWhatsNew()
 	end)
-	b:Note(L["Key bindings for unlock, quick settings and this panel are under Key Bindings > AddOns > ForeverDruid."])
+	b:Note(L["Key bindings for unlock, quick settings and this panel are under Key Bindings > AddOns > Forever Druid."])
 
 	b:Header(L["Diagnostics"])
 	b:Check(L["Record probe snapshots automatically"], function()
 		return ns.db.probe.auto
 	end, function(value)
 		ns.db.probe.auto = value
-	end, L["At login and at the start of your first fight, saves what the game lets addons see. Helps tune ForeverDruid to Forever."])
+	end, L["At login and at the start of your first fight, saves what the game lets addons see. Helps tune Forever Druid to Forever."])
 	b:Button(L["Take a snapshot now"], 180, function()
 		ns.PrintSnapshot(ns.TakeSnapshot("manual"))
 	end)
@@ -859,7 +842,7 @@ local MODULE_PAGES = {
 		s:Check(L["Shift pips"], ModuleGetter("powershift", "pips"), ModuleSetter("powershift", "pips"),
 			L["One pip per shift back into your form that your mana affords, up to five."])
 		s:Check(L["Powershift cue"], ModuleGetter("powershift", "cue"), ModuleSetter("powershift", "cue"),
-			L["In combat with Furor: shows when your energy (Cat) or rage (Bear) is low, you can afford the shift, and the next energy tick isn't about to land."])
+			L["In combat with Furor: shows when your energy (Cat) or rage (Bear) is low, and you can afford the shift."])
 		s:Slider(L["Cat: energy at or below (%)"], 5, 60, 1, function()
 			return math.floor(ns.db.modules.powershift.energyBelow * 100 + 0.5)
 		end, function(value)
@@ -898,16 +881,6 @@ local MODULE_PAGES = {
 			end)
 		end
 	end,
-	nextability = function(s)
-		local available = ns.modules.nextability.Available()
-		local reason = ns.modules.nextability.stats.reason
-		s:Note(available and ("|cff40ff40" .. L["Available on this client."] .. "|r")
-			or ("|cffff8080" .. L["Not offered by this client right now"] .. (reason and (": " .. tostring(reason)) or "") .. ".|r"))
-		s:Check(L["Glow on the action button"], ModuleGetter("nextability", "glow"), ModuleSetter("nextability", "glow"),
-			L["Highlights the button on your Blizzard action bars that holds the suggested spell. Other action bar addons' buttons aren't found."])
-		s:Check(L["Only in combat"], ModuleGetter("nextability", "combatOnly"), ModuleSetter("nextability", "combatOnly"))
-		s:Slider(L["Icon size"], 24, 80, 1, ModuleGetter("nextability", "size"), ModuleSetter("nextability", "size"))
-	end,
 	alerts = function(s)
 		s:Check(L["Clearcasting and Nature's Grace"], ModuleGetter("alerts", "procs"), ModuleSetter("alerts", "procs"),
 			L["A big icon with its timer when the proc triggers. Needs the game to name the buff as it's gained in combat."])
@@ -923,14 +896,12 @@ local MODULE_PAGES = {
 			L["Show the panel only when your role is healer (Restoration talents, or picked in settings)."])
 		s:Check(L["Rebirth hint when someone dies"], ModuleGetter("party", "rebirthHint"), ModuleSetter("party", "rebirthHint"))
 		s:Check(L["Innervate hint when a healer is low on mana"], ModuleGetter("party", "innervateHint"), ModuleSetter("party", "innervateHint"),
-			L["Fades in under about a third of their mana. The game works out the fade itself; ForeverDruid never sees their mana."])
+			L["Fades in under about a third of their mana. The game works out the fade itself; Forever Druid never sees their mana."])
 		s:Slider(L["Icon size"], 14, 36, 1, ModuleGetter("party", "size"), ModuleSetter("party", "size"))
 	end,
 	powerbar = function(s)
 		s:Check(L["Show the number"], ModuleGetter("powerbar", "text"), ModuleSetter("powerbar", "text"),
 			L["Your energy or rage as a number on the bar."])
-		s:Check(L["Energy tick spark on the bar"], ModuleGetter("powerbar", "tickSpark"), ModuleSetter("powerbar", "tickSpark"),
-			L["Draws the energy tick on this bar in Cat Form, and hides the separate energy tick row."])
 		s:Check(L["Smooth"], ModuleGetter("powerbar", "smooth"), ModuleSetter("powerbar", "smooth"),
 			L["The bar glides to its new value instead of jumping."])
 		s:Slider(L["Width"], 80, 400, 5, ModuleGetter("powerbar", "width"), ModuleSetter("powerbar", "width"))
@@ -955,11 +926,6 @@ local MODULE_PAGES = {
 			L["Also show it in caster form, where the game's own frame already shows mana."])
 		s:Slider(L["Width"], 80, 400, 5, ModuleGetter("manabar", "width"), ModuleSetter("manabar", "width"))
 		s:Slider(L["Height"], 4, 30, 1, ModuleGetter("manabar", "height"), ModuleSetter("manabar", "height"))
-	end,
-	energytick = function(s)
-		s:Note(L["Needs a few fights in Cat Form to learn Forever's tick timing; until then it stays hidden."])
-		s:Slider(L["Width"], 80, 400, 5, ModuleGetter("energytick", "width"), ModuleSetter("energytick", "width"))
-		s:Slider(L["Height"], 2, 20, 1, ModuleGetter("energytick", "height"), ModuleSetter("energytick", "height"))
 	end,
 	combopoints = function(s)
 		s:Check(L["Only in Cat Form"], ModuleGetter("combopoints", "catOnly"), ModuleSetter("combopoints", "catOnly"),
@@ -990,7 +956,7 @@ local MODULE_PAGES = {
 		s:Slider(L["Icon size"], 16, 64, 1, ModuleGetter("targetauras", "size"), ModuleSetter("targetauras", "size"))
 		s:Slider(L["Most shown"], 1, 16, 1, ModuleGetter("targetauras", "max"), ModuleSetter("targetauras", "max"))
 		s:Check(L["\"Let it bleed\" when it's nearly dead"], ModuleGetter("targetauras", "letItBleed"), ModuleSetter("targetauras", "letItBleed"),
-			L["When your bleed or DoT is ticking on an enemy below the health below, says so, so you can move to the next one. The game checks the health itself; addons can't see it."]) -- luacheck: no max line length
+			L["When your bleed or DoT is ticking on an enemy under the health set below, says so, so you can move to the next one. The game checks the health itself; addons can't see it."]) -- luacheck: no max line length
 		s:Slider(L["Nearly dead below (%)"], 5, 40, 1, function()
 			return math.floor((ns.db.modules.targetauras.bleedThreshold or 0.2) * 100 + 0.5)
 		end, function(value)
@@ -1071,13 +1037,13 @@ end
 
 local function MacrosPage()
 	local panel, b = NewPage(L["Macros"], L["Macros"],
-		L["ForeverDruid can create druid macros in your character's own macro slots and keep them up to date as you learn spells. It only touches macros named \"FD ...\", and leaves alone any you've edited."]) -- luacheck: no max line length
+		L["Forever Druid can create druid macros in your character's own macro slots and keep them up to date as you learn spells. It only touches macros named \"FD ...\", and leaves alone any you've edited."]) -- luacheck: no max line length
 	b:Check(L["Create and update my druid macros"], function()
 		return ns.db.macros.manage
 	end, function(value)
 		ns.macros.SetManaged(value)
 		b:Refresh()
-	end, L["Turning this off deletes the FD macros ForeverDruid made (not ones you've edited)."])
+	end, L["Turning this off deletes the FD macros Forever Druid made (not ones you've edited)."])
 	b:Note(L["Click Pick up, then click an action bar slot to place a macro. Unticking a macro deletes it, unless you've edited it."])
 	b:Space(4)
 	for _, def in ipairs(ns.macros.LIST) do
@@ -1104,11 +1070,11 @@ local function MacrosPage()
 	end
 	b:Space(6)
 	b:Button(L["Restore edited macros"], 200, function()
-		ns.Confirm(L["Overwrite the FD macros you edited with ForeverDruid's version?"], function()
+		ns.Confirm(L["Overwrite the FD macros you edited with Forever Druid's version?"], function()
 			ns.Print(L["restored"] .. " " .. ns.macros.Restore())
 			b:Refresh()
 		end)
-	end, L["Puts ForeverDruid's text back into FD macros you changed. Asks first."])
+	end, L["Puts Forever Druid's text back into FD macros you changed. Asks first."])
 	if ShowMacroFrame then
 		b:Button(L["Open the macro window"], 200, function()
 			ShowMacroFrame()
@@ -1127,7 +1093,7 @@ local function BuildPanel()
 	if not (Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory) then
 		return
 	end
-	panelCategory = Settings.RegisterCanvasLayoutCategory(MainPage(), "ForeverDruid")
+	panelCategory = Settings.RegisterCanvasLayoutCategory(MainPage(), ns.DISPLAY_NAME)
 	Settings.RegisterAddOnCategory(panelCategory)
 	if Settings.RegisterCanvasLayoutSubcategory then
 		local listed = {}

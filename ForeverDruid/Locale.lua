@@ -22,7 +22,6 @@ end
 if locale == "deDE" then
 	Set({
 		["Mana bar"] = "Manaleiste",
-		["Energy tick"] = "Energietick",
 		["Combo points"] = "Kombopunkte",
 		["Cooldowns"] = "Abklingzeiten",
 		["Buffs & procs"] = "Buffs & Procs",
@@ -115,8 +114,8 @@ if locale == "deDE" then
 		["Right-click: unlock / lock to move the HUD"] = "Rechtsklick: HUD zum Verschieben entsperren / sperren",
 		["Shift-click: all settings"] = "Umschalt-Klick: alle Einstellungen",
 		["Drag: move this button"] = "Ziehen: Symbol verschieben",
-		["Welcome to ForeverDruid"] = "Willkommen bei ForeverDruid",
-		["What's new in ForeverDruid"] = "Neu in ForeverDruid",
+		["Welcome to Forever Druid"] = "Willkommen bei Forever Druid",
+		["What's new in Forever Druid"] = "Neu in Forever Druid",
 		["What's new"] = "Neuigkeiten",
 		["Show the welcome tour"] = "Willkommenstour zeigen",
 		["Show me"] = "Zeig's mir",
@@ -140,7 +139,6 @@ if locale == "deDE" then
 elseif locale == "frFR" then
 	Set({
 		["Mana bar"] = "Barre de mana",
-		["Energy tick"] = "Tic d'énergie",
 		["Combo points"] = "Points de combo",
 		["Cooldowns"] = "Temps de recharge",
 		["Buffs & procs"] = "Améliorations et procs",
@@ -233,8 +231,8 @@ elseif locale == "frFR" then
 		["Right-click: unlock / lock to move the HUD"] = "Clic droit : déverrouiller / verrouiller l'ATH",
 		["Shift-click: all settings"] = "Maj-clic : tous les réglages",
 		["Drag: move this button"] = "Glisser : déplacer ce bouton",
-		["Welcome to ForeverDruid"] = "Bienvenue dans ForeverDruid",
-		["What's new in ForeverDruid"] = "Nouveautés de ForeverDruid",
+		["Welcome to Forever Druid"] = "Bienvenue dans Forever Druid",
+		["What's new in Forever Druid"] = "Nouveautés de Forever Druid",
 		["What's new"] = "Nouveautés",
 		["Show the welcome tour"] = "Afficher la visite guidée",
 		["Show me"] = "Montre-moi",
@@ -258,7 +256,6 @@ elseif locale == "frFR" then
 elseif locale == "esES" or locale == "esMX" then
 	Set({
 		["Mana bar"] = "Barra de maná",
-		["Energy tick"] = "Tic de energía",
 		["Combo points"] = "Puntos de combo",
 		["Cooldowns"] = "Reutilizaciones",
 		["Buffs & procs"] = "Beneficios y procs",
@@ -351,8 +348,8 @@ elseif locale == "esES" or locale == "esMX" then
 		["Right-click: unlock / lock to move the HUD"] = "Clic derecho: desbloquear / bloquear el HUD",
 		["Shift-click: all settings"] = "Mayús-clic: todos los ajustes",
 		["Drag: move this button"] = "Arrastrar: mover este botón",
-		["Welcome to ForeverDruid"] = "Bienvenido a ForeverDruid",
-		["What's new in ForeverDruid"] = "Novedades de ForeverDruid",
+		["Welcome to Forever Druid"] = "Bienvenido a Forever Druid",
+		["What's new in Forever Druid"] = "Novedades de Forever Druid",
 		["What's new"] = "Novedades",
 		["Show the welcome tour"] = "Ver el recorrido de bienvenida",
 		["Show me"] = "Enséñame",

@@ -1,7 +1,7 @@
 # Player guide
 
-Everything ForeverDruid does, roughly in the order you'll meet it. Settings live in
-**Options > AddOns > ForeverDruid**: a main page plus one page per feature. Hover any option for an
+Everything Forever Druid does, roughly in the order you'll meet it. Settings live in
+**Options > AddOns > Forever Druid**: a main page plus one page per feature. Hover any option for an
 explanation. The [commands page](commands.md) lists the slash commands.
 
 - [Getting started](#getting-started)
@@ -13,7 +13,6 @@ explanation. The [commands page](commands.md) lists the slash commands.
 - [Your target](#your-target)
 - [Cooldowns](#cooldowns)
 - [Buffs, procs and alerts](#buffs-procs-and-alerts)
-- [Next ability](#next-ability)
 - [Group play](#group-play)
 - [Reminders and levelling](#reminders-and-levelling)
 - [Macros](#macros)
@@ -25,7 +24,7 @@ explanation. The [commands page](commands.md) lists the slash commands.
 
 ## Getting started
 
-On your first login ForeverDruid asks **how you play**: levelling, Feral damage, tank, healer or
+On your first login Forever Druid asks **how you play**: levelling, Feral damage, tank, healer or
 Balance. Your choice switches on the parts that matter for it and off the rest, sets your
 caster-form role and (if you leave the box ticked) creates the matching macros. Then a short tour
 shows where things are. Change your mind any time: **Play style** in the minimap menu, **Choose how
@@ -45,7 +44,6 @@ The combat HUD forms one centred column under your character. From top to bottom
 | Energy / rage | Cat Form (energy) and Bear Form (rage) |
 | Mana bar | Cat and Bear Form (caster form already has Blizzard's) |
 | Five-second rule | Always, as a thin row; fills after you spend mana |
-| Energy tick | Cat Form, once ticks are learned, when the energy bar isn't carrying the spark |
 | Combo points | Cat Form |
 | Shift pips | Cat and Bear Form |
 | Cooldowns | Always (optionally only in combat) |
@@ -55,7 +53,7 @@ A row that isn't showing takes no room, so the column closes up when you change 
 one piece bigger pushes the rest down rather than overlapping.
 
 Separate from the column: **reminders** above your character, **alerts** just above the column,
-**Next ability** to its left, and the **HoT tracker** further left. The HUD can fade out of
+and the **HoT tracker** to its left. The HUD can fade out of
 combat (off by default) and hides while you're mounted, dead, on a taxi or in a vehicle.
 
 ## Moving and arranging
@@ -78,26 +76,21 @@ bindings for unlock, the quick menu and the settings panel are under **Key Bindi
 **Quick settings.** Left-click the minimap icon for a menu covering most day-to-day changes: play
 style, unlock and role at the top, then grouped submenus for HUD parts, look, forms, reminders,
 spells and macros, and profiles. The same menu
-opens from ForeverDruid's entry in the minimap addon menu. Shift-click the icon for the full
+opens from Forever Druid's entry in the minimap addon menu. Shift-click the icon for the full
 settings. Drag the icon round the minimap to move it; hide it from its own menu and bring it back
 with `/fd minimap`.
 
 ## Cat Form
 
 **Energy bar.** Your energy, drawn by the client (addons can't read the number on Forever, but a
-bar can display it). With "Energy tick spark on the bar" on, it carries the tick spark itself.
-
-**Energy tick.** Forever doesn't tell addons your energy, so ForeverDruid learns the tick timing
-from *when* energy updates arrive, ignoring the ones caused by your own abilities. It needs a few
-fights in Cat Form before the spark appears. If Forever regenerates energy continuously instead of
-in ticks, it detects that and stays hidden.
+bar can display it). Forever's energy refills continuously rather than in two-second ticks, so
+there's no tick to time.
 
 **Combo points.** Five pips; all turn red at five.
 
 **Shift pips and the Powershift cue.** One pip per shift back into Cat Form your mana covers (up to
 five). With the **Furor** talent, a "Powershift" cue appears in combat when your energy is at or
-below the threshold you set (25% by default), you can afford the shift, and the next energy tick
-isn't due in the next 0.6 seconds. Your mana and energy stay hidden from the addon: the game
+below the threshold you set (25% by default) and you can afford the shift. Your mana and energy stay hidden from the addon: the game
 decides each pip and the cue itself. Thresholds are on the Powershift settings page.
 
 **Mana bar.** Your mana while shapeshifted, coloured blue, orange under a quarter and red when
@@ -105,7 +98,7 @@ nearly out, with a mark at the cost of one shift back into your form.
 
 **Let it bleed.** When your Rake or Rip is ticking on an enemy below a health threshold (20% by
 default), "Let it bleed - next target" appears above the target row. The game evaluates the
-target's health; ForeverDruid can't see it, so this is "nearly dead and bleeding", not a
+target's health; Forever Druid can't see it, so this is "nearly dead and bleeding", not a
 guarantee. Tune the threshold on the target settings page.
 
 ## Bear Form
@@ -174,14 +167,6 @@ run out; one gained mid-fight appears once combat ends.
 game names the buff as it's gained (it may not on Forever; the probe records whether it does).
 Optional sound.
 
-## Next ability
-
-When Forever's client offers Blizzard's rotation helper, an icon left of the HUD shows the ability
-it suggests next during combat, and the button on your Blizzard action bars that holds it glows.
-The game picks the spell from your real energy, buffs and target state; the addon only shows the
-answer. If the client doesn't offer the helper, nothing shows, and the Next ability settings page
-says why. Buttons from other action bar addons aren't found.
-
 ## Group play
 
 **HoT tracker** (on in a group). One row per member and you, with your HoTs and their timers. A
@@ -228,7 +213,7 @@ reagent to the amounts you set, only what you can afford.
 ## Macros
 
 Turn on **Create and update my druid macros** on the Macros settings page, in the quick menu, or
-with `/fd macros on`. ForeverDruid writes "FD ..." macros into your character's own macro slots
+with `/fd macros on`. Forever Druid writes "FD ..." macros into your character's own macro slots
 for the spells you know, and adds more as you learn them:
 
 | Macro | Does |
@@ -256,7 +241,7 @@ leave you in a form you didn't ask for, and they never drop Prowl. FD Prowl and 
 work the same way.
 
 Click **Pick up** next to a macro, then click an action bar slot. If you edit an FD macro,
-ForeverDruid leaves it alone from then on ("Restore edited macros" puts its version back). It never
+Forever Druid leaves it alone from then on ("Restore edited macros" puts its version back). It never
 touches a macro of yours that happens to share a name, and only deletes an FD macro when you untick
 it or turn macro management off. Macro changes wait until you're out of combat.
 
@@ -270,7 +255,7 @@ FD macros don't need this: `/cast` always uses your highest rank.
 
 ## Item tooltips
 
-Item tooltips get a ForeverDruid section with the item's Cat attack power (2 per Strength, 1 per
+Item tooltips get a Forever Druid section with the item's Cat attack power (2 per Strength, 1 per
 Agility, plus attack power), Bear attack power (2 per Strength plus attack power) and healing,
 followed by the change against what you're wearing in that slot, green when better and red when
 worse. These are the Classic druid formulas. Turn it off under **Druid values in item tooltips**.

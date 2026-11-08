@@ -1,7 +1,7 @@
 # Contributing
 
 Bug reports from real Forever sessions are the most useful thing you can send: a lot of
-ForeverDruid is tuned from what the live client actually allows, and that only shows up in play.
+Forever Druid is tuned from what the live client actually allows, and that only shows up in play.
 
 ## Reporting
 

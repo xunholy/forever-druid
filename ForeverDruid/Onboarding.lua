@@ -11,19 +11,18 @@ ns.RELEASE_NOTES = {
 	{ version = "0.5.0", notes = {
 		"Reminders can be dismissed: click the trainer, class-quest or talent reminder to clear it, or right-click a buff reminder to hide it for 30 minutes.", -- luacheck: no max line length
 		"Druid macros fixed for Forever: shift macros no longer drop you out of your form, FD Prowl takes you into Cat Form and Prowl and back out of Prowl, and the new FD Powershift and FD Opener cover powershifting and the Ravage opener.", -- luacheck: no max line length
-		"Tell ForeverDruid how you play (levelling, Feral, tank, healer or Balance) and it sets itself up for it. Change it any time from the minimap menu.", -- luacheck: no max line length
+		"Tell Forever Druid how you play (levelling, Feral, tank, healer or Balance) and it sets itself up for it. Change it any time from the minimap menu.", -- luacheck: no max line length
 		"Right-click any piece while unlocked for its own menu, and the settings now open with an at-a-glance list of every part and how it's doing.", -- luacheck: no max line length
 		"Powershift helpers: pips for how many shifts your mana affords, and a Powershift cue in Cat or Bear Form when it's worth it (with Furor).",
 		"Click-to-heal party frames (turn on in settings): pick what each click casts, with health, your HoTs and range on every bar.",
 		"A form bar to click-shift, item tooltips with Cat and Bear attack power and healing compared with what you wear, and a warning when a Growl doesn't take.", -- luacheck: no max line length
-		"Next ability: if Forever offers Blizzard's rotation suggestion, ForeverDruid shows your next ability by the HUD and makes its button glow.",
 		"\"Let it bleed\": when your Rake, Rip, Moonfire or Insect Swarm is ticking on an enemy that's nearly dead, the target row tells you to move on to the next one.", -- luacheck: no max line length
 		"A party panel shows your HoTs on each group member, with a Rebirth hint when someone dies and an Innervate hint when a healer runs low.", -- luacheck: no max line length
 		"Big alerts for Clearcasting and Nature's Grace, and a warning when you're losing aggro in Bear Form, wherever the game lets addons see them in combat.", -- luacheck: no max line length
 		"Missing Faerie Fire, Demoralizing Roar, Moonfire or Insect Swarm on your enemy shows as a dimmed icon next to your effects.",
 		"Reminders for unspent talent points, and three more macros: mouseover Faerie Fire, Barkskin from any form, and an emergency Nature's Swiftness into Healing Touch.", -- luacheck: no max line length
 		"Your action bars now stay on your highest spell ranks: learn a new rank and every button with the old one switches to it. Downrank on purpose with /fd ranks keep <spell>.", -- luacheck: no max line length
-		"An energy bar in Cat Form and a rage bar in Bear Form, with the energy tick spark right on the bar.",
+		"An energy bar in Cat Form and a rage bar in Bear Form.",
 		"A five-second-rule bar shows when your mana regeneration comes back after a cast.",
 		"Choose your caster-form role (healer, Balance or Feral), and a close talent split now counts as Feral.",
 		"Reminders for your trainer after levelling up and for the Bear Form and Cat Form class quests. Optional reagent restock at vendors.",
@@ -135,7 +134,7 @@ end
 local tour
 function ns.ShowTour()
 	if not tour then
-		tour = Window("ForeverDruidTour", L["Welcome to ForeverDruid"], 460, 330)
+		tour = Window("ForeverDruidTour", L["Welcome to Forever Druid"], 460, 330)
 		tour.body:SetText(Bullets({
 			L["Your druid HUD sits under your character. It lines itself up and changes with your form: mana and combo points in Cat Form, rage tools in Bear Form, healing cooldowns in caster form."], -- luacheck: no max line length
 			L["Click the cat icon on your minimap for quick settings. Right-click it to unlock, then drag any piece to move the whole HUD."],
@@ -167,7 +166,7 @@ function ns.ShowWhatsNew(since)
 		releases = { ns.RELEASE_NOTES[1] }
 	end
 	if not whatsNew then
-		whatsNew = Window("ForeverDruidWhatsNew", L["What's new in ForeverDruid"], 480, 380)
+		whatsNew = Window("ForeverDruidWhatsNew", L["What's new in Forever Druid"], 480, 380)
 		local close = Button(whatsNew, L["Nice"], 100, function()
 			whatsNew:Hide()
 		end)
@@ -191,8 +190,8 @@ end
 -- Play styles: one choice that switches on the parts that matter and off the rest
 ---------------------------------------------------------------------------
 
-local ALL_PARTS = { "targetauras", "powerbar", "manabar", "fsr", "energytick", "combopoints", "powershift", "cooldowns",
-	"buffs", "reminders", "alerts", "nextability", "party", "healframes", "formbar" }
+local ALL_PARTS = { "targetauras", "powerbar", "manabar", "fsr", "combopoints", "powershift", "cooldowns",
+	"buffs", "reminders", "alerts", "party", "healframes", "formbar" }
 
 ns.PLAYSTYLES = {
 	{ key = "leveling", label = "Levelling (a bit of everything)", role = "auto",
@@ -200,20 +199,20 @@ ns.PLAYSTYLES = {
 		off = { "healframes", "formbar" },
 		macros = { "rejuv", "regrowth", "mark", "thorns", "maul", "claw", "shiftCat", "shiftBear", "faerie", "roots" } },
 	{ key = "feral", label = "Feral damage (Cat Form)", role = "feral",
-		desc = "Energy, combo points, ticks, powershifting, bleeds and Let it bleed. Healing extras off.",
+		desc = "Energy, combo points, powershifting, bleeds and Let it bleed. Healing extras off.",
 		off = { "party", "healframes", "fsr", "formbar" },
 		macros = { "claw", "shiftCat", "shiftBear", "powershift", "reshift", "faerie", "prowl", "opener", "rejuv", "mark", "thorns" } },
 	{ key = "bear", label = "Tank (Bear Form)", role = "feral",
 		desc = "Rage, tanking cooldowns, aggro and Growl warnings, Demoralizing Roar and Faerie Fire upkeep.",
-		off = { "healframes", "fsr", "energytick", "combopoints", "formbar" },
+		off = { "healframes", "fsr", "combopoints", "formbar" },
 		macros = { "maul", "shiftBear", "reshift", "bearRejuv", "faerie", "barkskin", "mark", "thorns", "rejuv" } },
 	{ key = "healer", label = "Healer (Restoration)", role = "healer",
 		desc = "Click-to-heal frames, HoT tracker, Innervate and Rebirth hints, the five-second rule. Feral parts off.",
-		off = { "powerbar", "energytick", "combopoints", "powershift", "formbar" },
+		off = { "powerbar", "combopoints", "powershift", "formbar" },
 		macros = { "rejuv", "regrowth", "healingTouch", "swiftHeal", "innervate", "rebirth", "mark", "thorns", "barkskin" } },
 	{ key = "balance", label = "Balance (caster damage)", role = "balance",
 		desc = "Nature's Grace and Clearcasting alerts, Moonfire and Insect Swarm upkeep, the five-second rule.",
-		off = { "powerbar", "energytick", "combopoints", "powershift", "healframes", "formbar" },
+		off = { "powerbar", "combopoints", "powershift", "healframes", "formbar" },
 		macros = { "faerie", "roots", "hibernate", "innervate", "rebirth", "rejuv", "mark", "thorns", "barkskin" } },
 }
 local PLAYSTYLE_BY_KEY = {}

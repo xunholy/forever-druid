@@ -217,10 +217,10 @@ end
 function ns.DecodeProfile(text)
 	text = strtrim(text or "")
 	if #text > MAX_LENGTH then
-		return nil, L["that text is too long to be a ForeverDruid profile"]
+		return nil, L["that text is too long to be a Forever Druid profile"]
 	end
 	if text:sub(1, #PREFIX) ~= PREFIX then
-		return nil, L["that isn't a ForeverDruid profile string"]
+		return nil, L["that isn't a Forever Druid profile string"]
 	end
 	local raw = ns.Base64Decode(text:sub(#PREFIX + 1))
 	if not raw then
@@ -244,7 +244,6 @@ local RANGES = {
 	["layout.gap"] = { 0, 20 }, ["minimap.angle"] = { 0, 360 },
 	["modules.*.scale"] = { 0.5, 2 }, ["modules.*.spacing"] = { 0, 20 }, ["modules.*.size"] = { 6, 64 },
 	["modules.manabar.width"] = { 80, 400 }, ["modules.manabar.height"] = { 4, 30 },
-	["modules.energytick.width"] = { 80, 400 }, ["modules.energytick.height"] = { 2, 20 },
 	["modules.targetauras.max"] = { 1, 16 }, ["modules.reminders.reagentThreshold"] = { 0, 20 },
 	["restock.seeds"] = { 0, 20 }, ["restock.thornroot"] = { 0, 40 },
 	["modules.targetauras.bleedThreshold"] = { 0.05, 0.4 },
@@ -425,13 +424,13 @@ function ns.ShowShareWindow(mode)
 	window.mode = mode
 	window:Show() -- before focusing: a hidden edit box can't take focus
 	if mode == "export" then
-		window.body:SetText(L["Copy this text (Ctrl+C) and paste it into ForeverDruid's import box on another character or account."])
+		window.body:SetText(L["Copy this text (Ctrl+C) and paste it into Forever Druid's import box on another character or account."])
 		window.edit:SetText(ns.ExportProfile() or "")
 		window.edit:SetFocus()
 		window.edit:HighlightText()
 		window.action:Hide()
 	else
-		window.body:SetText(L["Paste a ForeverDruid profile string (Ctrl+V), then click Import. It's added as a new profile; your current one isn't changed."])
+		window.body:SetText(L["Paste a Forever Druid profile string (Ctrl+V), then click Import. It's added as a new profile; your current one isn't changed."])
 		window.edit:SetText("")
 		window.edit:SetFocus()
 		window.action:Show()

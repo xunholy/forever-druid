@@ -1,6 +1,6 @@
 -- Powershifting: how many shifts your mana affords (pips), and a "Powershift" cue when it's worth
--- doing (Cat: energy low, Bear: rage low, you can afford the shift, the next energy tick isn't
--- about to land, and you have Furor).
+-- doing (Cat: energy low, Bear: rage low, you can afford the shift, and you have Furor). Forever's
+-- energy refills continuously, so there's no tick to wait for.
 --
 -- Your mana, energy and rage are hidden from addons on Forever, so nothing here reads them. Each
 -- pip's visibility comes from a curve on your mana percentage that the client evaluates; the cue
@@ -182,16 +182,6 @@ function M:Layout()
 	end
 end
 
--- Seconds until the next energy tick, or nil if not learned.
-local function NextTickIn()
-	local stats = ns.energyTickStats
-	if not (stats and stats.mode == "tick" and stats.phase and stats.period) then
-		return nil
-	end
-	local into = (GetTime() - stats.phase) % stats.period
-	return stats.period - into
-end
-
 function M:Update()
 	local cfg = ns.ModuleConfig("powershift")
 	local previewing = ns.Previewing()
@@ -244,18 +234,13 @@ function M:Update()
 		if not M.HasFuror() then
 			M.stats.noFuror = M.stats.noFuror + 1
 		else
-			local nextTick = kind == ENERGY and NextTickIn() or nil
-			-- Don't shift right before a tick: you'd waste the energy it brings.
-			local tickOk = not nextTick or nextTick > cfg.tickWindow
-			if tickOk then
-				local low = LowCurve(kind == ENERGY and cfg.energyBelow or cfg.rageBelow)
-				local okLow, lowAlpha = pcall(UnitPowerPercent, "player", kind, false, low)
-				local okMana, manaAlpha = pcall(UnitPowerPercent, "player", MANA, false, manaCurve)
-				if okLow and okMana then
-					self.cueOuter:SetAlpha(lowAlpha)
-					self.cueInner:SetAlpha(manaAlpha)
-					show = true
-				end
+			local low = LowCurve(kind == ENERGY and cfg.energyBelow or cfg.rageBelow)
+			local okLow, lowAlpha = pcall(UnitPowerPercent, "player", kind, false, low)
+			local okMana, manaAlpha = pcall(UnitPowerPercent, "player", MANA, false, manaCurve)
+			if okLow and okMana then
+				self.cueOuter:SetAlpha(lowAlpha)
+				self.cueInner:SetAlpha(manaAlpha)
+				show = true
 			end
 		end
 	end
