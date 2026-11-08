@@ -31,6 +31,12 @@ and tests every push and pull request that touches the addon.
 Check a build without uploading: download the packager's `release.sh` and run
 `bash release.sh -d -r /tmp/fd-release` in the repository.
 
+## Project icon
+
+`docs/icon.png` (512×512) is the CurseForge / Wago project avatar; `docs/icon.svg` is its source.
+Re-render after editing the SVG, e.g. with headless Chrome:
+`google-chrome --headless=new --default-background-color=00000000 --window-size=512,512 --screenshot=docs/icon.png docs/icon.svg`.
+
 ## Screenshots
 
 Take them with the HUD unlocked (sample icons fill every row), on a neutral character and

@@ -1,3 +1,5 @@
+<img src="docs/icon.png" alt="Forever Druid icon: an orange cat with a leaf on its brow against a crescent moon" width="128" align="right">
+
 # Forever Druid
 
 A druid addon for **World of Warcraft: Forever** (client 1.60, interface 16001). One addon in place
