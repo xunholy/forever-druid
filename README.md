@@ -1,4 +1,4 @@
-<img src="docs/icon.png" alt="Forever Druid icon: an orange cat with a leaf on its brow against a crescent moon" width="128" align="right">
+<img src="docs/icon.png" alt="Forever Druid icon: a dark cat with glowing eyes and a leaf on its brow under a crescent moon" width="128" align="right">
 
 # Forever Druid
 
