@@ -20,7 +20,7 @@ local SPELLS = {
 	-- Utility and defensives
 	innervate = { "Innervate", 29166 },
 	rebirth = { "Rebirth", 20484 },
-	revive = { "Revive", 437138 }, -- probe (Forever)
+	revive = { "Revive", 1237948, 437138 }, -- probe (Forever)
 	barkskin = { "Barkskin", 22812 },
 	naturesGrasp = { "Nature's Grasp", 16689 }, -- probe
 	dash = { "Dash", 1850 },
@@ -29,14 +29,19 @@ local SPELLS = {
 	-- Feral
 	tigersFury = { "Tiger's Fury", 5217 },
 	shiftingPower = { "Shifting Power", 1322605 },
-	feralCharge = { "Feral Charge", 16979 },
+	feralCharge = { "Feral Charge", 1238122, 16979 }, -- 1238122 probe: Forever's, Cat (leap) and Bear (charge)
+	lacerate = { "Lacerate", 1328616, 1328617 }, -- probe (Forever)
+	pounce = { "Pounce", 9005 }, -- probe
+	shred = { "Shred", 6800, 5221 }, -- 6800 probe
 	faerieFireFeral = { "Faerie Fire (Feral)", 16857 },
 	enrage = { "Enrage", 5229 }, -- probe
 	frenziedRegeneration = { "Frenzied Regeneration", 22842 },
 	bash = { "Bash", 5211 }, -- probe
 	challengingRoar = { "Challenging Roar", 5209 },
 	growl = { "Growl", 6795 }, -- probe
-	primalBite = { "Primal Bite", 407995 },
+	primalBite = { "Primal Bite", 407995, 1238069, 1238070 }, -- Forever talent (wago.tools wowf)
+	berserk = { "Berserk", 417141 }, -- Forever talent
+	swipe = { "Swipe", 769, 779, 780, 9754, 9908 }, -- 769 probe
 
 	-- Balance and Restoration
 	hurricane = { "Hurricane", 16914 },
@@ -44,6 +49,7 @@ local SPELLS = {
 	forceOfNature = { "Force of Nature", 33831 },
 	naturesSwiftness = { "Nature's Swiftness", 17116 },
 	swiftmend = { "Swiftmend", 18562 },
+	wildGrowth = { "Wild Growth", 408120 }, -- Forever client data (wago.tools wowf)
 	tranquility = { "Tranquility", 740 },
 
 	-- Buffs we cast
@@ -64,7 +70,9 @@ local SPELLS = {
 	faerieFire = { "Faerie Fire", 770 },
 	demoralizingRoar = { "Demoralizing Roar", 99 },
 	moonfire = { "Moonfire", 8921 },
+	wrath = { "Wrath", 5179 },
 	insectSwarm = { "Insect Swarm", 5570 },
+	sootheAnimal = { "Soothe Animal", 2908, 8955, 9901 }, -- 2908 probe
 	rake = { "Rake", 1822 },
 	furor = { "Furor", 17061 }, -- passive talent: energy or rage when you shift
 	removeCurse = { "Remove Curse", 2782 },

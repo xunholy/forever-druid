@@ -1354,7 +1354,23 @@ C_Item = {
 		return W.itemStats[link]
 	end,
 	GetItemInfoInstant = function(link)
-		return 1, "Armor", "Leather", W.itemSlots[link]
+		return W.itemIDs[link] or 1, "Armor", "Leather", W.itemSlots[link]
+	end,
+	-- Items in your bags you can't use (too high a level): W.unusable[itemID] = true.
+	IsUsableItem = function(id)
+		return not W.unusable[id], false
+	end,
+}
+W.itemIDs, W.unusable = {}, {}
+
+-- Bags: W.bags[bag][slot] = item link (bags 0-4).
+W.bags = {}
+C_Container = {
+	GetContainerNumSlots = function(bag)
+		return W.bags[bag] and 16 or 0
+	end,
+	GetContainerItemLink = function(bag, slot)
+		return W.bags[bag] and W.bags[bag][slot]
 	end,
 }
 

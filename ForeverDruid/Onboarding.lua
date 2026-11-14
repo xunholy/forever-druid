@@ -8,6 +8,11 @@ local L = ns.L
 ---------------------------------------------------------------------------
 
 ns.RELEASE_NOTES = {
+	{ version = "0.8.0", notes = {
+		"24 new macros, off until you tick them on the Macros page (or pick a play style): Growl, Bash and Feral Charge from any form, Maul woven into Lacerate, Primal Bite and Swipe, Berserk with Tiger's Fury, Dash, a Pounce opener, one-button travel forms, Moonkin Form, Hurricane at your cursor, mouseover Moonfire, Insect Swarm, Soothe Animal and Wild Growth, Heal or Wrath, poison and curse cleansing, a Bear Form survival button, Healthstone then potion, Spirit-weapon Innervate, a Bear weapon swap, both trinkets and next target. The potion and weapon macros pick the best one from your bags.", -- luacheck: no max line length
+		"Better macros you already have: Shift for Swiftmend on Rejuvenation and Gift of the Wild on Mark, Revive out of combat on Rebirth, Shift for your focus on Roots and Hibernate, Prowl gets you off your mount, and the Ravage opener carries on with Shred. Barkskin no longer drops your form, and buffs and heals no longer drop Moonkin Form or Tree of Life where Forever still lets you cast them.", -- luacheck: no max line length
+		"Macros are named after their spell where it fits: FD Rejuv is now FD Rejuvenation, FD Heal Touch is FD Healing Touch, FD Shift Cat and FD Shift Bear are FD Cat Form and FD Bear Form, FD Faerie is FD Faerie Fire and FD Opener is FD Ravage Opener. They keep their place on your action bars.", -- luacheck: no max line length
+	} },
 	{ version = "0.7.0", notes = {
 		"Item tooltips now show everything an item does for you, not just attack power: crit, hit, dodge and spell crit chance, health, armor, mana, healing and more, each with the change from what you're wearing.", -- luacheck: no max line length
 	} },
@@ -204,23 +209,28 @@ ns.PLAYSTYLES = {
 	{ key = "leveling", label = "Levelling (a bit of everything)", role = "auto",
 		desc = "Cat and Bear tools, healing cooldowns in caster form, reminders and trainer prompts. The default.",
 		off = { "healframes", "formbar" },
-		macros = { "rejuv", "regrowth", "mark", "thorns", "maul", "claw", "shiftCat", "shiftBear", "faerie", "roots" } },
+		macros = { "rejuv", "regrowth", "mark", "thorns", "maul", "claw", "shiftCat", "shiftBear", "faerie", "roots",
+			"rebirth", "prowl", "nextTarget", "healWrath", "travel", "sootheAnimal" } },
 	{ key = "feral", label = "Feral damage (Cat Form)", role = "feral",
 		desc = "Energy, combo points, powershifting, bleeds and Let it bleed. Healing extras off.",
 		off = { "party", "healframes", "fsr", "formbar" },
-		macros = { "claw", "shiftCat", "shiftBear", "powershift", "reshift", "faerie", "prowl", "opener", "rejuv", "mark", "thorns" } },
+		macros = { "claw", "shiftCat", "shiftBear", "powershift", "reshift", "faerie", "prowl", "opener", "rejuv", "mark", "thorns",
+			"pounce", "dash", "feralCharge", "berserk", "trinkets" } },
 	{ key = "bear", label = "Tank (Bear Form)", role = "feral",
 		desc = "Rage, tanking cooldowns, aggro and Growl warnings, Demoralizing Roar and Faerie Fire upkeep.",
 		off = { "healframes", "fsr", "combopoints", "formbar" },
-		macros = { "maul", "shiftBear", "reshift", "bearRejuv", "faerie", "barkskin", "mark", "thorns", "rejuv" } },
+		macros = { "maul", "shiftBear", "reshift", "bearRejuv", "faerie", "barkskin", "mark", "thorns", "rejuv",
+			"growl", "lacerate", "primalBite", "swipe", "feralCharge", "bearPotion", "bash", "berserk", "trinkets" } },
 	{ key = "healer", label = "Healer (Restoration)", role = "healer",
 		desc = "Click-to-heal frames, HoT tracker, Innervate and Rebirth hints, the five-second rule. Feral parts off.",
 		off = { "powerbar", "combopoints", "powershift", "formbar" },
-		macros = { "rejuv", "regrowth", "healingTouch", "swiftHeal", "innervate", "rebirth", "mark", "thorns", "barkskin" } },
+		macros = { "rejuv", "regrowth", "healingTouch", "swiftHeal", "innervate", "rebirth", "mark", "thorns", "barkskin",
+			"wildGrowth", "spiritInnervate", "stonePotion", "cleanse" } },
 	{ key = "balance", label = "Balance (caster damage)", role = "balance",
 		desc = "Nature's Grace and Clearcasting alerts, Moonfire and Insect Swarm upkeep, the five-second rule.",
 		off = { "powerbar", "combopoints", "powershift", "healframes", "formbar" },
-		macros = { "faerie", "roots", "hibernate", "innervate", "rebirth", "rejuv", "mark", "thorns", "barkskin" } },
+		macros = { "faerie", "roots", "hibernate", "innervate", "rebirth", "rejuv", "mark", "thorns", "barkskin",
+			"moonkin", "hurricane", "moonfire", "insectSwarm", "sootheAnimal", "stonePotion", "cleanse" } },
 }
 local PLAYSTYLE_BY_KEY = {}
 for _, style in ipairs(ns.PLAYSTYLES) do

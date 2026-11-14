@@ -1089,7 +1089,7 @@ local function MacrosPage()
 	b:Space(4)
 	for _, def in ipairs(ns.macros.LIST) do
 		local check = b:Check(def.name, function()
-			return ns.db.macros.enabled[def.key] ~= false
+			return ns.macros.IsTicked(def.key)
 		end, function(value)
 			ns.macros.SetWanted(def.key, value)
 			b:Refresh()
