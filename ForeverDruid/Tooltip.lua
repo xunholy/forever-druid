@@ -221,20 +221,35 @@ function M.Values(link)
 	return v
 end
 
-local function EquippedLink(link)
+-- Slots that have a twin: a ring or trinket is compared against both.
+local TWIN = { [11] = 12, [13] = 14 }
+
+-- The equipped items a hovered item would replace: one, or two for rings and trinkets. Empty when
+-- it isn't equippable, the slot is empty, or you're hovering something you're wearing.
+local function EquippedLinks(link)
+	local found = {}
 	if not (C_Item and C_Item.GetItemInfoInstant and GetInventoryItemLink) then
-		return nil
+		return found
 	end
 	local ok, _, _, _, equipLoc = pcall(C_Item.GetItemInfoInstant, link)
 	local slot = ok and SLOT_FOR[equipLoc]
 	if not slot then
-		return nil
+		return found
 	end
-	local equipped = GetInventoryItemLink("player", slot)
-	if equipped == link then
-		return nil -- hovering what you're wearing: no comparison
+	for _, s in ipairs({ slot, TWIN[slot] }) do
+		local equipped = GetInventoryItemLink("player", s)
+		if equipped == link then
+			return {} -- hovering what you're wearing: no comparison
+		end
+		if type(equipped) == "string" then
+			found[#found + 1] = equipped
+		end
 	end
-	return equipped, true
+	return found
+end
+
+local function ItemName(link)
+	return type(link) == "string" and link:match("%[(.-)%]") or nil
 end
 
 -- Rounded the way it's shown: whole numbers, or percentages to one decimal.
@@ -250,16 +265,13 @@ local function Signed(kind, value)
 	return (value < 0 and "-" or "+") .. text
 end
 
--- Tooltip lines as { text, r, g, b }.
-function M.Lines(link)
-	local cfg = ns.db and ns.db.tooltips
-	local values = cfg and cfg.enabled and M.Values(link)
-	if not values then
-		return {}
-	end
-	local current = cfg.compare and EquippedLink(link)
-	local base = current and M.Values(current) or nil
-	local lines = {}
+local PLAIN, BETTER, WORSE, MIXED, SAME = { 0.9, 0.8, 0.5 }, { 0.3, 1, 0.3 }, { 1, 0.35, 0.35 }, { 1, 0.82, 0 }, { 0.6, 0.6, 0.6 }
+
+-- The lines for one comparison (base = the equipped item's values, or nil for none), plus how many
+-- got better and worse. With changesOnly, lines that don't change against the equipped item are
+-- left out: a full list is up to sixteen lines, most of them the same on both items.
+local function Compare(values, base, changesOnly)
+	local lines, better, worse = {}, 0, 0
 	-- One line: the item's value, then the change from what you wear (green better, red worse).
 	-- Skipped when both round to nothing; a change too small to show leaves the line uncoloured.
 	local function Add(label, kind, value, was)
@@ -268,19 +280,19 @@ function M.Lines(link)
 			return
 		end
 		local text = ("%s %s"):format(label, Signed(kind, value))
-		local r, g, b = 0.9, 0.8, 0.5
-		if was then
-			local delta = Round(kind, value - was)
-			if delta ~= 0 then
-				text = text .. (" (%s)"):format(Signed(kind, delta))
-				if delta > 0 then
-					r, g, b = 0.3, 1, 0.3
-				else
-					r, g, b = 1, 0.35, 0.35
-				end
+		local color = PLAIN
+		local delta = was and Round(kind, value - was) or 0
+		if delta ~= 0 then
+			text = text .. (" (%s)"):format(Signed(kind, delta))
+			if delta > 0 then
+				color, better = BETTER, better + 1
+			else
+				color, worse = WORSE, worse + 1
 			end
+		elseif was and changesOnly then
+			return
 		end
-		lines[#lines + 1] = { text, r, g, b }
+		lines[#lines + 1] = { text, color[1], color[2], color[3] }
 	end
 	for _, line in ipairs(LINES) do
 		local key, label, kind = line[1], line[2], line[3]
@@ -298,7 +310,48 @@ function M.Lines(link)
 			Add(L[label], "int", value, base and (was or 0) or nil)
 		end
 	end
-	return lines
+	return lines, better, worse
+end
+
+-- "vs Old Ring: upgrade", coloured: every changed line better, every one worse, or a count of each.
+local function Verdict(name, better, worse)
+	local text, color
+	if better > 0 and worse == 0 then
+		text, color = L["upgrade"], BETTER
+	elseif worse > 0 and better == 0 then
+		text, color = L["downgrade"], WORSE
+	elseif better > 0 then
+		text, color = L["%d better, %d worse"]:format(better, worse), MIXED
+	else
+		text, color = L["the same for a druid"], SAME
+	end
+	return { ("%s %s: %s"):format(L["vs"], name or L["what you're wearing"], text), color[1], color[2], color[3] }
+end
+
+-- Tooltip lines as { text, r, g, b }: one comparison per equipped item the hovered one could
+-- replace (two for rings and trinkets), each under a verdict line, or the item's own values when
+-- there's nothing to compare against.
+function M.Lines(link)
+	local cfg = ns.db and ns.db.tooltips
+	local values = cfg and cfg.enabled and M.Values(link)
+	if not values then
+		return {}
+	end
+	local out = {}
+	for _, equipped in ipairs(cfg.compare and EquippedLinks(link) or {}) do
+		local base = M.Values(equipped)
+		if base then
+			local lines, better, worse = Compare(values, base, cfg.changesOnly)
+			out[#out + 1] = Verdict(ItemName(equipped), better, worse)
+			for _, line in ipairs(lines) do
+				out[#out + 1] = line
+			end
+		end
+	end
+	if #out == 0 then
+		out = Compare(values, nil, false)
+	end
+	return out
 end
 
 local function OnItem(tooltip)

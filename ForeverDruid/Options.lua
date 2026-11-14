@@ -788,6 +788,11 @@ local function MainPage()
 	end, function(value)
 		ns.db.tooltips.enabled = value
 	end, L["Adds what an item's stats do for you to its tooltip (attack power, crit, hit, dodge, health, armor, mana, healing and more), with the change from what you're wearing."]) -- luacheck: no max line length
+	b:Check(L["Only the stats that change"], function()
+		return ns.db.tooltips.changesOnly
+	end, function(value)
+		ns.db.tooltips.changesOnly = value
+	end, L["When an item is compared with what you're wearing, leave out the lines that are the same on both. Untick to always list everything the item gives."])
 
 	b:Header(L["Role"])
 	b:Cycle(L["In caster form I'm a"], ns.CASTER_ROLES, function()
