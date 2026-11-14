@@ -178,6 +178,23 @@ local function SpiritWeapon()
 end
 M.SpiritWeapon = SpiritWeapon
 
+-- "/equip" lines for a weapon-swap macro: the swap weapon normally, and with Alt held the weapon
+-- (and off-hand) you had on when the macro was written, so one button swaps there and back. Once
+-- you're holding the swap weapon nothing in your bags beats it, so the macro stays as written.
+local function SwapLines(weapon)
+	local id = GetInventoryItemID
+	local main = id and ns.SafeReadable(id, "player", 16)
+	local off = id and ns.SafeReadable(id, "player", 17)
+	if type(main) ~= "number" then
+		return ("/equip item:%d\n"):format(weapon)
+	end
+	local lines = ("/equip [mod:alt] item:%d; item:%d\n"):format(main, weapon)
+	if type(off) == "number" then
+		lines = lines .. ("/equipslot [mod:alt] 17 item:%d\n"):format(off)
+	end
+	return lines
+end
+
 -- Bear attack power from the item tooltip maths (2 per Strength plus attack power in forms).
 function M.BearWeapon()
 	return BestWeapon(function(link)
@@ -416,7 +433,7 @@ M.LIST = {
 			return Helpful(S("wildGrowth"), "heal")
 		end },
 	{ key = "spiritInnervate", name = "FD Spirit Swap", needs = { "innervate" }, default = false,
-		desc = "Innervate on yourself while holding the highest-Spirit weapon in your bags (Innervate boosts Spirit-based regen). Picks the weapon itself; equip your usual one again afterwards.", -- luacheck: no max line length
+		desc = "Innervate on yourself while holding the highest-Spirit weapon in your bags (Innervate boosts Spirit-based regen). Picks the weapon itself; hold Alt and press again to put your usual weapon back.", -- luacheck: no max line length
 		ready = function()
 			return SpiritWeapon() ~= nil, "a weapon with more Spirit in your bags"
 		end,
@@ -425,7 +442,8 @@ M.LIST = {
 			if not weapon then
 				return nil
 			end
-			return ("#showtooltip %s\n" .. Drop("buff") .. "/equip item:%d\n/cast [@player] %s"):format(S("innervate"), weapon, S("innervate"))
+			return ("#showtooltip %s\n" .. Drop("buff") .. SwapLines(weapon) .. "/cast [nomod:alt,@player] %s"):format(
+				S("innervate"), S("innervate"))
 		end },
 	{ key = "bearPotion", name = "FD Survival", renamedFrom = { "FD Bear Potion" }, default = false,
 		needs = { { "direBearForm", "bearForm" } },
@@ -510,7 +528,7 @@ M.LIST = {
 			return "#showtooltip\n/cast " .. table.concat(parts, "; ")
 		end },
 	{ key = "bearWeapon", name = "FD Bear Weapon", needs = { { "direBearForm", "bearForm" } }, default = false,
-		desc = "Equips the weapon in your bags with the most Bear attack power (more than the one you're holding) and shifts into Bear Form. Picks the weapon itself.", -- luacheck: no max line length
+		desc = "Equips the weapon in your bags with the most Bear attack power (more than the one you're holding) and shifts into Bear Form. Picks the weapon itself; hold Alt and press again to put your usual weapon back.", -- luacheck: no max line length
 		ready = function()
 			return M.BearWeapon() ~= nil, "a weapon with more Bear attack power in your bags"
 		end,
@@ -519,7 +537,8 @@ M.LIST = {
 			if not (bear and weapon) then
 				return nil
 			end
-			return ("#showtooltip %s\n/equip item:%d\n/cast [noform:%s] !%s"):format(S(ns.BearFormKey()), weapon, bear, S(ns.BearFormKey()))
+			return ("#showtooltip %s\n" .. SwapLines(weapon) .. "/cast [nomod:alt,noform:%s] !%s"):format(
+				S(ns.BearFormKey()), bear, S(ns.BearFormKey()))
 		end },
 	{ key = "primalBite", name = "FD Primal Bite", needs = { { "direBearForm", "bearForm" }, "maul", "primalBite" }, default = false,
 		desc = "Primal Bite, Forever's high-threat Bear attack, with Maul queued on your next swing in the same press and auto-attack on. Out of Bear Form it shifts you in first.", -- luacheck: no max line length
@@ -569,6 +588,19 @@ local BY_KEY = {}
 for _, def in ipairs(M.LIST) do
 	BY_KEY[def.key] = def
 end
+
+-- How the Macros settings page groups them.
+M.GROUPS = {
+	{ label = "Healing", keys = { "rejuv", "regrowth", "healingTouch", "swiftHeal", "wildGrowth", "cleanse", "rebirth" } },
+	{ label = "Buffs and mana", keys = { "mark", "thorns", "innervate", "spiritInnervate", "barkskin" } },
+	{ label = "Forms and travel", keys = { "shiftCat", "shiftBear", "moonkin", "travel", "powershift", "reshift" } },
+	{ label = "Cat Form", keys = { "claw", "prowl", "opener", "pounce", "dash", "berserk" } },
+	{ label = "Bear Form", keys = { "maul", "lacerate", "primalBite", "swipe", "growl", "bash", "feralCharge", "bearRejuv",
+		"bearPotion", "bearWeapon" } },
+	{ label = "Balance and crowd control", keys = { "faerie", "moonfire", "insectSwarm", "hurricane", "healWrath", "roots",
+		"hibernate", "sootheAnimal" } },
+	{ label = "Any form", keys = { "stonePotion", "trinkets", "nextTarget" } },
+}
 M.BY_KEY = BY_KEY
 
 ---------------------------------------------------------------------------
@@ -688,6 +720,9 @@ function M.Status(key)
 	if index then
 		return "ready"
 	end
+	if M.HasSpells(def) and (not def.ready or def.ready()) and M.Slots().free <= 0 then
+		return "full"
+	end
 	local has, missing = M.HasSpells(def)
 	if not has then
 		return "needs", missing
@@ -711,6 +746,21 @@ local pending = false
 local function CharacterSlotsFree()
 	local _, perCharacter = GetNumMacros()
 	return MAX_CHARACTER_MACROS - (tonumber(perCharacter) or 0)
+end
+
+-- Character macro slots: how many are used, how many are free, how many of the used ones are FD
+-- macros, and how many ticked macros are ready but have no slot to go in.
+function M.Slots()
+	local free = GetNumMacros and CharacterSlotsFree() or MAX_CHARACTER_MACROS
+	local ours, waiting = 0, 0
+	for _, def in ipairs(M.LIST) do
+		if Existing(def) then
+			ours = ours + 1
+		elseif free <= 0 and M.IsWanted(def.key) and M.HasSpells(def) and (not def.ready or def.ready()) then
+			waiting = waiting + 1
+		end
+	end
+	return { max = MAX_CHARACTER_MACROS, used = MAX_CHARACTER_MACROS - free, free = free, ours = ours, waiting = waiting }
 end
 
 -- Brings the FD macros in line with the settings. Out of combat only (the client refuses macro

@@ -693,6 +693,10 @@ W.itemStats, W.itemSlots, W.equipped = {}, {}, {}
 function GetInventoryItemLink(_, slot)
 	return W.equipped[slot]
 end
+function GetInventoryItemID(_, slot)
+	local link = W.equipped[slot]
+	return link and W.itemIDs and W.itemIDs[link] or nil
+end
 
 -- Popups: recorded, and accepted or declined by the test.
 StaticPopupDialogs = {}

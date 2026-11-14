@@ -9,6 +9,10 @@
   Swarm, FD Soothe Animal, FD Hurricane, FD Heal or Wrath, FD Wild Growth, FD Cleanse, FD Spirit
   Swap, FD Healthstone, FD Trinkets and FD Next Target. The potion and weapon
   ones pick the best item in your bags and follow it as your bags change.
+- The Macros settings page is grouped by use and shows how many of your 30 character macro slots
+  are taken, in red with a count of what's waiting once they're full.
+- FD Spirit Swap and FD Bear Weapon put your usual weapon (and off-hand) back when pressed with
+  Alt held.
 - FD Rejuvenation casts Swiftmend with Shift, FD Mark casts Gift of the Wild with Shift, FD Rebirth
   uses Revive out of combat, FD Roots and FD Hibernate cast on your focus with Shift, FD Prowl
   dismounts you first, and FD Ravage Opener moves on to Shred once the fight starts.

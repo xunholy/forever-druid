@@ -1074,7 +1074,22 @@ local MACRO_STATUS = {
 	missing = "|cffaaaaaa" .. L["not created yet"] .. "|r",
 	needs = "|cffaaaaaa" .. L["needs"] .. " %s|r",
 	off = "|cff808080" .. L["off"] .. "|r",
+	full = "|cffff5555" .. L["no free macro slot"] .. "|r",
 }
+
+-- "Macro slots: 28 of 30 used (18 Forever Druid's)", in red with what's waiting when they're full.
+function ns.MacroSlotsText()
+	local s = ns.macros.Slots()
+	local text = L["Character macro slots: %d of %d used, %d of them Forever Druid's."]:format(s.used, s.max, s.ours)
+	if s.free > 0 then
+		return text
+	end
+	text = "|cffff5555" .. text .. "|r"
+	if s.waiting > 0 then
+		text = text .. "\n|cffff5555" .. L["%d ticked macros have no slot to go in: untick some, or delete macros of your own in /macro."]:format(s.waiting) .. "|r" -- luacheck: no max line length
+	end
+	return text
+end
 
 function ns.MacroStatusText(key)
 	local status, extra = ns.macros.Status(key)
@@ -1095,8 +1110,17 @@ local function MacrosPage()
 		b:Refresh()
 	end, L["Turning this off deletes the FD macros Forever Druid made (not ones you've edited)."])
 	b:Note(L["Click Pick up, then click an action bar slot to place a macro. Unticking a macro deletes it, unless you've edited it."])
-	b:Space(4)
-	for _, def in ipairs(ns.macros.LIST) do
+	-- The game gives each character 30 macro slots, and there are more FD macros than that.
+	local slots = b.content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	slots:SetPoint("TOPLEFT", 16, b.y - 4)
+	slots:SetWidth(560)
+	slots:SetJustifyH("LEFT")
+	b.y = b.y - 40
+	panel.slots = slots
+	b.refreshers[#b.refreshers + 1] = function()
+		slots:SetText(ns.MacroSlotsText())
+	end
+	local function Row(def)
 		local check = b:Check(def.name, function()
 			return ns.macros.IsTicked(def.key)
 		end, function(value)
@@ -1116,6 +1140,12 @@ local function MacrosPage()
 			local text, state = ns.MacroStatusText(def.key)
 			status:SetText(text)
 			pick:SetEnabled(state == "ready" or state == "edited")
+		end
+	end
+	for _, group in ipairs(ns.macros.GROUPS) do
+		b:Header(L[group.label])
+		for _, key in ipairs(group.keys) do
+			Row(ns.macros.BY_KEY[key])
 		end
 	end
 	b:Space(6)
