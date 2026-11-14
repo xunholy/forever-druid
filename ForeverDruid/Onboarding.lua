@@ -8,6 +8,9 @@ local L = ns.L
 ---------------------------------------------------------------------------
 
 ns.RELEASE_NOTES = {
+	{ version = "0.7.0", notes = {
+		"Item tooltips now show everything an item does for you, not just attack power: crit, hit, dodge and spell crit chance, health, armor, mana, healing and more, each with the change from what you're wearing.", -- luacheck: no max line length
+	} },
 	{ version = "0.6.0", notes = {
 		"Aggro radius on enemy nameplates: a dot and the estimated radius (22y) turn red when you're inside it, orange when you might be, yellow when you're close and green when you're clear.", -- luacheck: no max line length
 		"It learns from the mobs that pull you: a mob you've been pulled by shows its own measured radius (24y*), and after five pulls the rest use your measured average. Mind Soothe and Soothe Animal count too. /fd pulls shows what it has learned.", -- luacheck: no max line length
@@ -19,7 +22,7 @@ ns.RELEASE_NOTES = {
 		"Right-click any piece while unlocked for its own menu, and the settings now open with an at-a-glance list of every part and how it's doing.", -- luacheck: no max line length
 		"Powershift helpers: pips for how many shifts your mana affords, and a Powershift cue in Cat or Bear Form when it's worth it (with Furor).",
 		"Click-to-heal party frames (turn on in settings): pick what each click casts, with health, your HoTs and range on every bar.",
-		"A form bar to click-shift, item tooltips with Cat and Bear attack power and healing compared with what you wear, and a warning when a Growl doesn't take.", -- luacheck: no max line length
+		"A form bar to click-shift, item tooltips with what each item's stats do for you compared with what you wear, and a warning when a Growl doesn't take.", -- luacheck: no max line length
 		"\"Let it bleed\": when your Rake, Rip, Moonfire or Insect Swarm is ticking on an enemy that's nearly dead, the target row tells you to move on to the next one.", -- luacheck: no max line length
 		"A party panel shows your HoTs on each group member, with a Rebirth hint when someone dies and an Innervate hint when a healer runs low.", -- luacheck: no max line length
 		"Big alerts for Clearcasting and Nature's Grace, and a warning when you're losing aggro in Bear Form, wherever the game lets addons see them in combat.", -- luacheck: no max line length

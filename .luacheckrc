@@ -24,6 +24,9 @@ globals = {
 
 -- WoW API and FrameXML the addon reads.
 read_globals = {
+	-- Stat conversions (item tooltips)
+	"GetCombatRatingBonusForCombatRatingValue", "GetCritChanceFromStat", "GetDodgeChanceFromAttribute",
+	"GetSpellCritChanceFromStat", "MANA_PER_INTELLECT", "UnitHPPerStamina", "UnitStat",
 	"C_AddOns", "C_CurveUtil", "C_Item", "C_RestrictedActions", "C_Secrets", "C_Spell", "C_SpellBook",
 	"C_SpecializationInfo", "C_ClassTalents", "C_Timer", "C_Traits", "C_UnitAuras", "C_AddOnProfiler", "C_Texture",
 	"CreateFrame", "CreateColor", "UIParent", "GameTooltip", "Minimap", "MenuUtil", "Settings", "Enum",

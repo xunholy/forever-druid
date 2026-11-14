@@ -284,10 +284,21 @@ FD macros don't need this: `/cast` always uses your highest rank.
 
 ## Item tooltips
 
-Item tooltips get a Forever Druid section with the item's Cat attack power (2 per Strength, 1 per
-Agility, plus attack power), Bear attack power (2 per Strength plus attack power) and healing,
-followed by the change against what you're wearing in that slot, green when better and red when
-worse. These are the Classic druid formulas. Turn it off under **Druid values in item tooltips**.
+Item tooltips get a Forever Druid section that turns the item's stats into what they do for you,
+each followed by the change against what you're wearing in that slot, green when better and red
+when worse:
+
+- **Cat and Bear attack power.** Cat is 2 per Strength, 1 per Agility, plus attack power; Bear is 2
+  per Strength plus attack power. These are the Classic druid formulas.
+- **Crit, hit, haste and dodge chance**, from Agility and from crit, hit, haste and dodge ratings.
+- **Health** from Stamina, **armor** including 2 per Agility, and **defense** from defense rating.
+- **Mana** and **spell crit chance** from Intellect, **spell hit**, **healing**, **spell damage**,
+  **mana per 5** and **Spirit**.
+
+The crit, dodge, spell crit, rating and health rates come from the game, the same ones the
+character sheet uses, so they follow your level. Forever sometimes hides those rates from addons;
+then the tooltip shows the stat itself instead, such as `Agility +6`. Lines that are zero on both
+items are left out. Turn it all off under **Druid values in item tooltips**.
 
 ## Form bar
 

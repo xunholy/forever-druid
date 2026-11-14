@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: Forever Druid
 ## Notes: The druid one-stop HUD for WoW Forever: mana in forms, energy and rage, combo points, role-aware cooldowns, buffs and procs, your DoTs/HoTs on target, click-to-cast reminders, aggro radius on enemy nameplates and Skyborne ley lines.
-## Version: 0.6.0
+## Version: 0.7.0
 ## X-License: Apache-2.0
 ## IconTexture: Interface\Icons\Ability_Druid_CatForm
 ## AddonCompartmentFunc: ForeverDruid_OnAddonCompartmentClick
