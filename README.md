@@ -12,7 +12,7 @@ It changes with your form. Shift into Cat Form and the column under your charact
 combo points and your bleeds; Bear Form swaps in rage and your tanking cooldowns;
 caster form shows healing or Balance cooldowns, depending on your talents or the role you pick.
 
-> **Status:** 0.7.0, in active development and playtesting on Forever's launch client. Everything is
+> **Status:** 0.8.0, in active development and playtesting on Forever's launch client. Everything is
 > covered by an automated test suite against a model of the client, but a lot of it is newer than
 > any real play session. See [what's confirmed in game](docs/forever-restrictions.md#confirmed-in-game).
 

@@ -202,7 +202,7 @@ ns.defaults = {
 	style = { icons = "minimal" },
 	tooltips = { enabled = true, compare = true },
 	preview = true, -- sample icons while unlocked
-	macros = { manage = false, enabled = {} }, -- enabled[key] = false to skip one
+	macros = { manage = false, enabled = {} }, -- enabled[key] = true/false; unset follows the macro's default
 	ranks = { auto = true, keep = {} },
 	role = "auto", -- caster-form role: auto (from talents), healer, balance or feral
 	restock = { enabled = false, seeds = 5, thornroot = 10 }, -- buys reagents at vendors when on -- keep[lower-case spell name] = true: leave its rank alone

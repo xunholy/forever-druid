@@ -245,22 +245,63 @@ Turn on **Create and update my druid macros** on the Macros settings page, in th
 with `/fd macros on`. Forever Druid writes "FD ..." macros into your character's own macro slots
 for the spells you know, and adds more as you learn them:
 
+Each is named "FD " plus the spell it casts, in full where that fits the game's 16-character limit
+(FD Mark, FD Roots and FD Swift Heal are the short ones). Macros that combine spells are named
+for what the button is for: FD Survival, FD Travel, FD Ravage Opener.
+
 | Macro | Does |
 |---|---|
-| FD Rejuv, FD Regrowth, FD Heal Touch | Heal your mouseover, friendly target or yourself, dropping your form first |
-| FD Mark, FD Thorns, FD Innervate | Buff your mouseover, friendly target or yourself without changing target |
-| FD Rebirth | Rebirth your dead mouseover or target |
+| FD Rejuvenation, FD Regrowth, FD Healing Touch | Heal your mouseover, friendly target or yourself. Hold Shift on FD Rejuvenation for Swiftmend |
+| FD Mark, FD Thorns, FD Innervate | Buff your mouseover, friendly target or yourself without changing target. Hold Shift on FD Mark for Gift of the Wild |
+| FD Rebirth | Bring back your dead mouseover or target: Rebirth in combat, Revive out of it |
 | FD Maul, FD Claw | The ability plus auto-attack |
-| FD Faerie | Faerie Fire on your mouseover or target, the Feral version in Cat and Bear Form |
-| FD Roots, FD Hibernate | Crowd control your mouseover or target, dropping your form first |
-| FD Shift Cat, FD Shift Bear | Into that form from caster or the other form, in one press; never takes you out of it |
+| FD Faerie Fire | Faerie Fire on your mouseover or target, the Feral version in Cat and Bear Form |
+| FD Roots, FD Hibernate | Crowd control your mouseover or target; hold Shift for your focus |
+| FD Cat Form, FD Bear Form | Into that form from caster or the other form, in one press; never takes you out of it |
 | FD Powershift | Leave Cat Form and shift straight back in (Furor's energy); won't break Prowl |
 | FD Reshift | Powershift whatever form you're in: Cat back into Cat, Bear back into Bear |
 | FD Bear Rejuv | Keep pressing: out of Bear Form, Rejuvenation on you (or your mouseover), back into Bear Form |
-| FD Prowl | Tap: Cat Form. Tap: Prowl. Tap while prowling: leave Prowl, staying in Cat Form |
-| FD Opener | Cat Form, then Prowl, then Ravage from stealth |
-| FD Barkskin | Barkskin, dropping your form first |
+| FD Prowl | Tap: off your mount and into Cat Form. Tap: Prowl. Tap while prowling: leave Prowl, staying in Cat Form |
+| FD Ravage Opener | Cat Form, then Prowl, then Ravage from stealth, then Shred (Claw before you learn it) |
+| FD Barkskin | Barkskin in any form (Forever lets you cast it shifted) |
 | FD Swift Heal | Nature's Swiftness into an instant Healing Touch |
+
+These start off, so they don't fill your 30 character macro slots (all of them together would need
+45). Tick the ones you want, or pick a play style under "How do you play?" and it ticks the ones
+that suit it:
+
+| Macro | Does |
+|---|---|
+| FD Growl | Growl your mouseover or target without changing target; shifts you into Bear Form first if needed |
+| FD Bash | Bash your mouseover or target, or hold Shift for your focus (interrupts); shifts you into Bear Form first if needed |
+| FD Maul Lacerate, FD Primal Bite, FD Swipe | Maul on your next swing plus Lacerate, Primal Bite (Forever's high-threat bite) or Swipe in one press, with auto-attack; shifts you into Bear Form first if needed |
+| FD Berserk | Berserk, plus Tiger's Fury in Cat Form, in one press; shifts you into Cat Form first if you're in neither form |
+| FD Feral Charge | Feral Charge your mouseover or target. Forever's version charges in Bear Form and leaps behind the target in Cat Form; from anything else it shifts you into Bear Form |
+| FD Survival | Your best healing potion, Bear Form if you're not in it, then Frenzied Regeneration. Potions work in forms on Forever, so you stay a bear |
+| FD Bear Weapon | Equips the weapon in your bags with the most Bear attack power and shifts into Bear Form |
+| FD Dash | Into Cat Form if you're not in it, then Dash |
+| FD Pounce Opener | The stun opener: Cat Form, Prowl, Pounce, then Rake |
+| FD Travel | Aquatic Form in water, Travel Form outdoors, Cat Form indoors. Press again to leave Travel or Aquatic Form; never knocks you out of Cat Form |
+| FD Moonkin Form | Into Moonkin Form; never takes you out of it |
+| FD Moonfire, FD Insect Swarm | Moonfire or Insect Swarm your mouseover or target, to dot several mobs without retargeting |
+| FD Soothe Animal | Soothe the beast under your mouse or your target: its aggro radius shrinks by 10 yards, and the aggro radius markers show it |
+| FD Hurricane | Hurricane at your cursor, no targeting circle |
+| FD Heal or Wrath | Levelling: Healing Touch on a friend, Wrath on an enemy, Healing Touch on you with no target |
+| FD Wild Growth | Wild Growth on your mouseover, friendly target or yourself |
+| FD Cleanse | Abolish Poison (Cure Poison before you learn it) on your mouseover, friendly target or yourself; hold Shift for Remove Curse |
+| FD Spirit Swap | Equips the highest-Spirit weapon in your bags and Innervates you (Innervate boosts Spirit-based regen). Swap your usual weapon back afterwards |
+| FD Healthstone | Your best Healthstone, then your best healing potion on the next press, in any form |
+| FD Trinkets | Both trinkets at once |
+| FD Next Target | Drop a dead or friendly target, target the nearest enemy, start attacking (never breaks Prowl) |
+
+The potion, Healthstone and weapon macros choose from what's in your bags and update as that
+changes. Potions are ranked by how much they heal, so Forever's Discolored potions come first, and
+ones too high for your level are skipped.
+
+**Only the forms that block a spell are dropped.** Forever's spell data says which forms each spell
+can still be cast in. Heals work in Tree of Life; buffs, Innervate, Rebirth, Revive and the cleanses
+work in Moonkin Form and Tree of Life; Hurricane, Moonfire, Wrath and Hibernate work in Moonkin
+Form. The macros leave you in those forms and drop the others.
 
 **Why some take two presses.** The game only lets you use Prowl, or a caster spell, once it has
 confirmed your form change, and that happens after a key press has finished. So the macros that

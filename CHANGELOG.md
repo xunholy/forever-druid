@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.8.0
+
+**New**
+- 24 new macros, off until you tick them (play styles tick the ones that suit them): FD Growl,
+  FD Bash, FD Maul Lacerate, FD Primal Bite, FD Swipe, FD Feral Charge, FD Survival, FD Bear
+  Weapon, FD Berserk, FD Dash, FD Pounce Opener, FD Travel, FD Moonkin Form, FD Moonfire, FD Insect
+  Swarm, FD Soothe Animal, FD Hurricane, FD Heal or Wrath, FD Wild Growth, FD Cleanse, FD Spirit
+  Swap, FD Healthstone, FD Trinkets and FD Next Target. The potion and weapon
+  ones pick the best item in your bags and follow it as your bags change.
+- FD Rejuvenation casts Swiftmend with Shift, FD Mark casts Gift of the Wild with Shift, FD Rebirth
+  uses Revive out of combat, FD Roots and FD Hibernate cast on your focus with Shift, FD Prowl
+  dismounts you first, and FD Ravage Opener moves on to Shred once the fight starts.
+- Macros are named after their spell where it fits. Renamed: FD Rejuv (FD Rejuvenation), FD Heal
+  Touch (FD Healing Touch), FD Shift Cat (FD Cat Form), FD Shift Bear (FD Bear Form), FD Faerie
+  (FD Faerie Fire) and FD Opener (FD Ravage Opener). They keep their slot, so they stay on your
+  action bars.
+
+**Fixed**
+- FD Barkskin no longer drops your form: Forever lets you cast Barkskin shifted.
+- Buff, heal and Balance macros no longer knock you out of Moonkin Form or Tree of Life when
+  Forever still lets you cast that spell there.
+
 ## 0.7.0
 
 **New**

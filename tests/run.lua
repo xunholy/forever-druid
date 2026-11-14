@@ -968,13 +968,13 @@ do
 		names[#names + 1] = m.name
 	end
 	table.sort(names)
-	check(table.concat(names, ",") == "FD Barkskin,FD Innervate,FD Mark,FD Powershift,FD Prowl,FD Rebirth,FD Reshift,FD Shift Bear,FD Shift Cat,FD Thorns",
+	check(table.concat(names, ",") == "FD Barkskin,FD Bear Form,FD Cat Form,FD Innervate,FD Mark,FD Powershift,FD Prowl,FD Rebirth,FD Reshift,FD Thorns",
 		"only macros whose spells are known: " .. table.concat(names, ","))
 	check(#W.macros.account == 0, "nothing in the account-wide slots")
 	local mark = W.CharacterMacro("FD Mark")
 	check(mark.body:find("/cast [@mouseover,help,nodead][help,nodead][@player] Mark of the Wild", 1, true), "Mark macro body uses the spell name")
-	check(W.CharacterMacro("FD Shift Cat").body:find("/cast !Cat Form", 1, true), "powershift macro uses !Cat Form")
-	check(W.CharacterMacro("FD Opener") == nil, "the Ravage opener waits for Ravage")
+	check(W.CharacterMacro("FD Cat Form").body:find("/cast !Cat Form", 1, true), "FD Cat Form uses !Cat Form")
+	check(W.CharacterMacro("FD Ravage Opener") == nil, "the Ravage opener waits for Ravage")
 	-- No macro may rely on a form change taking effect within the same key press.
 	for _, m in ipairs(W.macros.character) do
 		local body = m.body
@@ -986,9 +986,9 @@ do
 			check(body:find("nostealth", 1, true) ~= nil, m.name .. ": never drops your form while prowling")
 		end
 	end
-	local cat = W.CharacterMacro("FD Shift Cat").body
+	local cat = W.CharacterMacro("FD Cat Form").body
 	check(not cat:find("/cancelform", 1, true) and cat:find("/cast !Cat Form", 1, true),
-		"FD Shift Cat only shifts in: it never takes you out of Cat Form")
+		"FD Cat Form only shifts in: it never takes you out of Cat Form")
 	local prowl = W.CharacterMacro("FD Prowl").body
 	check(prowl:find("/cast [noform:1] !Cat Form; Prowl", 1, true),
 		"FD Prowl: Cat Form first, then Prowl as a toggle, using your stance-bar number for Cat (" .. prowl:gsub("\n", " | ") .. ")")
@@ -1001,8 +1001,8 @@ do
 	table.insert(W.state.spellbook, { 774, "Rejuvenation" })
 	W.Fire("SPELLS_CHANGED")
 	W.Advance(3)
-	local rejuv = W.CharacterMacro("FD Rejuv")
-	check(rejuv and rejuv.body:find("/cancelform [form,nostealth]\n/stopmacro [form]\n/cast", 1, true),
+	local rejuv = W.CharacterMacro("FD Rejuvenation")
+	check(rejuv and rejuv.body:find("/cancelform [form:1/2/3,nostealth]\n/stopmacro [form:1/2/3]\n/cast", 1, true),
 		"learning Rejuvenation creates FD Rejuv (drops your form, then heals)")
 
 	-- An empty spellbook for a moment (login) never deletes anything.
@@ -1010,7 +1010,7 @@ do
 	W.state.spellbook = {}
 	W.Fire("SPELLS_CHANGED")
 	W.Advance(3)
-	check(W.CharacterMacro("FD Mark") ~= nil and W.CharacterMacro("FD Rejuv") ~= nil, "a momentarily empty spellbook deletes nothing")
+	check(W.CharacterMacro("FD Mark") ~= nil and W.CharacterMacro("FD Rejuvenation") ~= nil, "a momentarily empty spellbook deletes nothing")
 	W.state.spellbook = saved
 	W.Fire("SPELLS_CHANGED")
 	W.Advance(3)
@@ -1322,7 +1322,7 @@ do
 	W.Advance(5)
 	check(not labels(ns.modules.reminders.active)["Bear Form"], "level 40 with Dire Bear Form: no Bear Form quest reminder")
 	ns.macros.SetManaged(true)
-	local bear = W.CharacterMacro("FD Shift Bear")
+	local bear = W.CharacterMacro("FD Bear Form")
 	check(bear and bear.body:find("/cast !Dire Bear Form", 1, true), "bear powershift uses Dire Bear Form once you have it")
 
 	-- Restore never touches a macro ForeverDruid didn't write.
@@ -1524,7 +1524,7 @@ do
 
 	-- New macros.
 	ns.macros.SetManaged(true)
-	local faerie = W.CharacterMacro("FD Faerie")
+	local faerie = W.CharacterMacro("FD Faerie Fire")
 	check(faerie and faerie.body:find("[@mouseover,harm,nodead][] Faerie Fire", 1, true), "FD Faerie: mouseover Faerie Fire")
 	check(not faerie.body:find("[form,", 1, true), "FD Faerie never uses a bare [form] (Moonkin or Travel would pick the Feral spell)")
 	local swift = W.CharacterMacro("FD Swift Heal")
@@ -1756,6 +1756,182 @@ end
 
 ---------------------------------------------------------------------------
 do
+	section("macros: the wowf.io and forg.gg sets, built to our rules")
+	local W, ns = fresh()
+	for _, spell in ipairs({ { 774, "Rejuvenation" }, { 18562, "Swiftmend" }, { 1237948, "Revive" }, { 6795, "Growl" },
+		{ 6807, "Maul" }, { 1328616, "Lacerate" }, { 1238122, "Feral Charge" }, { 9005, "Pounce" }, { 1822, "Rake" },
+		{ 6800, "Shred" }, { 6785, "Ravage" }, { 1082, "Claw" }, { 24858, "Moonkin Form" }, { 16914, "Hurricane" },
+		{ 408120, "Wild Growth" }, { 21849, "Gift of the Wild" }, { 5185, "Healing Touch" }, { 5179, "Wrath" },
+		{ 8921, "Moonfire" }, { 2893, "Abolish Poison" }, { 2782, "Remove Curse" }, { 6798, "Bash" },
+		{ 22842, "Frenzied Regeneration" }, { 1066, "Aquatic Form" }, { 339, "Entangling Roots" }, { 2637, "Hibernate" },
+		{ 407995, "Primal Bite" }, { 769, "Swipe" }, { 417141, "Berserk" }, { 5570, "Insect Swarm" }, { 2908, "Soothe Animal" } }) do
+		table.insert(W.state.spellbook, spell)
+	end
+	W.state.forms = { 768, 5487, 783, 24858 } -- cat 1, bear 2, travel 3, moonkin 4
+	W.RebuildNames()
+	login(W)
+	W.Advance(5)
+	local mac = ns.macros
+	W.Slash("macros on")
+	W.Advance(2)
+	local function Body(name)
+		local m = W.CharacterMacro(name)
+		return m and m.body or ""
+	end
+	-- The house rules, for every FD macro.
+	local function HouseRules()
+		for _, m in ipairs(W.macros.character) do
+			local body = m.body
+			check(#body <= 255, m.name .. " fits the macro limit")
+			local cancelAt = body:find("/cancelform", 1, true)
+			if cancelAt then
+				local stopAt = body:find("/stopmacro", cancelAt, true)
+				check(stopAt ~= nil, m.name .. ": stops after /cancelform if you're still shifted")
+				local guard = body:match("/cancelform (%b[])")
+				check(guard and (guard:find("nostealth", 1, true) or guard:match("^%[form:%d%]$")),
+					m.name .. ": never drops Prowl (" .. tostring(guard) .. ")")
+			end
+			check(not body:find("nil", 1, true), m.name .. " has no missing names")
+		end
+	end
+	local NEW = { "FD Growl", "FD Maul Lacerate", "FD Feral Charge", "FD Dash", "FD Pounce Opener", "FD Moonkin Form",
+		"FD Hurricane", "FD Wild Growth", "FD Spirit Swap", "FD Survival", "FD Healthstone", "FD Trinkets",
+		"FD Next Target", "FD Heal or Wrath", "FD Moonfire", "FD Cleanse", "FD Bash", "FD Travel", "FD Bear Weapon",
+		"FD Primal Bite", "FD Swipe", "FD Berserk", "FD Insect Swarm", "FD Soothe Animal" }
+	local none = true
+	for _, name in ipairs(NEW) do
+		none = none and W.CharacterMacro(name) == nil
+	end
+	check(none, "the new macros start off, so they don't fill your macro slots")
+	check(mac.IsTicked("rejuv") and not mac.IsTicked("growl"), "existing macros stay on, new ones are off until ticked")
+	for _, def in ipairs(mac.LIST) do
+		check(#def.name <= 16 and def.name:sub(1, 3) == "FD ", def.name .. ": FD prefix, fits the 16-character name limit")
+	end
+
+	-- Upgrades to the macros you already have.
+	check(Body("FD Rejuvenation"):find("[mod:shift,@mouseover,help,nodead][mod:shift,help,nodead][mod:shift,@player] Swiftmend; [@mouseover,help,nodead][help,nodead][@player] Rejuvenation", 1, true), -- luacheck: no max line length
+		"FD Rejuvenation: Shift for Swiftmend once you know it")
+	check(Body("FD Mark"):find("[mod:shift,@mouseover,help,nodead][mod:shift,help,nodead][mod:shift,@player] Gift of the Wild; [@mouseover,help,nodead][help,nodead][@player] Mark of the Wild", 1, true), -- luacheck: no max line length
+		"FD Mark: Shift for Gift of the Wild")
+	check(Body("FD Rebirth"):find("[combat,@mouseover,help,dead][combat,help,dead] Rebirth; [@mouseover,help,dead][help,dead] Revive", 1, true),
+		"FD Rebirth: Rebirth in combat, Revive out of it")
+	check(Body("FD Prowl"):find("/dismount [mounted]\n/cast [noform:1] !Cat Form; Prowl", 1, true), "FD Prowl: off the mount first")
+	check(Body("FD Ravage Opener"):find("/cast [noform:1] !Cat Form; [stealth] Ravage; [nocombat] Prowl; Shred", 1, true),
+		"FD Ravage Opener: Ravage from stealth, Prowl out of combat, Shred once the fight is on")
+	check(Body("FD Roots"):find("/cast [mod:shift,@focus,harm,nodead][@mouseover,harm,nodead][] Entangling Roots", 1, true)
+		and Body("FD Hibernate"):find("[mod:shift,@focus,harm,nodead]", 1, true), "FD Roots and FD Hibernate: Shift for your focus")
+
+	-- Forms that can still cast the spell aren't dropped (Forever's shapeshift masks).
+	check(Body("FD Mark"):find("/cancelform [form:1/2/3,nostealth]\n/stopmacro [form:1/2/3]", 1, true),
+		"buffs drop Cat, Bear and Travel Form but not Moonkin Form")
+	check(Body("FD Rejuvenation"):find("/cancelform [form:1/2/3/4,nostealth]", 1, true), "heals drop Moonkin Form too")
+	check(Body("FD Hibernate"):find("/cancelform [form:1/2/3,nostealth]", 1, true), "Balance spells keep Moonkin Form")
+	check(Body("FD Roots"):find("/cancelform [form:1/2/3/4,nostealth]", 1, true), "Roots needs caster form (Moonkin can't root on Forever)")
+	check(Body("FD Barkskin") == "#showtooltip Barkskin\n/cast Barkskin", "FD Barkskin works in any form: no form drop")
+
+	-- Item macros wait for the item and say so.
+	mac.SetWanted("bearPotion", true)
+	local status, text = mac.Status("bearPotion"), ns.MacroStatusText("bearPotion")
+	check(status == "needs" and text:find("healing potion", 1, true) and W.CharacterMacro("FD Survival") == nil,
+		"no potion in your bags: 'needs a healing potion', nothing created (" .. text .. ")")
+
+	-- Bags: two potions (Forever's Discolored one heals more), a Healthstone, a Spirit staff, a bear mace.
+	W.state.items[13446], W.state.items[241650], W.state.items[5509] = 3, 1, 1
+	W.bags[0] = { "item:staff", "item:bearmace" }
+	W.itemSlots["item:staff"], W.itemIDs["item:staff"] = "INVTYPE_2HWEAPON", 4321
+	W.itemStats["item:staff"] = { ITEM_MOD_SPIRIT_SHORT = 20 }
+	W.itemSlots["item:bearmace"], W.itemIDs["item:bearmace"] = "INVTYPE_WEAPON", 5555
+	W.itemStats["item:bearmace"] = { ITEM_MOD_STRENGTH_SHORT = 10, ITEM_MOD_FERAL_ATTACK_POWER_SHORT = 60 }
+	W.equipped[16] = "item:mace"
+	W.itemStats["item:mace"] = { ITEM_MOD_SPIRIT_SHORT = 4, ITEM_MOD_STRENGTH_SHORT = 2 }
+	for _, def in ipairs(mac.LIST) do
+		if def.default == false then
+			mac.SetWanted(def.key, true)
+		end
+	end
+	W.Advance(2)
+	check(#W.macros.character == 30 and mac.lastSync.full, "ticking everything fills the 30 slots and says so, nothing breaks")
+	HouseRules() -- the original set, with every spell known
+	-- Make room: untick the original set (they're checked above).
+	for _, def in ipairs(mac.LIST) do
+		if def.default ~= false then
+			mac.SetWanted(def.key, false)
+		end
+	end
+	W.Advance(2)
+	local missing = {}
+	for _, name in ipairs(NEW) do
+		if not W.CharacterMacro(name) then
+			missing[#missing + 1] = name
+		end
+	end
+	check(#missing == 0, "ticked: every new macro is made (missing: " .. table.concat(missing, ", ") .. ")")
+	check(Body("FD Growl"):find("/cast [noform:2] !Bear Form\n/cast [form:2,@mouseover,harm,nodead][form:2] Growl", 1, true),
+		"FD Growl: mouseover Growl in Bear Form, shifting in first")
+	check(Body("FD Maul Lacerate"):find("/stopmacro [noform:2]\n/startattack\n/cast Maul\n/cast Lacerate", 1, true),
+		"FD Maul Lacerate: Maul and Lacerate in one press, only in Bear Form")
+	check(Body("FD Feral Charge"):find("/cast [noform:1/2] !Bear Form\n/cast [form:1/2,@mouseover,harm,nodead][form:1/2] Feral Charge", 1, true),
+		"FD Feral Charge: from Cat (leap) or Bear (charge), Bear Form from anything else")
+	check(Body("FD Dash"):find("/cast [noform:1] !Cat Form\n/cast [form:1] Dash", 1, true), "FD Dash: Cat Form if needed, then Dash")
+	check(Body("FD Pounce Opener"):find("/cast [noform:1] !Cat Form; [stealth] Pounce; [nocombat] Prowl; Rake", 1, true),
+		"FD Pounce Opener: Cat, Prowl, Pounce, Rake")
+	check(Body("FD Moonkin Form") == "#showtooltip Moonkin Form\n/cast !Moonkin Form", "FD Moonkin Form never toggles you out")
+	check(Body("FD Hurricane"):find("/cast [@cursor] Hurricane", 1, true), "FD Hurricane at the cursor")
+	check(Body("FD Wild Growth"):find("[@mouseover,help,nodead][help,nodead][@player] Wild Growth", 1, true), "FD Wild Growth on mouseover")
+	check(Body("FD Spirit Swap"):find("/equip item:4321\n/cast [@player] Innervate", 1, true),
+		"FD Spirit Swap picks the higher-Spirit staff from your bags")
+	check(Body("FD Survival"):find("/use item:241650\n/cast [noform:2] !Bear Form; Frenzied Regeneration", 1, true)
+		and not Body("FD Survival"):find("cancelform", 1, true),
+		"FD Survival: the best potion without leaving Bear Form, then Frenzied Regeneration")
+	check(Body("FD Healthstone"):find("/castsequence reset=combat item:5509, item:241650", 1, true)
+		and not Body("FD Healthstone"):find("cancelform", 1, true), "FD Healthstone: Healthstone, then the best potion, in any form")
+	check(Body("FD Next Target"):find("/startattack [harm,nodead,nostealth]", 1, true), "FD Next Target never breaks Prowl")
+	check(Body("FD Heal or Wrath"):find("/cast [@mouseover,help,nodead][help,nodead] Healing Touch; [harm,nodead] Wrath; [@player] Healing Touch", 1, true),
+		"FD Heal or Wrath: heal friends, Wrath enemies, heal yourself")
+	check(Body("FD Moonfire"):find("/cast [@mouseover,harm,nodead][] Moonfire", 1, true), "FD Moonfire on mouseover")
+	check(Body("FD Cleanse"):find("[mod:shift,@mouseover,help,nodead][mod:shift,help,nodead][mod:shift,@player] Remove Curse; [@mouseover,help,nodead][help,nodead][@player] Abolish Poison", 1, true), -- luacheck: no max line length
+		"FD Cleanse: Abolish Poison, Shift for Remove Curse")
+	check(Body("FD Bash"):find("/cast [noform:2] !Bear Form; [mod:shift,@focus,harm,nodead][@mouseover,harm,nodead][] Bash", 1, true),
+		"FD Bash from any form; Shift for your focus (interrupts)")
+	check(Body("FD Primal Bite"):find("/cast [noform:2] !Bear Form\n/stopmacro [noform:2]\n/startattack\n/cast Maul\n/cast Primal Bite", 1, true)
+		and Body("FD Swipe"):find("/startattack\n/cast Maul\n/cast Swipe", 1, true),
+		"FD Primal Bite and FD Swipe weave Maul into the same press, in Bear Form only")
+	check(Body("FD Berserk"):find("/cast [noform:1/2] !Cat Form\n/cast [form:1/2] Berserk\n/cast [form:1] Tiger's Fury", 1, true),
+		"FD Berserk: Berserk in Cat or Bear Form, plus Tiger's Fury in Cat Form, Berserk first")
+	check(Body("FD Insect Swarm"):find("/cancelform [form:1/2/3,nostealth]", 1, true)
+		and Body("FD Insect Swarm"):find("/cast [@mouseover,harm,nodead][] Insect Swarm", 1, true),
+		"FD Insect Swarm on mouseover, keeping Moonkin Form")
+	check(Body("FD Soothe Animal"):find("/cast [@mouseover,harm,nodead][] Soothe Animal", 1, true)
+		and Body("FD Soothe Animal"):find("/cancelform [form:1/2/3,nostealth]", 1, true),
+		"FD Soothe Animal on mouseover, keeping Moonkin Form")
+	check(Body("FD Travel") == "#showtooltip\n/cast [swimming] Aquatic Form; [outdoors] Travel Form; !Cat Form",
+		"FD Travel: Aquatic in water, Travel outdoors, Cat indoors (never toggling Cat off)")
+	check(Body("FD Bear Weapon"):find("/equip item:5555\n/cast [noform:2] !Bear Form", 1, true),
+		"FD Bear Weapon picks the weapon with the most Bear attack power")
+
+	-- Bags change: the best potion runs out or is too high a level, and the macros follow.
+	W.state.items[241650] = 0
+	W.Fire("BAG_UPDATE_DELAYED")
+	W.Advance(2)
+	check(Body("FD Survival"):find("item:13446", 1, true) and Body("FD Healthstone"):find("item:5509, item:13446", 1, true),
+		"used the last one: both switch to the next-best potion")
+	W.state.items[241650] = 1
+	W.unusable[241650] = true
+	W.Fire("BAG_UPDATE_DELAYED")
+	W.Advance(2)
+	check(Body("FD Survival"):find("item:13446", 1, true), "a potion too high for your level is skipped")
+	W.state.items[5509] = 0
+	W.Fire("BAG_UPDATE_DELAYED")
+	W.Advance(2)
+	check(Body("FD Healthstone"):find("/use item:13446", 1, true), "no Healthstone: just the potion")
+
+	HouseRules()
+	check(#W.macros.character <= 30, "within the 30 character macro slots")
+	noErrors(W, "no Lua errors or blocked actions")
+end
+
+---------------------------------------------------------------------------
+do
 	section("usability: play styles, piece menus, at a glance, slash shortcuts")
 	_G.ForeverDruidPlaystyle = nil
 	local W, ns = fresh()
@@ -1840,7 +2016,7 @@ do
 	check(prowl:find("[noform:3] !Cat Form; Prowl", 1, true), "FD Prowl uses Cat = 3")
 	local power = W.CharacterMacro("FD Powershift").body
 	check(power:find("[form:3,nostealth]", 1, true) and power:find("/stopmacro [form:3]", 1, true), "FD Powershift uses Cat = 3")
-	local faerie = W.CharacterMacro("FD Faerie")
+	local faerie = W.CharacterMacro("FD Faerie Fire")
 	check(faerie == nil or not faerie.body:find("form:2", 1, true), "Aquatic Form (2) never counts as Cat or Bear")
 	-- Learning Travel Form adds a 4th form: macros are rebuilt and Cat stays 3.
 	W.state.forms[4] = 783
@@ -1949,10 +2125,33 @@ do
 	end)
 	login(W)
 	W.Advance(5)
-	local cat = W.CharacterMacro("FD Shift Cat").body
-	check(not cat:find("/cancelform", 1, true) and cat:find("/cast !Cat Form", 1, true),
-		"an old FD Shift Cat is rewritten to the fixed version (" .. cat:gsub("\n", " | ") .. ")")
+	local cat = W.CharacterMacro("FD Cat Form")
+	check(cat and not cat.body:find("/cancelform", 1, true) and cat.body:find("/cast !Cat Form", 1, true)
+		and W.CharacterMacro("FD Shift Cat") == nil,
+		"an old FD Shift Cat is renamed FD Cat Form and rewritten to the fixed version")
 	check(ns.macros.Status("shiftCat") == "ready", "and counts as ForeverDruid's, not 'edited by you'")
+	local catMacros = 0
+	for _, m in ipairs(W.macros.character) do
+		if m.body:find("!Cat Form", 1, true) and m.name:find("^FD") and not m.name:find("Prowl")
+			and not m.name:find("Powershift") then
+			catMacros = catMacros + 1
+		end
+	end
+	check(catMacros == 1, "renamed in place, not duplicated (" .. catMacros .. ")")
+	noErrors(W, "no errors after the rename")
+
+	-- One you edited under its old name: left alone under that name, and no second copy is made.
+	local edited = "#showtooltip Bear Form\n/cast !Bear Form\n/say rawr"
+	local W2, ns2 = fresh(function(W2)
+		W2.macros.character[1] = { name = "FD Shift Bear", icon = 134400, body = edited }
+		ForeverDruidDB = { profiles = { Default = { macros = { manage = true, enabled = {} } } }, chars = {},
+			macroBodies = { ["Testdruid - Testrealm"] = { shiftBear = "#showtooltip Bear Form\n/cast !Bear Form" } } }
+	end)
+	login(W2)
+	W2.Advance(5)
+	check(W2.CharacterMacro("FD Shift Bear").body == edited and W2.CharacterMacro("FD Bear Form") == nil
+		and ns2.macros.Status("shiftBear") == "edited",
+		"an FD macro you edited keeps its old name and your text, with no duplicate under the new name")
 	check(W.CharacterMacro("Power Cat").body == old .. "\n", "your own macros (Power Cat) are never touched")
 	noErrors(W, "no errors")
 end
