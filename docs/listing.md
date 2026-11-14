@@ -31,4 +31,4 @@ Arrange it from the minimap icon: unlock, drag the whole column or shift-drag on
 with the arrow keys, turn parts on and off, change size and fading. Profiles can be shared as a
 text string.
 
-English, German, French and Spanish.
+English. Macros use the game's own spell names, so they work on any client language.

@@ -30,7 +30,7 @@ read_globals = {
 	"C_AddOns", "C_Container", "C_CurveUtil", "C_Item", "C_RestrictedActions", "C_Secrets", "C_Spell", "C_SpellBook",
 	"C_SpecializationInfo", "C_ClassTalents", "C_Timer", "C_Traits", "C_UnitAuras", "C_AddOnProfiler", "C_Texture",
 	"CreateFrame", "CreateColor", "UIParent", "GameTooltip", "Minimap", "MenuUtil", "Settings", "Enum",
-	"GetTime", "GetRealmName", "GetLocale", "GetBuildInfo", "GetCursorPosition", "GetMinimapShape",
+	"GetTime", "GetRealmName", "GetBuildInfo", "GetCursorPosition", "GetMinimapShape",
 	"GetShapeshiftForm", "GetShapeshiftFormInfo", "GetNumShapeshiftForms", "GetComboPoints",
 	"GetSpellCooldown", "GetSpellInfo", "GetSpellTexture", "GetFramerate",
 	"InCombatLockdown", "IsMounted", "IsShiftKeyDown", "IsControlKeyDown", "IsAltKeyDown",
@@ -60,6 +60,3 @@ files["tests/"] = {
 	globals = { "*" }, -- the stub stands in for the whole client
 	ignore = { "111", "112", "113", "121", "122", "131", "142", "143", "211", "212", "311", "431", "631" },
 }
-
--- Translation tables are whole sentences.
-files["ForeverDruid/Locale.lua"] = { max_line_length = false }

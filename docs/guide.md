@@ -383,4 +383,5 @@ changes your macros and action bars.
 - **Hide while mounted**
 - **Smooth bars:** mana, energy and rage glide to new values
 
-German, French and Spanish translations cover the menus, settings and welcome tour.
+Menus, settings and the welcome tour are in English on every client. Spell names in macros and on
+icons come from the game, in your client's language.

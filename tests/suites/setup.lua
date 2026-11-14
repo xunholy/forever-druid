@@ -1,4 +1,4 @@
--- Onboarding, play styles, profiles and sharing, translations, performance readout.
+-- Onboarding, play styles, profiles and sharing, client languages, performance readout.
 -- Run through tests/run.lua, which provides check, section, noErrors, fresh, login and labels.
 
 ---------------------------------------------------------------------------
@@ -156,15 +156,15 @@ end
 
 ---------------------------------------------------------------------------
 do
-	section("translations: German, French and Spanish clients")
-	for locale, expected in pairs({ deDE = "Manaleiste", frFR = "Barre de mana", esES = "Barra de maná", esMX = "Barra de maná" }) do
+	section("English only: other client languages get the same text")
+	for locale, expected in pairs({ deDE = "Mana bar", frFR = "Mana bar", esES = "Mana bar", esMX = "Mana bar" }) do
 		local W, ns = fresh(function(W)
 			W.locale = locale
 		end)
 		login(W)
 		W.Advance(5)
 		check(ns.L["Mana bar"] == expected, locale .. ": " .. tostring(ns.L["Mana bar"]))
-		check(ns.L["an untranslated sentence"] == "an untranslated sentence", locale .. ": missing strings fall back to English")
+		check(ns.L["any sentence"] == "any sentence", locale .. ": text comes back as written")
 		local ok = W.ShowOptionsPanel()
 		check(ok, locale .. ": settings build")
 		noErrors(W, locale .. ": no errors")

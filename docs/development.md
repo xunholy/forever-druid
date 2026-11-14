@@ -59,7 +59,7 @@ The `.toc` load order is the dependency order:
 
 | File | Role |
 |---|---|
-| `Locale.lua` | `ns.L`: English strings are the keys; German, French and Spanish override them |
+| `Locale.lua` | `ns.L`: returns the English string it is asked for |
 | `Core.lua` | Namespace, event helpers (`ns.On`, `ns.OnUnit`, `ns.Listen`/`ns.Fire`, `ns.Debounce`), secret helpers, profiles and defaults, the shared root frame and visibility, movable anchors, the automatic stack, nudging and the grid, the module system |
 | `Spells.lua` | The spell catalogue (`ns.SPELLS`, keyed names with fallback IDs), spellbook scan (`ns.KnownSpell`, `ns.IsCastable`, ranks, passives), player aura lookup |
 | `Spec.lua` | Form detection, talent trees, unspent points, role (`ns.role`), `FD_FORM_CHANGED` / `FD_ROLE_CHANGED` |

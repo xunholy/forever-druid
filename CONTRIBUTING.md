@@ -23,11 +23,10 @@ lua tests/run.lua
 Both must pass. New features need a test scenario, including the case where the client hides what
 the feature needs. Keep pull requests to one change, and describe what a player will notice.
 
-## Translations
+## Language
 
-Add or correct strings in `ForeverDruid/Locale.lua`. English strings are the keys; anything
-untranslated falls back to English. Spell and item names never need translating: they come from
-the client in the player's language.
+Forever Druid's own text is English only. Spell and item names come from the client, so macros work
+in any client language.
 
 ## Licence
 

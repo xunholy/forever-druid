@@ -21,6 +21,10 @@
   (FD Faerie Fire) and FD Opener (FD Ravage Opener). They keep their slot, so they stay on your
   action bars.
 
+**Removed**
+- The German, French and Spanish translations. They covered about half the text and had fallen
+  behind; everything is English now. Macros still use your client's spell names.
+
 **Fixed**
 - FD Barkskin no longer drops your form: Forever lets you cast Barkskin shifted.
 - Buff, heal and Balance macros no longer knock you out of Moonkin Form or Tree of Life when
