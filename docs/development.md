@@ -75,8 +75,8 @@ The `.toc` load order is the dependency order:
 | `Ranks.lua` | Highest-rank action bar upgrades |
 | `Leveling.lua` | Reagent restock, trainer and class-quest reminders |
 | `Tooltip.lua` | Druid values on item tooltips |
-| `Commands.lua` | Slash commands (`/fd ...`) |
-| `Options.lua` | Key bindings and the settings pages |
+| `Commands.lua` | Slash commands (`/fd ...`) and key bindings |
+| `Options.lua` | The settings pages |
 | `MinimapButton.lua` | Minimap button and quick settings menu |
 
 ### Modules
