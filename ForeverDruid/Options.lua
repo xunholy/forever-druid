@@ -918,7 +918,11 @@ local MODULE_PAGES = {
 			ModuleSetter("aggroradius", "sound"), L["Out of combat only, once per mob as it turns orange or red."])
 		s:Slider(L["Close margin (yards)"], 0, 30, 1, ModuleGetter("aggroradius", "margin"), ModuleSetter("aggroradius", "margin"),
 			L["How far outside the radius a mob turns yellow."])
-		s:Note(L["While you Prowl, mobs only notice you much closer than this. The markers still show the normal radius, and pulls while stealthed aren't learned from."]) -- luacheck: no max line length
+		s:Check(L["Show my threat once a mob is fighting"], ModuleGetter("aggroradius", "threat"), ModuleSetter("aggroradius", "threat"),
+			L["In the dot's place: your threat percentage, coloured for your form. In Bear Form green means it's safely on you and red that someone else has it; in any other form green means it's not on you and red that it is. Hidden when Forever doesn't share threat."]) -- luacheck: no max line length
+		s:Check(L["Also when solo"], ModuleGetter("aggroradius", "threatSolo"), ModuleSetter("aggroradius", "threatSolo"),
+			L["Off by default: alone, every mob you fight is on you."])
+		s:Note(L["While you Prowl, mobs only notice you much closer than this, so the markers fade and the sound stays quiet. They still show the normal radius, and pulls while stealthed aren't learned from."]) -- luacheck: no max line length
 		s:Button(L["What has it learned?"], 180, function()
 			for _, line in ipairs(ns.aggro.Summary()) do
 				ns.Print(line)

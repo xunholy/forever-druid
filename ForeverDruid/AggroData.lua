@@ -45,6 +45,52 @@ A.colors = {
 A.SEVERITY = { unknown = 0, safe = 1, near = 2, edge = 3, inside = 4 }
 
 ---------------------------------------------------------------------------
+-- Threat on a mob that's fighting
+---------------------------------------------------------------------------
+
+-- UnitThreatSituation: 3 = it's on you and safely so, 2 = on you but someone has more threat,
+-- 1 = not on you but you have more threat than its target, 0 = not on you.
+-- A tank wants 3 (green) and a healer or Cat wants 0, so the colours run opposite ways.
+local TANK_COLOR = { [3] = "safe", [2] = "near", [1] = "edge", [0] = "inside" }
+local OTHER_COLOR = { [0] = "safe", [1] = "near", [2] = "edge", [3] = "inside" }
+
+local function ReadThreat(field, fn, ...)
+	if not fn then
+		return nil
+	end
+	local ok, a, b, c, d = pcall(fn, ...)
+	if not ok then
+		return nil
+	end
+	if ns.IsSecret(a) or ns.IsSecret(b) or ns.IsSecret(c) or ns.IsSecret(d) then
+		A.CountSecret(field)
+		return nil
+	end
+	return a, b, c, d
+end
+
+-- Your threat on a unit: colour key and a percentage label, or nil when you're not on its threat
+-- table or Forever hides it. As a tank the label is your lead over the next player (130% = 30%
+-- ahead); otherwise it's how close you are to pulling it (100% = it turns on you).
+function A.Threat(unit, tanking)
+	local status = ReadThreat("threat", UnitThreatSituation, "player", unit)
+	if type(status) ~= "number" then
+		return nil
+	end
+	local color = (tanking and TANK_COLOR or OTHER_COLOR)[status]
+	if not color then
+		return nil
+	end
+	local isTanking, _, _, raw = ReadThreat("threatPct", UnitDetailedThreatSituation, "player", unit)
+	local pct = raw
+	if isTanking then
+		pct = ReadThreat("threatPct", UnitThreatPercentageOfLead, "player", unit) or raw
+	end
+	local text = type(pct) == "number" and pct > 0 and ("%d%%"):format(math.floor(pct + 0.5)) or ""
+	return color, text, status
+end
+
+---------------------------------------------------------------------------
 -- The pull log (ForeverDruidProbe.aggro)
 ---------------------------------------------------------------------------
 

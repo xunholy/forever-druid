@@ -18,6 +18,7 @@ ns.RELEASE_NOTES = {
 	} },
 	{ version = "0.6.0", notes = {
 		"Aggro radius on enemy nameplates: a dot and the estimated radius (22y) turn red when you're inside it, orange when you might be, yellow when you're close and green when you're clear.", -- luacheck: no max line length
+		"In a group, once a mob is fighting the marker shows your threat on it: in Bear Form green means it's safely yours and red that someone else has it, with your lead as a percentage.", -- luacheck: no max line length
 		"It learns from the mobs that pull you: a mob you've been pulled by shows its own measured radius (24y*), and after three such pulls the rest use your measured average. Mind Soothe and Soothe Animal count too. /fd pulls shows what it has learned.", -- luacheck: no max line length
 	} },
 	{ version = "0.5.0", notes = {

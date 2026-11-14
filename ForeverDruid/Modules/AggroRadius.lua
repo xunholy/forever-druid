@@ -2,6 +2,9 @@
 -- times a second. Red: you're inside the radius; orange: you might be; yellow: within the margin;
 -- green: clear; grey: no range reading. The maths, the pull log and learning are in AggroData.lua.
 --
+-- Once a mob is fighting the radius no longer matters, so the same spot shows your threat on it
+-- (in a group by default): green to red and your threat percentage. See A.Threat.
+--
 -- Markers are our own frames parented to the nameplate, so they work with Blizzard's plates and with
 -- Plater, never touch the plate's fields, and aren't part of the HUD (they stay up while mounted).
 
@@ -83,16 +86,24 @@ local function HideUnit(unit)
 	end
 end
 
-local function Show(m, cls, text)
+local STEALTH_ALPHA = 0.4
+
+local function Show(m, cls, text, faded)
 	local c = A.colors[cls] or A.colors.unknown
 	m.dot:SetVertexColor(c[1], c[2], c[3])
 	m.text:SetText(text)
 	m.text:SetTextColor(c[1], c[2], c[3])
+	m:SetAlpha(faded and STEALTH_ALPHA or 1)
 	m.state = cls
 	m:Show()
 end
 
-function module.UpdateUnit(unit, now, playerInCombat)
+-- Threat is worth showing in a group, where someone else can take or lose the mob.
+local function ThreatWanted(cfg)
+	return cfg.threat and (cfg.threatSolo or (IsInGroup and IsInGroup()) or false)
+end
+
+function module.UpdateUnit(unit, now, playerInCombat, stealthed)
 	local cfg = Config()
 	local info = A.ReadUnit(unit, cfg)
 	local prev = state[unit]
@@ -107,7 +118,17 @@ function module.UpdateUnit(unit, now, playerInCombat)
 			end
 		end
 		state[unit] = { inCombat = true }
-		HideUnit(unit)
+		local color, text
+		if ThreatWanted(cfg) then
+			color, text = A.Threat(unit, ns.GetForm() == "bear")
+		end
+		local m = color and MarkerFor(unit)
+		if m then
+			Show(m, color, cfg.showText and text or "")
+			m.threat = true
+		else
+			HideUnit(unit)
+		end
 		return
 	end
 	if not info then
@@ -121,10 +142,12 @@ function module.UpdateUnit(unit, now, playerInCombat)
 	local cls = A.Classify(info.radius, minRange, maxRange, cfg.margin)
 	local m = MarkerFor(unit)
 	if m then
-		Show(m, cls, A.Label(info, minRange, maxRange, cfg))
+		-- While you Prowl, mobs notice you much later than this radius: fade the marker to say so.
+		Show(m, cls, A.Label(info, minRange, maxRange, cfg), stealthed)
+		m.threat = nil
 	end
 
-	if cfg.sound and not playerInCombat and prev and now - lastSound >= SOUND_THROTTLE then
+	if cfg.sound and not playerInCombat and not stealthed and prev and now - lastSound >= SOUND_THROTTLE then
 		local was = A.SEVERITY[prev.state or "unknown"]
 		if A.SEVERITY[cls] >= A.SEVERITY.edge and was < A.SEVERITY.edge then
 			PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
@@ -150,8 +173,9 @@ function module.Tick()
 		return
 	end
 	local now, playerInCombat = GetTime(), PlayerInCombat()
+	local stealthed = ns.SafeReadable(IsStealthed) and true or false
 	for unit in pairs(unitMarker) do
-		module.UpdateUnit(unit, now, playerInCombat)
+		module.UpdateUnit(unit, now, playerInCombat, stealthed)
 	end
 end
 
@@ -213,7 +237,7 @@ ns.On("NAME_PLATE_UNIT_ADDED", function(_, unit)
 	unitMarker[unit] = nil -- the token may now belong to a different plate
 	state[unit] = nil
 	if module.enabled and MarkerFor(unit) then
-		module.UpdateUnit(unit, GetTime(), PlayerInCombat())
+		module.UpdateUnit(unit, GetTime(), PlayerInCombat(), ns.SafeReadable(IsStealthed) and true or false)
 	end
 end)
 

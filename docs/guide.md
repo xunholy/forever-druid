@@ -173,7 +173,7 @@ Optional sound.
 Every enemy nameplate gets a small dot and the mob's estimated aggro radius, such as `22y`. The dot
 is red when you're inside that radius, orange when you might be, yellow when you're within 10 yards
 of it (change the margin in its settings) and green when you're clear. Grey means the game gave no
-distance reading. The marker goes once a mob is in combat. Friendly NPCs, enemy players, dead mobs
+distance reading. Friendly NPCs, enemy players, dead mobs
 and neutral (yellow) mobs don't get one; neutral mobs can be switched on.
 
 No game API gives a mob's aggro radius, and no public Forever source lists one, so it starts from
@@ -181,6 +181,17 @@ No game API gives a mob's aggro radius, and no public Forever source lists one, 
 or over 45. (The long-standing rule of thumb is 20, but the first pulls measured on Forever all came
 out near 13.) A `??` mob shows `24y+`. Mind Soothe and Soothe
 Animal take 10 yards off, as Forever's own spell data says.
+
+**Threat, once a mob is fighting.** In a group the same spot switches to your threat on that mob: a
+percentage and a colour. In Bear Form green means it's safely on you, yellow that someone is
+catching up, orange that you're about to lose it and red that someone else has it; the number is
+your lead over the next player (`130%` is 30% ahead). In any other form the colours run the other
+way, green for "not on you", and the number is how close you are to pulling it. It's off when
+you're alone (every mob is yours) unless you tick **Also when solo**, and it shows nothing where
+Forever doesn't share threat.
+
+**While you Prowl** mobs notice you much later than their normal radius, so the markers fade and
+the warning sound stays quiet.
 
 Then it learns from Forever itself. Each time a mob comes at you on its own, Forever Druid notes
 your distance just before and at the pull; the radius lies between the two. A mob that has pulled
