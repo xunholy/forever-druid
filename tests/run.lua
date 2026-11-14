@@ -1747,6 +1747,31 @@ do
 		and hidden:find("Health +120 (-30)", 1, true) and not hidden:find("Crit chance", 1, true)
 		and not hidden:find("<secret", 1, true), "conversions hidden: raw stats instead (" .. hidden .. ")")
 	W.state.statsSecret = nil
+	check(all:find("Forever Druid | vs what you're wearing: 2 better, 4 worse | Cat attack power +26 (+10)", 1, true),
+		"a verdict line heads the comparison: 2 lines better, 4 worse")
+
+	-- Only what changes is listed; rings and trinkets are compared against both slots.
+	local band, seal, loop = "|Hitem:1|h[Old Band]|h", "|Hitem:2|h[Plain Seal]|h", "|Hitem:3|h[New Loop]|h"
+	W.itemStats[band] = { ITEM_MOD_STAMINA_SHORT = 5, ITEM_MOD_STRENGTH_SHORT = 3 }
+	W.itemStats[seal] = { ITEM_MOD_STAMINA_SHORT = 9, ITEM_MOD_STRENGTH_SHORT = 6 }
+	W.itemStats[loop] = { ITEM_MOD_STAMINA_SHORT = 5, ITEM_MOD_STRENGTH_SHORT = 6 }
+	for _, ring in ipairs({ band, seal, loop }) do
+		W.itemSlots[ring] = "INVTYPE_FINGER"
+	end
+	W.equipped[11], W.equipped[12] = band, seal
+	local ring = Text(loop)
+	check(ring:find("vs Old Band: upgrade | Cat attack power +12 (+6) | Bear attack power +12 (+6) | vs Plain Seal: downgrade | Health +50 (-40)", 1, true), -- luacheck: no max line length
+		"a ring is compared with both rings, named, each with a verdict and only the lines that change (" .. ring .. ")")
+	W.itemStats[loop] = { ITEM_MOD_STAMINA_SHORT = 9, ITEM_MOD_STRENGTH_SHORT = 6 }
+	check(Text(loop):find("vs Plain Seal: the same for a druid", 1, true), "identical for a druid: says so, no lines")
+	ns.db.tooltips.changesOnly = false
+	check(Text(loop):find("vs Plain Seal: the same for a druid | Cat attack power +12 | Bear attack power +12 | Health +90", 1, true),
+		"with 'only the stats that change' unticked, everything is listed")
+	ns.db.tooltips.changesOnly = true
+	check(not Text(seal):find("vs ", 1, true) and Text(seal):find("Health +90", 1, true),
+		"hovering a ring you're wearing: its own values, no comparison")
+	W.equipped[11], W.equipped[12] = nil, nil
+	check(not Text(loop):find("vs ", 1, true), "empty slots: nothing to compare against")
 	check(#W.ShowItemTooltip("item:new", ShoppingTooltip1) == 0, "not added to the side-by-side comparison tooltips")
 	ns.db.tooltips.enabled = false
 	check(#W.ShowItemTooltip("item:new") == 0, "tooltips can be turned off")

@@ -15,6 +15,7 @@ ns.RELEASE_NOTES = {
 	} },
 	{ version = "0.7.0", notes = {
 		"Item tooltips now show everything an item does for you, not just attack power: crit, hit, dodge and spell crit chance, health, armor, mana, healing and more, each with the change from what you're wearing.", -- luacheck: no max line length
+		"Each comparison opens with a verdict, such as upgrade or 2 better, 4 worse, and lists only the stats that change. Rings and trinkets are compared with both of yours.", -- luacheck: no max line length
 	} },
 	{ version = "0.6.0", notes = {
 		"Aggro radius on enemy nameplates: a dot and the estimated radius (22y) turn red when you're inside it, orange when you might be, yellow when you're close and green when you're clear.", -- luacheck: no max line length

@@ -200,7 +200,8 @@ ns.defaults = {
 	layout = { stack = true, gap = 4, detached = {} },
 	minimap = { hide = false, angle = 200 }, -- degrees round the ring, 0 = right
 	style = { icons = "minimal" },
-	tooltips = { enabled = true, compare = true },
+	-- changesOnly: when comparing with an equipped item, leave out the lines that are the same on both.
+	tooltips = { enabled = true, compare = true, changesOnly = true },
 	preview = true, -- sample icons while unlocked
 	macros = { manage = false, enabled = {} }, -- enabled[key] = true/false; unset follows the macro's default
 	ranks = { auto = true, keep = {} },

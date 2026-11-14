@@ -29,6 +29,8 @@
   armor and Cat attack power; Intellect becomes mana and spell crit; Stamina becomes health; crit,
   hit, haste, dodge and defense ratings become their percentages. Each line has the change from
   what you're wearing. The rates come from the game, so they follow your level.
+- A comparison opens with a verdict (`vs Old Band: upgrade`) and lists only the lines that change.
+  Rings and trinkets are compared with both of yours.
 
 ## 0.6.0
 

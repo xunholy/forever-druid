@@ -338,9 +338,11 @@ FD macros don't need this: `/cast` always uses your highest rank.
 
 ## Item tooltips
 
-Item tooltips get a Forever Druid section that turns the item's stats into what they do for you,
-each followed by the change against what you're wearing in that slot, green when better and red
-when worse:
+Item tooltips get a Forever Druid section that turns the item's stats into what they do for you.
+Against what you're wearing in that slot it opens with a verdict, such as `vs Old Band: upgrade` or
+`2 better, 4 worse`, then lists only the lines that change, each with the difference in brackets,
+green when better and red when worse. A ring or trinket is compared with both of yours. Untick
+**Only the stats that change** to list everything. The lines:
 
 - **Cat and Bear attack power.** Cat is 2 per Strength, 1 per Agility, plus attack power; Bear is 2
   per Strength plus attack power. These are the Classic druid formulas.
@@ -352,7 +354,8 @@ when worse:
 The crit, dodge, spell crit, rating and health rates come from the game, the same ones the
 character sheet uses, so they follow your level. Forever sometimes hides those rates from addons;
 then the tooltip shows the stat itself instead, such as `Agility +6`. Lines that are zero on both
-items are left out. Turn it all off under **Druid values in item tooltips**.
+items are left out. Turn it all off under **Druid values in item tooltips**. The verdict counts
+lines; it doesn't weigh one stat against another.
 
 ## Form bar
 
