@@ -3,7 +3,9 @@
 -- No game API gives a mob's aggro radius and no public Forever source publishes one: the Forever aggro
 -- addons, the wiki and the private-server databases all start from the same in-game-testing estimate
 -- (warcraft.wiki.gg/wiki/Aggro_radius): about 20 yards against a mob of your level, about 1 yard more
--- or less per level of difference, at least 5 and at most 45. That is only the starting point. The
+-- or less per level of difference, at least 5 and at most 45. On Forever the first measured pulls
+-- (eight, levels 37-39, November 2026) all agreed on about 13 yards at equal level in range-readout
+-- yards, so the starting base is 14 rather than 20. That is still only the starting point. The
 -- source of truth is this client's own pulls: when a mob comes at you, the server's check fired
 -- between the last calm range reading and the pull reading, so the radius lies within the span of
 -- those two brackets. Each pull is stored as that interval on a level-neutral base, in range-readout
@@ -17,7 +19,7 @@ local _, ns = ...
 local A = {}
 ns.aggro = A
 
-A.BASE_RADIUS = 20
+A.BASE_RADIUS = 14
 A.MIN_RADIUS = 5
 A.MAX_RADIUS = 45
 
@@ -46,7 +48,11 @@ A.SEVERITY = { unknown = 0, safe = 1, near = 2, edge = 3, inside = 4 }
 -- The pull log (ForeverDruidProbe.aggro)
 ---------------------------------------------------------------------------
 
-local MAX_PULLS = 2000 -- about 300 KB of saved variables at most
+-- Only pulls that can be learned from are kept (about one in seventy in play: most pulls are you
+-- attacking first). The rest are counted by reason in log.counts and dropped, so they can never push
+-- a learned pull out of the log.
+local MAX_PULLS = 2000
+local LOG_VERSION = 2
 -- A pull only counts as proximity aggro when you hadn't cast or swung this recently.
 A.ACTION_GRACE = 2
 
@@ -62,6 +68,7 @@ function A.Log()
 	log.pulls = type(log.pulls) == "table" and log.pulls or {}
 	log.secret = type(log.secret) == "table" and log.secret or {}
 	log.readings = type(log.readings) == "table" and log.readings or { ranged = 0, noRange = 0, noRangeInCombat = 0 }
+	log.counts = type(log.counts) == "table" and log.counts or {}
 	return log
 end
 
@@ -120,10 +127,16 @@ function A.RecordPull(unit, before, info, pullMin, pullMax)
 		zone = ns.SafeReadable(GetRealZoneText),
 		at = time and time() or nil,
 	}
-	local pulls = A.Log().pulls
-	pulls[#pulls + 1] = rec
-	while #pulls > MAX_PULLS do
-		table.remove(pulls, 1)
+	local log = A.Log()
+	local reason = A.Reason(rec)
+	log.counts.seen = (log.counts.seen or 0) + 1
+	log.counts[reason] = (log.counts[reason] or 0) + 1
+	if reason == "used" then
+		local pulls = log.pulls
+		pulls[#pulls + 1] = rec
+		while #pulls > MAX_PULLS do
+			table.remove(pulls, 1)
+		end
 	end
 	return rec
 end
@@ -137,13 +150,15 @@ end
 -- Learning
 ---------------------------------------------------------------------------
 
--- Pulls needed before your measured average replaces the 20-yard default for mobs you haven't met.
-A.GLOBAL_MIN_PULLS = 5
+-- Pulls needed before your measured average replaces the default for mobs you haven't met.
+A.GLOBAL_MIN_PULLS = 3
 -- Brackets wider than this say too little to learn from.
 A.MAX_WIDTH = 15
 
 local byKey = {} -- key -> list of {lo, hi}
 local all = {}
+-- Fits are asked for on every nameplate five times a second, so they're kept until a pull changes them.
+local fitByKey, fitAll = {}, nil
 
 -- A pull's interval on the level-neutral base scale, or nil when it can't teach anything: it needs
 -- proximity aggro, no stealth, a known level, both range readings with an upper end, and distances
@@ -198,6 +213,29 @@ function A.Fit(intervals)
 	return (mids[n / 2] + mids[n / 2 + 1]) / 2, n
 end
 
+-- Why a pull can or can't be learned from: "used", or "youFirst" (you cast or swung just before),
+-- "notYou" (it went for someone else), "stealthed", "tooClose" (inside the 5-yard floor) or "unclear"
+-- (no usable bracket, a ?? mob, or the 45-yard cap).
+function A.Reason(rec)
+	if A.Interval(rec) then
+		return "used"
+	end
+	if rec.targetsPlayer ~= true then
+		return "notYou"
+	end
+	if rec.actedAgo ~= nil and rec.actedAgo < A.ACTION_GRACE then
+		return "youFirst"
+	end
+	if rec.stealthed then
+		return "stealthed"
+	end
+	local lo = rec.pullMinRange or rec.minRange
+	if lo ~= nil and lo <= A.MIN_RADIUS then
+		return "tooClose"
+	end
+	return "unclear"
+end
+
 function A.Learn(rec)
 	local lo, hi = A.Interval(rec)
 	if not lo then
@@ -205,24 +243,49 @@ function A.Learn(rec)
 	end
 	local iv = { lo, hi }
 	all[#all + 1] = iv
+	fitAll = nil
 	if rec.key then
 		byKey[rec.key] = byKey[rec.key] or {}
 		local list = byKey[rec.key]
 		list[#list + 1] = iv
+		fitByKey[rec.key] = nil
 	end
 	return true
+end
+
+-- Logs from before LOG_VERSION 2 kept every pull. Count those by reason and keep the learnable ones.
+local function Migrate(log)
+	if log.version == LOG_VERSION then
+		return
+	end
+	local keep, counts = {}, {}
+	for _, rec in ipairs(log.pulls) do
+		local reason = A.Reason(rec)
+		counts.seen = (counts.seen or 0) + 1
+		counts[reason] = (counts[reason] or 0) + 1
+		if reason == "used" then
+			keep[#keep + 1] = rec
+		end
+	end
+	log.pulls, log.counts, log.version = keep, counts, LOG_VERSION
 end
 
 function A.Rebuild()
 	wipe(byKey)
 	wipe(all)
-	for _, rec in ipairs(A.Log().pulls) do
+	wipe(fitByKey)
+	fitAll = nil
+	local log = A.Log()
+	Migrate(log)
+	for _, rec in ipairs(log.pulls) do
 		A.Learn(rec)
 	end
 end
 
 function A.Forget()
-	wipe(A.Log().pulls)
+	local log = A.Log()
+	wipe(log.pulls)
+	wipe(log.counts)
 	A.Rebuild()
 end
 
@@ -231,12 +294,16 @@ end
 function A.BaseFor(key)
 	local list = key and byKey[key]
 	if list then
-		local base, n = A.Fit(list)
-		return base, "mob", n
+		local base = fitByKey[key]
+		if not base then
+			base = A.Fit(list)
+			fitByKey[key] = base
+		end
+		return base, "mob", #list
 	end
 	if #all >= A.GLOBAL_MIN_PULLS then
-		local base, n = A.Fit(all)
-		return base, "you", n
+		fitAll = fitAll or A.Fit(all)
+		return fitAll, "you", #all
 	end
 	return A.BASE_RADIUS, "default", 0
 end
@@ -247,7 +314,7 @@ function A.Stats()
 		mobs = mobs + 1
 	end
 	local base = A.Fit(all)
-	return { usable = #all, mobs = mobs, base = base, logged = #A.Log().pulls }
+	return { usable = #all, mobs = mobs, base = base, logged = A.Log().counts.seen or 0 }
 end
 
 ---------------------------------------------------------------------------
@@ -428,7 +495,7 @@ function A.GetRange(unit)
 	return minRange, maxRange
 end
 
--- "22y", "22y*" (measured from this mob's pulls), "30y+" ("??" mob), with the bracket appended if asked.
+-- "16y", "16y*" (measured from this mob's pulls), "24y+" ("??" mob), with the bracket appended if asked.
 function A.Label(info, minRange, maxRange, cfg)
 	if not cfg.showText then
 		return ""
@@ -451,18 +518,21 @@ function A.Summary()
 	local out = {}
 	local proximity, held, tooSmall, unclear = 0, 0, 0, 0
 	for _, rec in ipairs(log.pulls) do
-		if A.IsProximityPull(rec) then
-			proximity = proximity + 1
-			if rec.minRange and rec.minRange >= rec.radius then
-				tooSmall = tooSmall + 1
-			elseif rec.maxRange and rec.maxRange <= rec.radius then
-				held = held + 1
-			else
-				unclear = unclear + 1
-			end
+		proximity = proximity + 1
+		if rec.minRange and rec.minRange >= rec.radius then
+			tooSmall = tooSmall + 1
+		elseif rec.maxRange and rec.maxRange <= rec.radius then
+			held = held + 1
+		else
+			unclear = unclear + 1
 		end
 	end
-	out[#out + 1] = L["%d pulls logged, %d of them proximity aggro."]:format(#log.pulls, proximity)
+	local c = log.counts
+	out[#out + 1] = L["%d pulls seen, %d of them usable (the mob came for you on its own)."]:format(c.seen or 0, proximity)
+	if (c.seen or 0) > proximity then
+		out[#out + 1] = L["Not usable: %d you attacked first, %d went for someone else, %d too close to tell, %d other."]:format(
+			c.youFirst or 0, c.notYou or 0, c.tooClose or 0, (c.stealthed or 0) + (c.unclear or 0))
+	end
 	if proximity > 0 then
 		out[#out + 1] = L["Estimate held: %d. Pulled from outside it: %d. Bracket too wide to tell: %d."]:format(
 			held,

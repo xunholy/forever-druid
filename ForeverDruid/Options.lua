@@ -909,7 +909,7 @@ local MODULE_PAGES = {
 	end,
 	aggroradius = function(s)
 		s:Check(L["Show the radius in yards"], ModuleGetter("aggroradius", "showText"), ModuleSetter("aggroradius", "showText"),
-			L["22y next to the dot. 22y* is a radius measured from that mob's own pulls; 30y+ is a ?? mob."])
+			L["16y next to the dot. 16y* is a radius measured from that mob's own pulls; 24y+ is a ?? mob."])
 		s:Check(L["Add your distance"], ModuleGetter("aggroradius", "showDistance"), ModuleSetter("aggroradius", "showDistance"),
 			L["The range bracket the game can prove, such as 22y 25-30. Forever doesn't give addons exact distances."])
 		s:Check(L["Include neutral (yellow) mobs"], ModuleGetter("aggroradius", "includeNeutral"),
@@ -929,7 +929,7 @@ local MODULE_PAGES = {
 				ns.aggro.Forget()
 				ns.Print(L["pull log and learned aggro radii cleared"])
 			end)
-		end, L["Starts learning again from the 20-yard default."])
+		end, L["Starts learning again from the 14-yard default."])
 	end,
 	party = function(s)
 		s:Check(L["Include yourself"], ModuleGetter("party", "includeSelf"), ModuleSetter("party", "includeSelf"))

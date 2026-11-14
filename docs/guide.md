@@ -177,15 +177,17 @@ distance reading. The marker goes once a mob is in combat. Friendly NPCs, enemy 
 and neutral (yellow) mobs don't get one; neutral mobs can be switched on.
 
 No game API gives a mob's aggro radius, and no public Forever source lists one, so it starts from
-the long-standing rule of thumb: about 20 yards against a mob of your level, a yard more or less per
-level of difference, never under 5 or over 45. A `??` mob shows `30y+`. Mind Soothe and Soothe
+14 yards against a mob of your level, a yard more or less per level of difference, never under 5
+or over 45. (The long-standing rule of thumb is 20, but the first pulls measured on Forever all came
+out near 13.) A `??` mob shows `24y+`. Mind Soothe and Soothe
 Animal take 10 yards off, as Forever's own spell data says.
 
 Then it learns from Forever itself. Each time a mob comes at you on its own, Forever Druid notes
 your distance just before and at the pull; the radius lies between the two. A mob that has pulled
-you shows its own measured radius with a star, `24y*`, and after five pulls mobs you haven't met
-use your measured average instead of 20. Pulls right after you cast or swung, and pulls while you
-Prowl, are logged but not learned from. `/fd pulls` shows what it has learned and `/fd pulls reset`
+you shows its own measured radius with a star, `24y*`, and after three such pulls mobs you
+haven't met use your measured average instead of 14. Only pulls where the mob came for you on its
+own count: pulls you started, pulls while you Prowl and mobs that went for someone else are counted
+but not kept. `/fd pulls` shows what it has learned and `/fd pulls reset`
 starts again.
 
 Your distance is a bracket such as 20–25 yards rather than an exact number, because Forever doesn't

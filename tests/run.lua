@@ -2233,14 +2233,14 @@ do
 	section("aggro radius: maths")
 	local A = ns.aggro
 	local cases = {
-		{ 40, 40, 20, "same level: 20 yards" }, { 45, 40, 25, "5 above: 25" }, { 30, 40, 10, "10 below: 10" },
-		{ 10, 40, 5, "far below: floor of 5" }, { 60, 30, 45, "far above: cap of 45" },
+		{ 40, 40, 14, "same level: 14 yards" }, { 45, 40, 19, "5 above: 19" }, { 36, 40, 10, "4 below: 10" },
+		{ 10, 40, 5, "far below: floor of 5" }, { 75, 40, 45, "far above: cap of 45" },
 	}
 	for _, c in ipairs(cases) do
 		check(A.EstimateRadius(c[1], c[2]) == c[3], c[4])
 	end
 	local r, lower = A.EstimateRadius(-1, 40)
-	check(r == 30 and lower, "?? mob: at least 30")
+	check(r == 24 and lower, "?? mob: at least 24")
 	-- The client's secrets report the type of the value they hide, so a type() check can't stand in for
 	-- the secrecy guard. Pretend so here (the stub's secrets are tables).
 	local realType = type
@@ -2274,14 +2274,14 @@ do
 	check(ns.modules.aggroradius.enabled, "on by default")
 	W.AddPlate("nameplate1", mob(42, { 25, 30 }))
 	local m = W.MarkerOn("nameplate1")
-	check(m and m:IsShown() and m.text:GetText() == "22y", "hostile mob two levels up: 22y")
-	check(colour(m, "near", ns), "25-30 yards from a 22-yard radius is yellow")
-	W.state.plates.nameplate1.range = { 20, 25 }
-	W.Advance(0.25)
-	check(colour(m, "edge", ns), "20-25 yards is orange")
+	check(m and m:IsShown() and m.text:GetText() == "16y", "hostile mob two levels up: 16y")
+	check(colour(m, "near", ns), "25-30 yards from a 16-yard radius is yellow")
 	W.state.plates.nameplate1.range = { 15, 20 }
 	W.Advance(0.25)
-	check(colour(m, "inside", ns), "15-20 yards is red")
+	check(colour(m, "edge", ns), "15-20 yards is orange")
+	W.state.plates.nameplate1.range = { 10, 15 }
+	W.Advance(0.25)
+	check(colour(m, "inside", ns), "10-15 yards is red")
 	W.state.plates.nameplate1.range = { 40, nil }
 	W.Advance(0.25)
 	check(colour(m, "safe", ns), "40+ yards is green")
@@ -2300,7 +2300,7 @@ do
 	end
 	check(hidden, "no marker on friendly NPCs, enemy players, neutral mobs or mobs already fighting")
 	W.AddPlate("nameplate6", mob(40, { 25, 30 }, { auras = { [9901] = true } }))
-	check(W.MarkerOn("nameplate6").text:GetText() == "10y", "Soothe Animal on the mob: 10y")
+	check(W.MarkerOn("nameplate6").text:GetText() == "5y", "Soothe Animal on the mob: 10 yards off, down to the 5-yard floor")
 	local realType = type
 	type = function(v) -- luacheck: ignore 121 (secrets report the hidden value's type, as in the client)
 		return W.IsSecret(v) and "number" or realType(v)
@@ -2339,12 +2339,15 @@ do
 	W.AddPlate("nameplate2", mob(42, { 35, 40 }, { npcID = 1501 }))
 	check(W.MarkerOn("nameplate2").text:GetText() == "25y*", "same NPC again: measured 23 + 2 levels, marked *")
 	W.AddPlate("nameplate3", mob(40, { 35, 40 }, { npcID = 9999 }))
-	check(W.MarkerOn("nameplate3").text:GetText() == "20y", "an NPC you haven't met: the 20-yard default")
-	for i = 1, 4 do
+	check(W.MarkerOn("nameplate3").text:GetText() == "14y", "an NPC you haven't met: the 14-yard default")
+	pull("nameplate4", 2001, 40, { 25, 30 }, { 20, 25 })
+	W.Advance(0.25)
+	check(W.MarkerOn("nameplate3").text:GetText() == "14y", "two pulls aren't enough to replace the default")
+	for i = 2, 4 do
 		pull("nameplate4", 2000 + i, 40, { 25, 30 }, { 20, 25 })
 	end
 	W.Advance(0.25)
-	check(W.MarkerOn("nameplate3").text:GetText() == "24y", "after 5 pulls, unmet NPCs use your measured base")
+	check(W.MarkerOn("nameplate3").text:GetText() == "24y", "from three pulls on, unmet NPCs use your measured base")
 
 	-- Casting first means you pulled it: logged, not learned.
 	W.AddPlate("nameplate5", mob(40, { 25, 30 }, { npcID = 3000 }))
@@ -2352,12 +2355,23 @@ do
 	W.Fire("UNIT_SPELLCAST_SENT", "player")
 	W.state.plates.nameplate5.combat, W.state.plates.nameplate5.targetsPlayer = true, true
 	W.Advance(0.25)
-	check(#log.pulls == 6 and select(2, ns.aggro.BaseFor("npc:3000")) ~= "mob", "a pull right after your cast isn't learned")
+	check(#log.pulls == 5 and log.counts.youFirst == 1 and log.counts.seen == 6
+		and select(2, ns.aggro.BaseFor("npc:3000")) ~= "mob", "a pull right after your cast is counted, not stored or learned")
+	-- A week of pulling mobs yourself can't push the learned pulls out of the log.
+	for _ = 1, 2500 do
+		ns.aggro.RecordPull("nameplate5", { radius = 14, minRange = 25, maxRange = 30 },
+			{ level = 40, playerLevel = 40, key = "npc:3000" }, 20, 25)
+	end
+	check(#log.pulls == 5 and log.counts.seen == 2506 and select(2, ns.aggro.BaseFor("npc:1501")) == "mob",
+		"2,500 pulls you started: counted, and every learned pull is still there")
+	wipe(log.counts)
+	log.counts.seen, log.counts.used, log.counts.youFirst = 6, 5, 1
 
 	W.printed = {}
 	W.Slash("pulls")
 	local said = table.concat(W.printed, "\n")
-	check(said:find("6 pulls logged, 5 of them proximity aggro", 1, true) ~= nil, "/fd pulls counts pulls")
+	check(said:find("6 pulls seen, 5 of them usable", 1, true) ~= nil and said:find("1 you attacked first", 1, true) ~= nil,
+		"/fd pulls counts pulls and says why the rest weren't usable")
 	check(said:find("Learned from 5 pulls across 5 mobs", 1, true) ~= nil, "/fd pulls shows what was learned")
 	check(ns.ModuleStatus("aggroradius"):find("5 mobs measured", 1, true) ~= nil, "status line in At a glance")
 
@@ -2370,11 +2384,30 @@ do
 	W2.Slash("pulls reset")
 	check(#ForeverDruidProbe.aggro.pulls == 0 and select(2, ns2.aggro.BaseFor("npc:1501")) == "default",
 		"/fd pulls reset forgets them")
+
 	local ok = W2.ShowOptionsPanel()
 	check(ok, "settings pages still build")
 	W2.Slash("radius")
 	check(W2.openedCategory ~= nil, "/fd radius opens the aggro radius settings")
 	noErrors(W2, "no Lua errors")
+
+	-- A log saved by 0.6.0 kept every pull: on login the junk is counted and dropped, the rest kept.
+	local W3, ns3 = fresh()
+	local good = { targetsPlayer = true, actedAgo = 12, mobLevel = 40, playerLevel = 40, minRange = 10, maxRange = 15,
+		pullMinRange = 10, pullMaxRange = 15, radius = 20, key = "npc:7" }
+	local old = { pulls = { good }, secret = {}, readings = {} }
+	for i = 1, 30 do
+		old.pulls[#old.pulls + 1] = { targetsPlayer = i % 3 ~= 0, actedAgo = 0.1, mobLevel = 40, playerLevel = 40,
+			minRange = 20, maxRange = 25, pullMinRange = 20, pullMaxRange = 25, radius = 20, key = "npc:8" }
+	end
+	ForeverDruidProbe = { aggro = old }
+	login(W3)
+	local migrated = ForeverDruidProbe.aggro
+	check(#migrated.pulls == 1 and migrated.pulls[1] == good and migrated.counts.seen == 31
+		and migrated.counts.youFirst == 20 and migrated.counts.notYou == 10 and migrated.version == 2,
+		"an old log is pruned to its learnable pulls, with the rest counted by reason")
+	check(select(2, ns3.aggro.BaseFor("npc:7")) == "mob" and ns3.aggro.BaseFor("npc:7") == 12.5, "and what it had learned survives")
+	noErrors(W3, "no errors migrating")
 end
 
 do
