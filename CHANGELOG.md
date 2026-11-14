@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+
+**New**
+- Item tooltips show what every stat does, not just attack power. Agility becomes crit, dodge,
+  armor and Cat attack power; Intellect becomes mana and spell crit; Stamina becomes health; crit,
+  hit, haste, dodge and defense ratings become their percentages. Each line has the change from
+  what you're wearing. The rates come from the game, so they follow your level.
+
 ## 0.6.0
 
 **New**

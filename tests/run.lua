@@ -1711,6 +1711,42 @@ do
 	check(all:find("Cat attack power +26 (+10)", 1, true), "Cat AP: 2x Str + Agi, with the change (" .. all .. ")")
 	check(all:find("Bear attack power +20 (+12)", 1, true), "Bear AP: 2x Str, with the change")
 	check(all:find("Healing +0 (-11)", 1, true), "shows healing you'd lose")
+	check(not all:find("Agility", 1, true), "Agility is shown as what it does, not as Agility")
+	check(all:find("Crit chance +0.3% (-0.1%)", 1, true), "Agility into crit: 6 Agility is 0.3%, 0.1% less than 8")
+	check(all:find("Armor +12 (-4)", 1, true), "Agility into armor, 2 per point")
+	check(all:find("Dodge chance +0.3% (-0.1%)", 1, true), "Agility into dodge")
+
+	-- A caster/tank piece with ratings: every stat turned into what it does.
+	W.itemStats["item:helm"] = { ITEM_MOD_STAMINA_SHORT = 12, ITEM_MOD_INTELLECT_SHORT = 30,
+		ITEM_MOD_CRIT_RATING_SHORT = 14, ITEM_MOD_HIT_RATING_SHORT = 10, ITEM_MOD_DEFENSE_SKILL_RATING_SHORT = 5,
+		ITEM_MOD_MANA_REGENERATION_SHORT = 4, ITEM_MOD_SPIRIT_SHORT = 7, RESISTANCE0_NAME = 150 }
+	W.itemStats["item:oldhelm"] = { ITEM_MOD_STAMINA_SHORT = 15, RESISTANCE0_NAME = 120 }
+	W.itemSlots["item:helm"], W.itemSlots["item:oldhelm"] = "INVTYPE_HEAD", "INVTYPE_HEAD"
+	W.equipped[1] = "item:oldhelm"
+	local function Text(link)
+		local out = {}
+		for _, l in ipairs(W.ShowItemTooltip(link)) do
+			out[#out + 1] = l.text
+		end
+		return table.concat(out, " | ")
+	end
+	local helm = Text("item:helm")
+	for _, want in ipairs({ "Crit chance +1.0% (+1.0%)", "Hit chance +1.0% (+1.0%)", "Health +120 (-30)",
+		"Armor +150 (+30)", "Defense +5 (+5)", "Mana +450 (+450)", "Spell crit chance +1.5% (+1.5%)",
+		"Spell hit chance +1.0% (+1.0%)", "Mana per 5 sec +4 (+4)", "Spirit +7 (+7)" }) do
+		check(helm:find(want, 1, true), "converted: " .. want .. " (" .. helm .. ")")
+	end
+	check(not helm:find("rating", 1, true) and not helm:find("Intellect", 1, true)
+		and not helm:find("Stamina", 1, true), "no raw ratings, Intellect or Stamina when they can be converted")
+	check(not helm:find("Cat attack power", 1, true), "lines that are zero on both items are left out")
+
+	-- Forever hides the conversions when unit stats are restricted: fall back to the raw stats.
+	W.state.statsSecret = true
+	local hidden = Text("item:helm")
+	check(hidden:find("Crit rating +14 (+14)", 1, true) and hidden:find("Intellect +30 (+30)", 1, true)
+		and hidden:find("Health +120 (-30)", 1, true) and not hidden:find("Crit chance", 1, true)
+		and not hidden:find("<secret", 1, true), "conversions hidden: raw stats instead (" .. hidden .. ")")
+	W.state.statsSecret = nil
 	check(#W.ShowItemTooltip("item:new", ShoppingTooltip1) == 0, "not added to the side-by-side comparison tooltips")
 	ns.db.tooltips.enabled = false
 	check(#W.ShowItemTooltip("item:new") == 0, "tooltips can be turned off")

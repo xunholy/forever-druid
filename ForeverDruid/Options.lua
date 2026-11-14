@@ -787,7 +787,7 @@ local function MainPage()
 		return ns.db.tooltips.enabled
 	end, function(value)
 		ns.db.tooltips.enabled = value
-	end, L["Adds Cat and Bear attack power and healing to item tooltips, with the change from what you're wearing."])
+	end, L["Adds what an item's stats do for you to its tooltip (attack power, crit, hit, dodge, health, armor, mana, healing and more), with the change from what you're wearing."]) -- luacheck: no max line length
 
 	b:Header(L["Role"])
 	b:Cycle(L["In caster form I'm a"], ns.CASTER_ROLES, function()

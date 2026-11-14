@@ -1358,6 +1358,34 @@ C_Item = {
 	end,
 }
 
+-- Character-sheet stat conversions, with simple stand-in rates: 20 Agility per 1% crit, 60 Intellect
+-- per 1% spell crit, 10 health per Stamina, 14 crit rating per 1%, 10 of other ratings per 1% (1 per
+-- point of defense). W.state.statsSecret = true hides them, as Forever does when unit stats are
+-- restricted. GetCritChanceFromStat and friends return fractions, as the client's do.
+local function StatSecret(v)
+	return S.statsSecret and W.Secret() or v
+end
+function GetCritChanceFromStat(stat, value)
+	return StatSecret(stat == 2 and value / 20 / 100 or 0)
+end
+function GetSpellCritChanceFromStat(stat, value)
+	return StatSecret(stat == 4 and value / 60 / 100 or 0)
+end
+function GetCombatRatingBonusForCombatRatingValue(rating, value)
+	local per = ({ [9] = 14, [11] = 14, [2] = 1 })[rating] or 10
+	return StatSecret(value / per)
+end
+function UnitHPPerStamina()
+	return 10
+end
+function GetDodgeChanceFromAttribute()
+	return StatSecret(0.05) -- 5% from 100 Agility
+end
+function UnitStat(_, index)
+	return StatSecret(100), StatSecret(index == 2 and 100 or 50)
+end
+MANA_PER_INTELLECT = 15
+
 C_AddOns = {
 	-- Reads the real TOC, like the client.
 	GetAddOnMetadata = function(_, field)
