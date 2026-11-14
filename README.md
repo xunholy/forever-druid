@@ -12,7 +12,7 @@ It changes with your form. Shift into Cat Form and the column under your charact
 combo points and your bleeds; Bear Form swaps in rage and your tanking cooldowns;
 caster form shows healing or Balance cooldowns, depending on your talents or the role you pick.
 
-> **Status:** 0.5.0, in active development and playtesting on Forever's launch client. Everything is
+> **Status:** 0.6.0, in active development and playtesting on Forever's launch client. Everything is
 > covered by an automated test suite against a model of the client, but a lot of it is newer than
 > any real play session. See [what's confirmed in game](docs/forever-restrictions.md#confirmed-in-game).
 
@@ -40,6 +40,8 @@ Moonfire and Insect Swarm upkeep warnings for Balance.
 - Druid macros written for you and kept up to date as you learn spells, and action bars kept on
   your highest spell ranks
 - Item tooltips showing Cat and Bear attack power and healing, compared with what you're wearing
+- Aggro radius on enemy nameplates: a dot and the estimated radius (`22y`) that turn red when you're
+  inside it, and that learn each mob's real radius from the ones that pull you
 - Optional reagent restock at vendors, and an optional click-to-shift form bar
 
 Everything is arranged from a minimap button: drag the whole HUD, pull pieces out, turn parts on

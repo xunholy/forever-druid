@@ -8,11 +8,11 @@ repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 addons="${FOREVER_ADDONS:?set FOREVER_ADDONS to your _forever_/Interface/AddOns folder}"
 
 cd "$repo"
-for f in ForeverDruid/*.lua ForeverDruid/Modules/*.lua; do
+for f in ForeverDruid/*.lua ForeverDruid/Modules/*.lua ForeverDruid/Libs/*/*.lua; do
 	luac -p "$f"
 done
 if command -v luacheck >/dev/null; then
-	luacheck . --quiet
+	luacheck ForeverDruid --quiet && luacheck tests --quiet # separate runs: see .luacheckrc
 else
 	echo "luacheck not installed; skipping lint" >&2
 fi

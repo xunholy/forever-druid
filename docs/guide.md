@@ -13,6 +13,7 @@ explanation. The [commands page](commands.md) lists the slash commands.
 - [Your target](#your-target)
 - [Cooldowns](#cooldowns)
 - [Buffs, procs and alerts](#buffs-procs-and-alerts)
+- [Aggro radius](#aggro-radius)
 - [Group play](#group-play)
 - [Reminders and levelling](#reminders-and-levelling)
 - [Macros](#macros)
@@ -166,6 +167,34 @@ run out; one gained mid-fight appears once combat ends.
 **Alerts** show Clearcasting and Nature's Grace as a large icon the moment they trigger, when the
 game names the buff as it's gained (it may not on Forever; the probe records whether it does).
 Optional sound.
+
+## Aggro radius
+
+Every enemy nameplate gets a small dot and the mob's estimated aggro radius, such as `22y`. The dot
+is red when you're inside that radius, orange when you might be, yellow when you're within 10 yards
+of it (change the margin in its settings) and green when you're clear. Grey means the game gave no
+distance reading. The marker goes once a mob is in combat. Friendly NPCs, enemy players, dead mobs
+and neutral (yellow) mobs don't get one; neutral mobs can be switched on.
+
+No game API gives a mob's aggro radius, and no public Forever source lists one, so it starts from
+the long-standing rule of thumb: about 20 yards against a mob of your level, a yard more or less per
+level of difference, never under 5 or over 45. A `??` mob shows `30y+`. Mind Soothe and Soothe
+Animal take 10 yards off, as Forever's own spell data says.
+
+Then it learns from Forever itself. Each time a mob comes at you on its own, Forever Druid notes
+your distance just before and at the pull; the radius lies between the two. A mob that has pulled
+you shows its own measured radius with a star, `24y*`, and after five pulls mobs you haven't met
+use your measured average instead of 20. Pulls right after you cast or swung, and pulls while you
+Prowl, are logged but not learned from. `/fd pulls` shows what it has learned and `/fd pulls reset`
+starts again.
+
+Your distance is a bracket such as 20–25 yards rather than an exact number, because Forever doesn't
+give addons enemy positions; the colour accounts for that (orange means the bracket overlaps the
+radius). While you Prowl, mobs only notice you much closer than this; the markers still show the
+normal radius.
+
+The markers sit on the nameplates, so they work with Plater and with Blizzard's nameplates, and
+they stay up while you're mounted. Druids only, like the rest of Forever Druid.
 
 ## Group play
 

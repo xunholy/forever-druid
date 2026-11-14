@@ -53,6 +53,15 @@ warnings), whether a target's debuffs can be identified (missing debuffs). Each 
 moment it's needed and shows nothing if the answer is hidden. It never guesses. The probe counts
 how often each check succeeds.
 
+### Aggro radius
+
+There's no aggro-radius API, and Forever gives addons enemy distances only as brackets, from range
+checks such as "is this spell in range" (through LibRangeCheck-3.0, whose Forever support handles
+hidden unit IDs). Enemy levels, attackability, reaction and combat state are readable on
+nameplates, and so are debuffs on a mob out of combat, which is how Soothe is counted. The radius
+itself is learned from pulls on this client, so it reflects Forever's server rather than any
+private-server database.
+
 ## What no addon can do on Forever
 
 - **Exact "will this bleed kill it" or time-to-die.** That needs the target's health as a number
@@ -95,6 +104,9 @@ druid on Forever, sharing your probe file helps; see [reporting a bug](troublesh
 
 - **Probe:** Forever Druid's probe records what the live client allows. Its file is described in
   [troubleshooting](troubleshooting.md#the-probe-file).
+- **Forever's client data:** spell effects (such as which spells change a mob's detection range)
+  come from Forever's own game data as published on [wago.tools](https://wago.tools) under the
+  product `wowf`.
 - **API documentation:** API behaviour was checked against Blizzard's interface source for Forever
   (the `forever` branch of the community mirror at
   [Gethe/wow-ui-source](https://github.com/Gethe/wow-ui-source)), which includes the client's API

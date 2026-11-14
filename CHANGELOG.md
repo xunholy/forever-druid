@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0
+
+**New**
+- Aggro radius on enemy nameplates: a dot and the estimated radius (`22y`), red when you're inside
+  it, orange when you might be, yellow when you're close and green when you're clear. Works with
+  Plater.
+- It learns each mob's radius from the ones that pull you (`24y*`), and after five pulls uses your
+  measured average for mobs you haven't met. Mind Soothe and Soothe Animal count, from Forever's own
+  spell data. `/fd pulls` shows what it has learned.
+
+**Fixed**
+- The lint step in CI and `deploy.sh` now checks the addon and the tests separately. Run together,
+  luacheck let the addon use client API it hadn't declared, because the test stub defines it.
+
 ## 0.5.0
 
 **New**

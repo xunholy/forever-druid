@@ -73,6 +73,8 @@ Part names for `/fd toggle`: `manabar`, `powerbar`, `fsr` (five-second rule),
 | Command | Does |
 |---|---|
 | `/fd probe` | Record a snapshot of what the client lets the addon read, and print a summary. Saved on `/reload` or logout |
+| `/fd pulls` | What the aggro radius has learned: pulls logged, mobs measured, your measured base radius, and anything the client hid |
+| `/fd pulls reset` | Clear the pull log and every radius learned from it |
 
 ## Key bindings
 

@@ -16,7 +16,7 @@ Read [docs/development.md](docs/development.md) first, especially the rules for 
 combat lockdown. Before opening a pull request:
 
 ```sh
-luacheck .
+luacheck ForeverDruid && luacheck tests   # separately: see .luacheckrc
 lua tests/run.lua
 ```
 

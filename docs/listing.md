@@ -18,6 +18,8 @@ the column changes with your form.
 - **Your effects on your target:** Rake, Rip, Moonfire, Insect Swarm, Faerie Fire and Lacerate on
   enemies; Rejuvenation and Regrowth on friends.
 - **Reminders** for Mark of the Wild, Thorns and low reagents. Click a reminder to cast it.
+- **Aggro radius** on enemy nameplates, red when you're inside it, learning each mob's real radius
+  from the ones that pull you.
 - **Skyborne:** Read Leyline and Walk on Air on the cooldown row, and a reminder when you're not
   attuned to a ley line.
 

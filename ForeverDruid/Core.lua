@@ -236,6 +236,9 @@ ns.defaults = {
 				shiftRight = "removeCurse" } },
 		party = { enabled = true, scale = 1, size = 20, width = 200, includeSelf = true, healerOnly = false,
 			rebirthHint = true, innervateHint = true },
+		-- Estimated aggro radius on enemy nameplates; margin = yards outside it that count as close.
+		aggroradius = { enabled = true, scale = 1, showText = true, showDistance = false, includeNeutral = false,
+			sound = false, margin = 10 },
 		reminders = {
 			enabled = true, scale = 1, size = 30, clickToCast = true,
 			markOfTheWild = true, thorns = false, thornsInBear = true, omenOfClarity = true,

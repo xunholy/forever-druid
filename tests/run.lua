@@ -706,7 +706,9 @@ do
 	for _, release in ipairs(news.releases or {}) do
 		versions[#versions + 1] = release.version
 	end
-	check(table.concat(versions, ",") == ns2.VERSION .. ",0.4.0", "only versions newer than the last one seen (" .. table.concat(versions, ",") .. ")")
+	local listed = table.concat(versions, ",")
+	check(versions[1] == ns2.VERSION and listed:sub(-12) == ",0.5.0,0.4.0" and not listed:find("0.3.0", 1, true),
+		"only versions newer than the last one seen (" .. listed .. ")")
 	check(_G.ForeverDruidTour == nil, "no tour for someone upgrading")
 	noErrors(W2, "no errors")
 
@@ -1973,6 +1975,183 @@ do
 	W.Advance(3)
 	check(at(3):find("/cast !Cat Form", 1, true), "still right after learning Travel Form")
 	noErrors(W, "no errors or blocked actions")
+end
+
+---------------------------------------------------------------------------
+-- Aggro radius on nameplates
+---------------------------------------------------------------------------
+
+local function mob(level, range, extra)
+	local m = { canAttack = true, isPlayer = false, dead = false, reaction = 2, combat = false, level = level, range = range }
+	for k, v in pairs(extra or {}) do
+		m[k] = v
+	end
+	return m
+end
+local function colour(marker, name, ns)
+	local c, v = ns.aggro.colors[name], marker and rawget(marker.dot, "_vertex")
+	return v ~= nil and v[1] == c[1] and v[2] == c[2] and v[3] == c[3]
+end
+
+do
+	local W, ns = fresh()
+	section("aggro radius: maths")
+	local A = ns.aggro
+	local cases = {
+		{ 40, 40, 20, "same level: 20 yards" }, { 45, 40, 25, "5 above: 25" }, { 30, 40, 10, "10 below: 10" },
+		{ 10, 40, 5, "far below: floor of 5" }, { 60, 30, 45, "far above: cap of 45" },
+	}
+	for _, c in ipairs(cases) do
+		check(A.EstimateRadius(c[1], c[2]) == c[3], c[4])
+	end
+	local r, lower = A.EstimateRadius(-1, 40)
+	check(r == 30 and lower, "?? mob: at least 30")
+	-- The client's secrets report the type of the value they hide, so a type() check can't stand in for
+	-- the secrecy guard. Pretend so here (the stub's secrets are tables).
+	local realType = type
+	type = function(v) -- luacheck: ignore 121
+		return W.IsSecret(v) and "number" or realType(v)
+	end
+	local ok = pcall(A.EstimateRadius, W.Secret(), 40)
+	check(ok and A.EstimateRadius(W.Secret(), 40) == nil, "secret level: no estimate, no error")
+	type = realType -- luacheck: ignore 121
+	check(A.EstimateRadius(40, 40, 20, -10) == 10, "Soothe takes 10 yards off")
+	check(A.Classify(22, 15, 20, 10) == "inside" and A.Classify(22, 20, 25, 10) == "edge"
+		and A.Classify(22, 25, 30, 10) == "near" and A.Classify(22, 35, 40, 10) == "safe"
+		and A.Classify(22, 40, nil, 10) == "safe" and A.Classify(22, nil, nil, 10) == "unknown",
+		"inside / edge / near / safe / unknown from the range bracket")
+	check(A.Fit({ { 18, 28 }, { 20, 25 }, { 22, 30 } }) == 23.5, "overlapping pulls: middle of the overlap")
+	check(A.Fit({ { 10, 12 }, { 20, 25 }, { 21, 24 } }) == 22.5, "a disagreeing pull: median of midpoints")
+	local rec = { targetsPlayer = true, mobLevel = 42, playerLevel = 40, minRange = 25, maxRange = 30,
+		pullMinRange = 20, pullMaxRange = 25 }
+	local lo, hi = A.Interval(rec)
+	check(lo == 18 and hi == 28, "pull spanning 20-30 yards on a +2 mob: base 18-28")
+	rec.stealthed = true
+	check(A.Interval(rec) == nil, "stealthed (Prowl) pulls aren't learned")
+	rec.stealthed, rec.actedAgo = nil, 0.5
+	check(A.Interval(rec) == nil, "pulls right after you acted aren't learned")
+end
+
+do
+	local W, ns = fresh()
+	section("aggro radius: markers")
+	login(W)
+	check(ns.modules.aggroradius.enabled, "on by default")
+	W.AddPlate("nameplate1", mob(42, { 25, 30 }))
+	local m = W.MarkerOn("nameplate1")
+	check(m and m:IsShown() and m.text:GetText() == "22y", "hostile mob two levels up: 22y")
+	check(colour(m, "near", ns), "25-30 yards from a 22-yard radius is yellow")
+	W.state.plates.nameplate1.range = { 20, 25 }
+	W.Advance(0.25)
+	check(colour(m, "edge", ns), "20-25 yards is orange")
+	W.state.plates.nameplate1.range = { 15, 20 }
+	W.Advance(0.25)
+	check(colour(m, "inside", ns), "15-20 yards is red")
+	W.state.plates.nameplate1.range = { 40, nil }
+	W.Advance(0.25)
+	check(colour(m, "safe", ns), "40+ yards is green")
+	W.state.plates.nameplate1.range = nil
+	W.Advance(0.25)
+	check(m:IsShown() and colour(m, "unknown", ns), "no reading: grey, still shown")
+
+	W.AddPlate("nameplate2", mob(40, { 10, 15 }, { canAttack = false, reaction = 5 }))
+	W.AddPlate("nameplate3", mob(40, { 10, 15 }, { isPlayer = true }))
+	W.AddPlate("nameplate4", mob(40, { 10, 15 }, { reaction = 4 }))
+	W.AddPlate("nameplate5", mob(40, { 10, 15 }, { combat = true }))
+	local hidden = true
+	for i = 2, 5 do
+		local f = W.MarkerOn("nameplate" .. i)
+		hidden = hidden and (f == nil or not f:IsShown())
+	end
+	check(hidden, "no marker on friendly NPCs, enemy players, neutral mobs or mobs already fighting")
+	W.AddPlate("nameplate6", mob(40, { 25, 30 }, { auras = { [9901] = true } }))
+	check(W.MarkerOn("nameplate6").text:GetText() == "10y", "Soothe Animal on the mob: 10y")
+	local realType = type
+	type = function(v) -- luacheck: ignore 121 (secrets report the hidden value's type, as in the client)
+		return W.IsSecret(v) and "number" or realType(v)
+	end
+	W.AddPlate("nameplate7", mob(W.Secret(), { 25, 30 }, { npcID = 9, name = W.Secret(), guid = W.Secret() }))
+	local f7 = W.MarkerOn("nameplate7")
+	check(f7 == nil or not f7:IsShown(), "secret level: hidden, no error")
+	W.Advance(1)
+	type = realType -- luacheck: ignore 121
+	noErrors(W, "no errors with secret values on plates")
+
+	ns.SetModuleEnabled("aggroradius", false)
+	check(not m:IsShown(), "turning the part off hides every marker")
+	W.Advance(0.5)
+	check(not m:IsShown(), "and they stay hidden")
+	ns.SetModuleEnabled("aggroradius", true)
+	check(m:IsShown(), "turning it back on brings them back")
+	noErrors(W, "no Lua errors")
+end
+
+do
+	local W, ns = fresh()
+	section("aggro radius: learning from pulls")
+	login(W)
+	local function pull(token, npcID, level, before, during)
+		W.AddPlate(token, mob(level, before, { npcID = npcID }))
+		W.Advance(0.25)
+		local p = W.state.plates[token]
+		p.range, p.combat, p.targetsPlayer = during, true, true
+		W.Advance(0.25)
+		W.RemovePlate(token)
+	end
+	pull("nameplate1", 1501, 42, { 25, 30 }, { 20, 25 })
+	local log = ForeverDruidProbe.aggro
+	check(log and #log.pulls == 1 and log.pulls[1].key == "npc:1501", "pull logged in ForeverDruidProbe.aggro by NPC ID")
+	W.AddPlate("nameplate2", mob(42, { 35, 40 }, { npcID = 1501 }))
+	check(W.MarkerOn("nameplate2").text:GetText() == "25y*", "same NPC again: measured 23 + 2 levels, marked *")
+	W.AddPlate("nameplate3", mob(40, { 35, 40 }, { npcID = 9999 }))
+	check(W.MarkerOn("nameplate3").text:GetText() == "20y", "an NPC you haven't met: the 20-yard default")
+	for i = 1, 4 do
+		pull("nameplate4", 2000 + i, 40, { 25, 30 }, { 20, 25 })
+	end
+	W.Advance(0.25)
+	check(W.MarkerOn("nameplate3").text:GetText() == "24y", "after 5 pulls, unmet NPCs use your measured base")
+
+	-- Casting first means you pulled it: logged, not learned.
+	W.AddPlate("nameplate5", mob(40, { 25, 30 }, { npcID = 3000 }))
+	W.Advance(0.25)
+	W.Fire("UNIT_SPELLCAST_SENT", "player")
+	W.state.plates.nameplate5.combat, W.state.plates.nameplate5.targetsPlayer = true, true
+	W.Advance(0.25)
+	check(#log.pulls == 6 and select(2, ns.aggro.BaseFor("npc:3000")) ~= "mob", "a pull right after your cast isn't learned")
+
+	W.printed = {}
+	W.Slash("pulls")
+	local said = table.concat(W.printed, "\n")
+	check(said:find("6 pulls logged, 5 of them proximity aggro", 1, true) ~= nil, "/fd pulls counts pulls")
+	check(said:find("Learned from 5 pulls across 5 mobs", 1, true) ~= nil, "/fd pulls shows what was learned")
+	check(ns.ModuleStatus("aggroradius"):find("5 mobs measured", 1, true) ~= nil, "status line in At a glance")
+
+	local saved = ForeverDruidProbe
+	local W2, ns2 = fresh()
+	ForeverDruidProbe = saved
+	login(W2)
+	local base, source = ns2.aggro.BaseFor("npc:1501")
+	check(source == "mob" and base == 23, "learned radii come back after a reload")
+	W2.Slash("pulls reset")
+	check(#ForeverDruidProbe.aggro.pulls == 0 and select(2, ns2.aggro.BaseFor("npc:1501")) == "default",
+		"/fd pulls reset forgets them")
+	local ok = W2.ShowOptionsPanel()
+	check(ok, "settings pages still build")
+	W2.Slash("radius")
+	check(W2.openedCategory ~= nil, "/fd radius opens the aggro radius settings")
+	noErrors(W2, "no Lua errors")
+end
+
+do
+	local W, ns = fresh(function(W0)
+		W0.state.class = "WARLOCK"
+	end)
+	section("aggro radius: druids only")
+	login(W)
+	W.AddPlate("nameplate1", mob(40, { 25, 30 }))
+	local m = W.MarkerOn("nameplate1")
+	check(not ns.modules.aggroradius.enabled and (m == nil or not m:IsShown()), "no markers on other classes")
+	noErrors(W, "no Lua errors")
 end
 
 out(("\n%s (%d failure%s)"):format(failures == 0 and "PASS" or "FAIL", failures, failures == 1 and "" or "s"))

@@ -2,3 +2,10 @@ Forever Druid
 Copyright 2026 Forever Druid contributors
 
 This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It bundles third-party libraries under their own licenses:
+
+- LibRangeCheck-3.0 (ForeverDruid/Libs/LibRangeCheck-3.0), MIT License,
+  https://github.com/WeakAuras/LibRangeCheck-3.0 (vendored from main at 3f9e454, minor version 39).
+  See ForeverDruid/Libs/LibRangeCheck-3.0/LICENSE.
+- LibStub (ForeverDruid/Libs/LibStub), placed in the public domain by its authors.

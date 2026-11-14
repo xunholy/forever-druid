@@ -1,10 +1,12 @@
 -- luacheck config for ForeverDruid (WoW addon, Lua 5.1 runtime).
+-- Lint ForeverDruid and tests in separate runs (CI and deploy.sh do): the stub defines the client API as
+-- globals, and luacheck shares globals defined in one checked file with the rest, hiding undeclared API use.
 std = "lua51"
 max_line_length = 160
 max_string_line_length = false -- player-facing sentences are allowed to run long
 self = false -- methods often ignore self (module:ShouldShow etc.)
 codes = true
-exclude_files = { "dist/" }
+exclude_files = { "dist/", "ForeverDruid/Libs/" } -- Libs are vendored and linted upstream
 
 -- Globals the addon defines.
 globals = {
@@ -44,6 +46,8 @@ read_globals = {
 	"UnitThreatSituation", "UnitDetailedThreatSituation", "UnitAttackSpeed",
 	"IsInGroup", "UnitGroupRolesAssigned", "UnitHealthPercent",
 	"TooltipDataProcessor", "ItemRefTooltip", "GetInventoryItemLink", "UnitInRange", "ATTRIBUTE_NOOP",
+	"C_NamePlate", "LibStub", "UnitReaction", "UnitIsPlayer", "UnitIsDead", "UnitIsUnit", "UnitClassification",
+	"IsStealthed", "GetRealZoneText",
 	"_G",
 }
 
