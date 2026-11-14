@@ -36,9 +36,11 @@ Modules\AggroRadius.lua
 Probe.lua
 Onboarding.lua
 Share.lua
+MacroList.lua
 Macros.lua
 Ranks.lua
 Leveling.lua
 Tooltip.lua
+Commands.lua
 Options.lua
 MinimapButton.lua

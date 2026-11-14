@@ -70,11 +70,13 @@ The `.toc` load order is the dependency order:
 | `Probe.lua` | Snapshots of what the client exposes, capability checks, CPU use |
 | `Onboarding.lua` | Welcome tour, What's new (`ns.RELEASE_NOTES`), confirmation popups, windows |
 | `Share.lua` | Profile export/import: serializer, base64, a data-only parser, import validation |
-| `Macros.lua` | The FD macro list and its sync |
+| `MacroList.lua` | The FD macros: names, spells needed, text and page groups |
+| `Macros.lua` | Creating, updating and deleting them, and the FD Reshift button |
 | `Ranks.lua` | Highest-rank action bar upgrades |
 | `Leveling.lua` | Reagent restock, trainer and class-quest reminders |
 | `Tooltip.lua` | Druid values on item tooltips |
-| `Options.lua` | Slash commands, key bindings, the settings pages |
+| `Commands.lua` | Slash commands (`/fd ...`) |
+| `Options.lua` | Key bindings and the settings pages |
 | `MinimapButton.lua` | Minimap button and quick settings menu |
 
 ### Modules
@@ -110,7 +112,7 @@ documentation:
 - spell ranks, merchants, party members and Blizzard's secure group header
 - tooltips, Settings and the Menu system
 
-`tests/run.lua` plays through scenarios with it: login, each form, combat, mounting, profiles,
+`tests/run.lua` runs the suites in `tests/suites/` (`core`, `hud`, `setup`, `macros`, `aggro`), which play through scenarios with it: login, each form, combat, mounting, profiles,
 imports, macros and so on. A run fails on any Lua error, blocked protected action or failed
 expectation.
 
