@@ -36,6 +36,9 @@
 - Aggro radius on enemy nameplates: a dot and the estimated radius (`22y`), red when you're inside
   it, orange when you might be, yellow when you're close and green when you're clear. Works with
   Plater.
+- Once a mob is fighting, the marker shows your threat on it instead (in a group): green to red for
+  your form, with your lead as a tank or how close you are to pulling it. Markers fade while you
+  Prowl.
 - It learns each mob's radius from the ones that pull you (`24y*`), and after three pulls uses your
   measured average for mobs you haven't met. Mind Soothe and Soothe Animal count, from Forever's own
   spell data. `/fd pulls` shows what it has learned.

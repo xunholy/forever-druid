@@ -237,8 +237,10 @@ ns.defaults = {
 		party = { enabled = true, scale = 1, size = 20, width = 200, includeSelf = true, healerOnly = false,
 			rebirthHint = true, innervateHint = true },
 		-- Estimated aggro radius on enemy nameplates; margin = yards outside it that count as close.
+		-- threat = once a mob is fighting, show your threat on it in the same spot (in a group, or solo
+		-- too with threatSolo).
 		aggroradius = { enabled = true, scale = 1, showText = true, showDistance = false, includeNeutral = false,
-			sound = false, margin = 10 },
+			sound = false, margin = 10, threat = true, threatSolo = false },
 		reminders = {
 			enabled = true, scale = 1, size = 30, clickToCast = true,
 			markOfTheWild = true, thorns = false, thornsInBear = true, omenOfClarity = true,

@@ -842,11 +842,31 @@ function UnitLevel(unit)
 	return W.state.level or 40
 end
 -- W.state.threat: a number (0-3) to make threat readable; otherwise secret in combat.
-function UnitThreatSituation()
+-- On a nameplate unit, threat comes from the plate: threat = status 0-3 (or W.Secret()), threatPct =
+-- your raw percentage, lead = your lead as its tank.
+function UnitThreatSituation(_, unit)
+	local p = W.Plate(unit)
+	if p then
+		return p.threat
+	end
 	if W.state.threat ~= nil then
 		return W.state.threat
 	end
 	return W.state.inCombat and W.Secret() or nil
+end
+function UnitDetailedThreatSituation(_, unit)
+	local p = W.Plate(unit)
+	if not (p and p.threat ~= nil) then
+		return nil
+	end
+	if W.IsSecret(p.threatPct) then
+		return W.Secret(), W.Secret(), W.Secret(), W.Secret()
+	end
+	return p.threat ~= nil and not W.IsSecret(p.threat) and p.threat >= 2, p.threat, p.threatPct, p.threatPct, 1000
+end
+function UnitThreatPercentageOfLead(_, unit)
+	local p = W.Plate(unit)
+	return p and p.lead
 end
 function UnitAttackSpeed()
 	return 2.5

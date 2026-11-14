@@ -2411,6 +2411,78 @@ do
 end
 
 do
+	local W, ns = fresh()
+	section("aggro radius: threat once a mob is fighting, fading while you Prowl")
+	login(W)
+	local function text(token)
+		local m = W.MarkerOn(token)
+		return m and m:IsShown() and m.text:GetText() or nil
+	end
+	local function fight(token, extra)
+		local m = mob(40, { 0, 5 }, extra)
+		m.combat = true
+		W.AddPlate(token, m)
+		W.Advance(0.25)
+	end
+	-- Solo: every mob is on you, so nothing is shown.
+	fight("nameplate1", { threat = 3, threatPct = 100, lead = 130 })
+	check(text("nameplate1") == nil, "solo: no threat marker (it would always say yours)")
+	-- In a group, in Bear Form (form 2): the tank's view.
+	W.state.party = { party1 = { name = "Healer", class = "Priest" } }
+	W.state.form = 2
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.25)
+	local m1 = W.MarkerOn("nameplate1")
+	check(text("nameplate1") == "130%" and colour(m1, "safe", ns), "tanking it safely: green, with your lead (130%)")
+	fight("nameplate2", { threat = 2, threatPct = 100, lead = 104 })
+	check(text("nameplate2") == "104%" and colour(W.MarkerOn("nameplate2"), "near", ns), "someone's catching up: yellow")
+	fight("nameplate3", { threat = 0, threatPct = 62 })
+	check(text("nameplate3") == "62%" and colour(W.MarkerOn("nameplate3"), "inside", ns),
+		"it's on someone else: red, with how far behind you are")
+	-- The same mobs seen from Cat Form: the colours run the other way.
+	W.state.form = 1
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.25)
+	check(colour(m1, "inside", ns) and colour(W.MarkerOn("nameplate3"), "safe", ns),
+		"out of Bear Form: red means it's on you, green means it isn't")
+	-- Forever hides it: nothing shown, no errors, and the probe counts it.
+	local realType = type
+	type = function(v) -- luacheck: ignore 121
+		return W.IsSecret(v) and "number" or realType(v)
+	end
+	fight("nameplate4", { threat = W.Secret() })
+	local hidden4 = text("nameplate4") == nil
+	fight("nameplate5", { threat = 3, threatPct = W.Secret() })
+	local shown5 = text("nameplate5")
+	type = realType -- luacheck: ignore 121
+	check(hidden4 and ForeverDruidProbe.aggro.secret.threat >= 1, "threat hidden by the game: no marker, counted for the probe")
+	check(shown5 == "" and colour(W.MarkerOn("nameplate5"), "inside", ns), "percentage hidden but status readable: colour only")
+	-- Not on its threat table at all (it's fighting someone and ignoring you): nothing.
+	fight("nameplate6")
+	check(text("nameplate6") == nil, "a mob you have no threat on: no marker")
+	ns.db.modules.aggroradius.threat = false
+	W.Advance(0.25)
+	check(text("nameplate1") == nil, "threat display can be turned off")
+	ns.db.modules.aggroradius.threat = true
+
+	-- Prowl: calm mobs' markers fade and the warning sound stays quiet.
+	ns.db.modules.aggroradius.sound = true
+	W.AddPlate("nameplate7", mob(40, { 30, 35 }))
+	W.Advance(0.25)
+	local m7 = W.MarkerOn("nameplate7")
+	check(m7:GetAlpha() == 1, "not prowling: full strength")
+	W.state.stealthed = true
+	W.sounds = {}
+	W.state.plates.nameplate7.range = { 5, 10 }
+	W.Advance(0.25)
+	check(m7:IsShown() and m7:GetAlpha() < 1 and #W.sounds == 0, "prowling: marker fades and no sound as you close in")
+	W.state.stealthed = false
+	W.Advance(0.25)
+	check(m7:GetAlpha() == 1, "out of Prowl: back to full strength")
+	noErrors(W, "no Lua errors")
+end
+
+do
 	local W, ns = fresh(function(W0)
 		W0.state.class = "WARLOCK"
 	end)

@@ -46,7 +46,7 @@ read_globals = {
 	"GetActionInfo", "PlaceAction", "ClearCursor", "GetCursorInfo", "C_ActionBar",
 	"GetMerchantNumItems", "GetMerchantItemID", "BuyMerchantItem", "GetMoney", "C_MerchantFrame",
 	"GetMerchantItemMaxStack", "IsTradeskillTrainer",
-	"UnitThreatSituation", "UnitDetailedThreatSituation", "UnitAttackSpeed",
+	"UnitThreatSituation", "UnitDetailedThreatSituation", "UnitThreatPercentageOfLead", "UnitAttackSpeed",
 	"IsInGroup", "UnitGroupRolesAssigned", "UnitHealthPercent",
 	"TooltipDataProcessor", "ItemRefTooltip", "GetInventoryItemLink", "UnitInRange", "ATTRIBUTE_NOOP",
 	"C_NamePlate", "LibStub", "UnitReaction", "UnitIsPlayer", "UnitIsDead", "UnitIsUnit", "UnitClassification",
