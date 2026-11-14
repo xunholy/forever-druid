@@ -10,7 +10,7 @@ You need Lua 5.4 or newer (`lua`, `luac`) and [luacheck](https://github.com/luna
 
 ```sh
 lua tests/run.lua      # run the addon against the client model; exits non-zero on any failure
-luacheck .             # lint (config in .luacheckrc)
+luacheck ForeverDruid && luacheck tests   # lint; separate runs, see .luacheckrc
 FOREVER_ADDONS="/path/to/_forever_/Interface/AddOns" scripts/deploy.sh   # lint, test, copy into the game
 scripts/package.sh     # test, then build dist/ForeverDruid-<version>.zip
 ```
@@ -63,7 +63,9 @@ The `.toc` load order is the dependency order:
 | `Core.lua` | Namespace, event helpers (`ns.On`, `ns.OnUnit`, `ns.Listen`/`ns.Fire`, `ns.Debounce`), secret helpers, profiles and defaults, the shared root frame and visibility, movable anchors, the automatic stack, nudging and the grid, the module system |
 | `Spells.lua` | The spell catalogue (`ns.SPELLS`, keyed names with fallback IDs), spellbook scan (`ns.KnownSpell`, `ns.IsCastable`, ranks, passives), player aura lookup |
 | `Spec.lua` | Form detection, talent trees, unspent points, role (`ns.role`), `FD_FORM_CHANGED` / `FD_ROLE_CHANGED` |
+| `Libs/` | Vendored LibStub and LibRangeCheck-3.0 (v39 from upstream main, MIT); see `NOTICE` |
 | `Widgets.lua` | The shared icon widget and its styles, usable/range tints, the ready pulse, preview samples |
+| `AggroData.lua` | `ns.aggro`: aggro radius estimate, Forever's detect-range auras, the pull log in `ForeverDruidProbe.aggro` and learning from it. `Modules/AggroRadius.lua` draws it on nameplates |
 | `Modules/*.lua` | One file per HUD part, each registered with `ns.RegisterModule` |
 | `Probe.lua` | Snapshots of what the client exposes, capability checks, CPU use |
 | `Onboarding.lua` | Welcome tour, What's new (`ns.RELEASE_NOTES`), confirmation popups, windows |

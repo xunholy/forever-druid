@@ -5,7 +5,7 @@ set -euo pipefail
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo"
 
-for f in ForeverDruid/*.lua ForeverDruid/Modules/*.lua; do
+for f in ForeverDruid/*.lua ForeverDruid/Modules/*.lua ForeverDruid/Libs/*/*.lua; do
 	luac -p "$f"
 done
 lua tests/run.lua >/dev/null || { lua tests/run.lua | grep -E 'FAIL'; exit 1; }

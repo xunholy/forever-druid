@@ -42,6 +42,7 @@ local function Help()
 	Line("/fd cd add|remove <role|all> <spell>   /fd cd list")
 	ns.Print("|cffffd100" .. L["Profiles and help"] .. "|r")
 	Line("/fd profile [list | use | copy | reset | delete | export | import]")
+	Line("/fd pulls [reset] - " .. L["what the aggro radius has learned from your pulls"])
 	Line("/fd tour   /fd whatsnew   /fd probe")
 end
 
@@ -55,11 +56,12 @@ local PAGE_ALIASES = {
 	cooldown = "cooldowns", cds = "cooldowns", buff = "buffs", procs = "buffs",
 	target = "targetauras", dots = "targetauras", bleed = "targetauras", debuffs = "targetauras",
 	alert = "alerts", aggro = "alerts",
+	radius = "aggroradius", aggroradius = "aggroradius", nameplates = "aggroradius",
 	remind = "reminders", reminder = "reminders", forms = "formbar", fsr = "fsr", regen = "fsr",
 }
 
 local KNOWN_COMMANDS = { "config", "options", "unlock", "lock", "reset", "status", "probe", "profile", "toggle", "cd",
-	"stack", "grid", "minimap", "macros", "ranks", "tour", "whatsnew", "style", "help" }
+	"stack", "grid", "minimap", "macros", "ranks", "tour", "whatsnew", "style", "help", "pulls" }
 
 -- Edit distance where swapping two neighbouring letters ("rnaks") counts as one typo.
 local function Distance(a, b)
@@ -299,6 +301,15 @@ SlashCmdList.FOREVERDRUID = function(input)
 		Status()
 	elseif command == "probe" then
 		ns.PrintSnapshot(ns.TakeSnapshot("manual"))
+	elseif command == "pulls" then
+		if rest and strlower(strtrim(rest)) == "reset" then
+			ns.aggro.Forget()
+			ns.Print(L["pull log and learned aggro radii cleared"])
+		else
+			for _, line in ipairs(ns.aggro.Summary()) do
+				ns.Print(line)
+			end
+		end
 	elseif command == "config" or command == "options" then
 		ns.OpenOptions()
 	elseif command == "style" or command == "playstyle" then
@@ -530,13 +541,14 @@ local MODULE_TITLES = {
 	buffs = "Buffs & procs",
 	targetauras = "My effects on target",
 	reminders = "Reminders",
+	aggroradius = "Aggro radius",
 }
 ns.MODULE_TITLES = MODULE_TITLES
 
 -- Settings pages in a sensible reading order, grouped: the HUD column, combat helpers, group, extras.
 ns.PAGE_ORDER = {
 	"targetauras", "powerbar", "manabar", "fsr", "combopoints", "powershift", "cooldowns", "buffs",
-	"alerts",
+	"alerts", "aggroradius",
 	"party", "healframes",
 	"reminders", "formbar",
 }
@@ -556,6 +568,7 @@ local MODULE_NOTES = {
 	buffs = "Clearcasting, Tiger's Fury, Barkskin, Enrage and other buffs, with timers.",
 	targetauras = "Your DoTs on an enemy target or your HoTs on a friendly one.",
 	reminders = "Out of combat only. Click a buff reminder to cast it.",
+	aggroradius = "A dot and the estimated aggro radius on each enemy nameplate: red when you're inside it, orange when you might be, yellow when you're close, green when you're clear. It learns each mob's real radius from the ones that pull you; a * marks a measured one.", -- luacheck: no max line length
 }
 ns.MODULE_NOTES = MODULE_NOTES
 
@@ -617,6 +630,10 @@ function ns.ModuleStatus(key)
 		note = L["shows in a group"]
 	elseif key == "healframes" then
 		note = L["shows in a group"] .. (cfg.showSolo and (", " .. L["and solo"]) or "")
+	elseif key == "aggroradius" then
+		local stats = ns.aggro.Stats()
+		note = stats.mobs > 0 and L["%d mobs measured from %d pulls"]:format(stats.mobs, stats.usable)
+			or L["learning from your pulls"]
 	elseif key == "reminders" then
 		local count = ns.modules.reminders and ns.modules.reminders.active and #ns.modules.reminders.active or 0
 		note = count > 0 and (count .. " " .. L["showing now"]) or L["nothing to remind you about"]
@@ -889,6 +906,30 @@ local MODULE_PAGES = {
 		s:Check(L["Also when solo"], ModuleGetter("alerts", "threatSolo"), ModuleSetter("alerts", "threatSolo"))
 		s:Check(L["Play a sound"], ModuleGetter("alerts", "sound"), ModuleSetter("alerts", "sound"))
 		s:Slider(L["Icon size"], 24, 80, 1, ModuleGetter("alerts", "size"), ModuleSetter("alerts", "size"))
+	end,
+	aggroradius = function(s)
+		s:Check(L["Show the radius in yards"], ModuleGetter("aggroradius", "showText"), ModuleSetter("aggroradius", "showText"),
+			L["22y next to the dot. 22y* is a radius measured from that mob's own pulls; 30y+ is a ?? mob."])
+		s:Check(L["Add your distance"], ModuleGetter("aggroradius", "showDistance"), ModuleSetter("aggroradius", "showDistance"),
+			L["The range bracket the game can prove, such as 22y 25-30. Forever doesn't give addons exact distances."])
+		s:Check(L["Include neutral (yellow) mobs"], ModuleGetter("aggroradius", "includeNeutral"),
+			ModuleSetter("aggroradius", "includeNeutral"), L["Neutral mobs don't attack on sight, so they're hidden by default."])
+		s:Check(L["Play a sound when a radius reaches you"], ModuleGetter("aggroradius", "sound"),
+			ModuleSetter("aggroradius", "sound"), L["Out of combat only, once per mob as it turns orange or red."])
+		s:Slider(L["Close margin (yards)"], 0, 30, 1, ModuleGetter("aggroradius", "margin"), ModuleSetter("aggroradius", "margin"),
+			L["How far outside the radius a mob turns yellow."])
+		s:Note(L["While you Prowl, mobs only notice you much closer than this. The markers still show the normal radius, and pulls while stealthed aren't learned from."]) -- luacheck: no max line length
+		s:Button(L["What has it learned?"], 180, function()
+			for _, line in ipairs(ns.aggro.Summary()) do
+				ns.Print(line)
+			end
+		end, L["Prints the pull log summary in chat. Same as /fd pulls."])
+		s:Button(L["Forget learned radii"], 180, function()
+			ns.Confirm(L["Clear the pull log and every aggro radius learned from it?"], function()
+				ns.aggro.Forget()
+				ns.Print(L["pull log and learned aggro radii cleared"])
+			end)
+		end, L["Starts learning again from the 20-yard default."])
 	end,
 	party = function(s)
 		s:Check(L["Include yourself"], ModuleGetter("party", "includeSelf"), ModuleSetter("party", "includeSelf"))

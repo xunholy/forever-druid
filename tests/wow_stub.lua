@@ -158,6 +158,9 @@ end
 function Frame:CreateFontString()
 	return NewObject("FontString", self)
 end
+function Frame:CreateMaskTexture()
+	return NewObject("MaskTexture", self)
+end
 function Frame:SetScript(name, fn)
 	self._scripts[name] = fn
 end
@@ -717,6 +720,9 @@ function C_Timer.After(delay, fn)
 end
 function C_Timer.NewTicker(period, fn)
 	local ticker = { period = period, fn = fn, nextAt = W.now + period }
+	function ticker:Cancel()
+		self.cancelled = true
+	end
 	W.tickers[#W.tickers + 1] = ticker
 	return ticker
 end
@@ -784,6 +790,15 @@ Enum = {
 local function Member(unit)
 	return S.party and S.party[unit]
 end
+
+-- Nameplate units: W.state.plates = { nameplate1 = { level=, canAttack=, reaction=, combat=, dead=,
+-- isPlayer=, npcID=, name=, guid=, range = { min, max }, targetsPlayer=, auras = { [spellID] = true } } }.
+-- Any field may be W.Secret(). "nameplate1target" resolves through targetsPlayer.
+local function Plate(unit)
+	local base = type(unit) == "string" and unit:match("^(nameplate%d+)")
+	return base and S.plates and S.plates[base], base
+end
+W.Plate = Plate
 function UnitClass(unit)
 	local m = Member(unit)
 	if m then
@@ -806,6 +821,10 @@ function UnitRace()
 	return "Skyborne", S.race
 end
 function UnitName(unit)
+	local p = Plate(unit)
+	if p then
+		return p.name
+	end
 	local m = Member(unit)
 	if m then
 		return S.secretNames and W.Secret() or m.name
@@ -815,7 +834,11 @@ end
 function GetRealmName()
 	return "Testrealm"
 end
-function UnitLevel()
+function UnitLevel(unit)
+	local p = Plate(unit)
+	if p then
+		return p.level
+	end
 	return W.state.level or 40
 end
 -- W.state.threat: a number (0-3) to make threat readable; otherwise secret in combat.
@@ -868,6 +891,111 @@ function UnitIsDeadOrGhost(unit)
 	local m = Member(unit)
 	return m and m.dead or false
 end
+function UnitIsDead(unit)
+	local p = Plate(unit)
+	if p then
+		return p.dead or false
+	end
+	local m = Member(unit)
+	return m and m.dead or false
+end
+function UnitIsPlayer(unit)
+	local p = Plate(unit)
+	if p then
+		return p.isPlayer or false
+	end
+	return unit == "player" or Member(unit) ~= nil
+end
+function UnitReaction(unit)
+	local p = Plate(unit)
+	if p then
+		return p.reaction
+	end
+	return S.targetHostile and 2 or 5
+end
+function UnitAffectingCombat(unit)
+	local p = Plate(unit)
+	if p then
+		return p.combat or false
+	end
+	return unit == "player" and S.inCombat or false
+end
+function UnitGUID(unit)
+	local p = Plate(unit)
+	if p then
+		if p.guid ~= nil then
+			return p.guid
+		end
+		return p.npcID and ("Creature-0-1-0-1-%d-0000000001"):format(p.npcID) or nil
+	end
+	return unit == "player" and "Player-1-00000001" or nil
+end
+function UnitIsUnit(a, b)
+	local p, base = Plate(a)
+	if p and a == base .. "target" and b == "player" then
+		return p.targetsPlayer or false
+	end
+	return a == b
+end
+function UnitClassification(unit)
+	local p = Plate(unit)
+	return p and (p.classification or "normal") or "normal"
+end
+function IsStealthed()
+	return S.stealthed or false
+end
+function GetRealZoneText()
+	return "Teldrassil"
+end
+C_NamePlate = {
+	GetNamePlateForUnit = function(unit)
+		return W.plateFrames and W.plateFrames[unit]
+	end,
+}
+-- Adds a nameplate unit and fires NAME_PLATE_UNIT_ADDED, like a mob coming into view.
+function W.AddPlate(token, unit)
+	S.plates = S.plates or {}
+	W.plateFrames = W.plateFrames or {}
+	S.plates[token] = unit
+	W.plateFrames[token] = W.plateFrames[token] or CreateFrame("Frame", nil, UIParent)
+	W.Fire("NAME_PLATE_UNIT_ADDED", token)
+end
+function W.RemovePlate(token)
+	W.Fire("NAME_PLATE_UNIT_REMOVED", token)
+	S.plates[token] = nil
+	W.plateFrames[token] = nil
+end
+-- The aggro marker on a unit's plate: the frame the addon parented to that plate.
+function W.MarkerOn(token)
+	local plate = W.plateFrames and W.plateFrames[token]
+	for _, f in ipairs(W.frames) do
+		if plate and rawget(f, "_parent") == plate and rawget(f, "_kind") == "Frame" then
+			return f
+		end
+	end
+end
+-- LibRangeCheck-3.0 stand-in (Libs\ aren't loaded here): GetRange returns the plate's bracket.
+local rangeCheck = {}
+function rangeCheck:GetRange(unit)
+	local p = Plate(unit)
+	if not (p and p.range) then
+		return nil
+	end
+	return p.range[1], p.range[2]
+end
+LibStub = setmetatable({
+	GetLibrary = function(_, major)
+		if major == "LibRangeCheck-3.0" then
+			return rangeCheck, 39
+		end
+	end,
+}, {
+	__call = function(_, major)
+		if major == "LibRangeCheck-3.0" then
+			return rangeCheck
+		end
+	end,
+})
 function UnitOnTaxi()
 	return false
 end
@@ -896,12 +1024,18 @@ end
 function UnitExists(unit)
 	if unit == "player" then
 		return true
+	elseif unit and unit:find("^nameplate") then
+		return Plate(unit) ~= nil
 	elseif unit and unit:find("^party") then
 		return Member(unit) ~= nil
 	end
 	return S.targetExists
 end
-function UnitCanAttack()
+function UnitCanAttack(_, unit)
+	local p = Plate(unit)
+	if p then
+		return p.canAttack or false
+	end
 	return S.targetHostile
 end
 function UnitPower(_, powerType)
@@ -1127,6 +1261,15 @@ local function AuraFor(name)
 end
 
 C_UnitAuras = {
+	-- Nameplate units only (the aggro radius reads Soothe debuffs on mobs); W.Secret() marks a secret aura.
+	GetUnitAuraBySpellID = function(unit, spellID)
+		local p = Plate(unit)
+		local a = p and p.auras and p.auras[spellID]
+		if a == true then
+			return { spellId = spellID }
+		end
+		return a
+	end,
 	GetAuraDataBySpellName = function(_, name)
 		if S.secretAuras then
 			error("Auras cannot be accessed when secret")
@@ -1329,7 +1472,7 @@ local function RunDue()
 		end
 	end
 	for _, ticker in ipairs(W.tickers) do
-		if ticker.nextAt <= W.now then
+		if not ticker.cancelled and ticker.nextAt <= W.now then
 			ticker.nextAt = W.now + ticker.period
 			local ok, err = pcall(ticker.fn)
 			if not ok then
@@ -1388,7 +1531,7 @@ function W.LoadAddon(dir, name)
 	local toc = assert(io.open(dir .. "/" .. name .. ".toc"))
 	for raw in toc:lines() do
 		local line = raw:gsub("\r", "")
-		if line ~= "" and not line:match("^##") then
+		if line ~= "" and not line:match("^##") and not line:match("^Libs\\") then
 			local path = dir .. "/" .. line:gsub("\\", "/")
 			local chunk = assert(loadfile(path))
 			chunk(name, ns)

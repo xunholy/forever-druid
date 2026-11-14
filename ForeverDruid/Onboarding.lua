@@ -8,6 +8,10 @@ local L = ns.L
 ---------------------------------------------------------------------------
 
 ns.RELEASE_NOTES = {
+	{ version = "0.6.0", notes = {
+		"Aggro radius on enemy nameplates: a dot and the estimated radius (22y) turn red when you're inside it, orange when you might be, yellow when you're close and green when you're clear.", -- luacheck: no max line length
+		"It learns from the mobs that pull you: a mob you've been pulled by shows its own measured radius (24y*), and after five pulls the rest use your measured average. Mind Soothe and Soothe Animal count too. /fd pulls shows what it has learned.", -- luacheck: no max line length
+	} },
 	{ version = "0.5.0", notes = {
 		"Reminders can be dismissed: click the trainer, class-quest or talent reminder to clear it, or right-click a buff reminder to hide it for 30 minutes.", -- luacheck: no max line length
 		"Druid macros fixed for Forever: shift macros no longer drop you out of your form, FD Prowl takes you into Cat Form and Prowl and back out of Prowl, and the new FD Powershift and FD Opener cover powershifting and the Ravage opener.", -- luacheck: no max line length
@@ -191,7 +195,7 @@ end
 ---------------------------------------------------------------------------
 
 local ALL_PARTS = { "targetauras", "powerbar", "manabar", "fsr", "combopoints", "powershift", "cooldowns",
-	"buffs", "reminders", "alerts", "party", "healframes", "formbar" }
+	"buffs", "reminders", "alerts", "party", "healframes", "formbar", "aggroradius" }
 
 ns.PLAYSTYLES = {
 	{ key = "leveling", label = "Levelling (a bit of everything)", role = "auto",

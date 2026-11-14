@@ -21,8 +21,10 @@ jobs:
       - name: Install Lua and luacheck
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lua5.4 lua-check
       - name: Syntax
-        run: for f in ForeverDruid/*.lua ForeverDruid/Modules/*.lua; do luac5.4 -p "$f"; done
+        run: for f in ForeverDruid/*.lua ForeverDruid/Modules/*.lua ForeverDruid/Libs/*/*.lua; do luac5.4 -p "$f"; done
       - name: Lint
-        run: luacheck .
+        # Separate runs: tests/wow_stub.lua defines the client API as globals, and luacheck shares globals
+        # defined in one checked file with the others, which would hide undeclared API use in the addon.
+        run: luacheck ForeverDruid && luacheck tests
       - name: Tests
         run: lua5.4 tests/run.lua
