@@ -281,7 +281,9 @@ for what the button is for: FD Survival, FD Travel, FD Ravage Opener.
 
 These start off, so they don't fill your 30 character macro slots (all of them together would need
 45). Tick the ones you want, or pick a play style under "How do you play?" and it ticks the ones
-that suit it:
+that suit it. The Macros page groups them (Healing, Forms and travel, Cat Form, Bear Form and so
+on) and shows how many of your 30 slots are used; when they're full it turns red and each macro
+still waiting says "no free macro slot".
 
 | Macro | Does |
 |---|---|
@@ -291,7 +293,7 @@ that suit it:
 | FD Berserk | Berserk, plus Tiger's Fury in Cat Form, in one press; shifts you into Cat Form first if you're in neither form |
 | FD Feral Charge | Feral Charge your mouseover or target. Forever's version charges in Bear Form and leaps behind the target in Cat Form; from anything else it shifts you into Bear Form |
 | FD Survival | Your best healing potion, Bear Form if you're not in it, then Frenzied Regeneration. Potions work in forms on Forever, so you stay a bear |
-| FD Bear Weapon | Equips the weapon in your bags with the most Bear attack power and shifts into Bear Form |
+| FD Bear Weapon | Equips the weapon in your bags with the most Bear attack power and shifts into Bear Form. Hold Alt and press again to put your usual weapon back |
 | FD Dash | Into Cat Form if you're not in it, then Dash |
 | FD Pounce Opener | The stun opener: Cat Form, Prowl, Pounce, then Rake |
 | FD Travel | Aquatic Form in water, Travel Form outdoors, Cat Form indoors. Press again to leave Travel or Aquatic Form; never knocks you out of Cat Form |
@@ -302,7 +304,7 @@ that suit it:
 | FD Heal or Wrath | Levelling: Healing Touch on a friend, Wrath on an enemy, Healing Touch on you with no target |
 | FD Wild Growth | Wild Growth on your mouseover, friendly target or yourself |
 | FD Cleanse | Abolish Poison (Cure Poison before you learn it) on your mouseover, friendly target or yourself; hold Shift for Remove Curse |
-| FD Spirit Swap | Equips the highest-Spirit weapon in your bags and Innervates you (Innervate boosts Spirit-based regen). Swap your usual weapon back afterwards |
+| FD Spirit Swap | Equips the highest-Spirit weapon in your bags and Innervates you (Innervate boosts Spirit-based regen). Hold Alt and press again to put your usual weapon back |
 | FD Healthstone | Your best Healthstone, then your best healing potion on the next press, in any form |
 | FD Trinkets | Both trinkets at once |
 | FD Next Target | Drop a dead or friendly target, target the nearest enemy, start attacking (never breaks Prowl) |

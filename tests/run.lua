@@ -1867,7 +1867,8 @@ do
 	W.itemStats["item:staff"] = { ITEM_MOD_SPIRIT_SHORT = 20 }
 	W.itemSlots["item:bearmace"], W.itemIDs["item:bearmace"] = "INVTYPE_WEAPON", 5555
 	W.itemStats["item:bearmace"] = { ITEM_MOD_STRENGTH_SHORT = 10, ITEM_MOD_FERAL_ATTACK_POWER_SHORT = 60 }
-	W.equipped[16] = "item:mace"
+	W.equipped[16], W.equipped[17] = "item:mace", "item:orb"
+	W.itemIDs["item:mace"], W.itemIDs["item:orb"] = 1111, 2222
 	W.itemStats["item:mace"] = { ITEM_MOD_SPIRIT_SHORT = 4, ITEM_MOD_STRENGTH_SHORT = 2 }
 	for _, def in ipairs(mac.LIST) do
 		if def.default == false then
@@ -1876,6 +1877,37 @@ do
 	end
 	W.Advance(2)
 	check(#W.macros.character == 30 and mac.lastSync.full, "ticking everything fills the 30 slots and says so, nothing breaks")
+	local slots = mac.Slots()
+	check(slots.used == 30 and slots.free == 0 and slots.ours == 30 and slots.waiting > 0,
+		"slot count: 30 of 30 used, with ticked macros left waiting (" .. slots.waiting .. ")")
+	local waitingKey
+	for _, def in ipairs(mac.LIST) do
+		if mac.Status(def.key) == "full" then
+			waitingKey = def.key
+		end
+	end
+	check(waitingKey ~= nil and ns.MacroStatusText(waitingKey):find("no free macro slot", 1, true),
+		"a ticked macro with nowhere to go says 'no free macro slot'")
+	check(ns.MacroSlotsText():find("30 of 30 used", 1, true) and ns.MacroSlotsText():find("have no slot to go in", 1, true),
+		"the Macros page says the slots are full and how many are waiting")
+	local grouped, twice = {}, {}
+	for _, group in ipairs(mac.GROUPS) do
+		for _, key in ipairs(group.keys) do
+			if grouped[key] or not mac.BY_KEY[key] then
+				twice[#twice + 1] = key
+			end
+			grouped[key] = true
+		end
+	end
+	local ungrouped = {}
+	for _, def in ipairs(mac.LIST) do
+		if not grouped[def.key] then
+			ungrouped[#ungrouped + 1] = def.key
+		end
+	end
+	check(#ungrouped == 0 and #twice == 0, "every macro is in exactly one group on the Macros page (missing: "
+		.. table.concat(ungrouped, ",") .. "; twice or unknown: " .. table.concat(twice, ",") .. ")")
+	check(W.ShowOptionsPanel(), "the grouped Macros page builds")
 	HouseRules() -- the original set, with every spell known
 	-- Make room: untick the original set (they're checked above).
 	for _, def in ipairs(mac.LIST) do
@@ -1903,8 +1935,8 @@ do
 	check(Body("FD Moonkin Form") == "#showtooltip Moonkin Form\n/cast !Moonkin Form", "FD Moonkin Form never toggles you out")
 	check(Body("FD Hurricane"):find("/cast [@cursor] Hurricane", 1, true), "FD Hurricane at the cursor")
 	check(Body("FD Wild Growth"):find("[@mouseover,help,nodead][help,nodead][@player] Wild Growth", 1, true), "FD Wild Growth on mouseover")
-	check(Body("FD Spirit Swap"):find("/equip item:4321\n/cast [@player] Innervate", 1, true),
-		"FD Spirit Swap picks the higher-Spirit staff from your bags")
+	check(Body("FD Spirit Swap"):find("/equip [mod:alt] item:1111; item:4321\n/equipslot [mod:alt] 17 item:2222\n/cast [nomod:alt,@player] Innervate", 1, true), -- luacheck: no max line length
+		"FD Spirit Swap picks the higher-Spirit staff; Alt puts your mace and off-hand back (" .. Body("FD Spirit Swap"):gsub("\n", " | ") .. ")")
 	check(Body("FD Survival"):find("/use item:241650\n/cast [noform:2] !Bear Form; Frenzied Regeneration", 1, true)
 		and not Body("FD Survival"):find("cancelform", 1, true),
 		"FD Survival: the best potion without leaving Bear Form, then Frenzied Regeneration")
@@ -1931,8 +1963,19 @@ do
 		"FD Soothe Animal on mouseover, keeping Moonkin Form")
 	check(Body("FD Travel") == "#showtooltip\n/cast [swimming] Aquatic Form; [outdoors] Travel Form; !Cat Form",
 		"FD Travel: Aquatic in water, Travel outdoors, Cat indoors (never toggling Cat off)")
-	check(Body("FD Bear Weapon"):find("/equip item:5555\n/cast [noform:2] !Bear Form", 1, true),
-		"FD Bear Weapon picks the weapon with the most Bear attack power")
+	check(Body("FD Bear Weapon"):find("/equip [mod:alt] item:1111; item:5555\n/equipslot [mod:alt] 17 item:2222\n/cast [nomod:alt,noform:2] !Bear Form", 1, true), -- luacheck: no max line length
+		"FD Bear Weapon picks the weapon with the most Bear attack power; Alt swaps back")
+	-- After the swap nothing in your bags beats what you hold: the macro keeps its swap-back.
+	local before = Body("FD Spirit Swap")
+	W.equipped[16], W.bags[0] = "item:staff", { "item:mace", "item:bearmace" }
+	W.itemSlots["item:mace"] = "INVTYPE_WEAPON"
+	W.Fire("PLAYER_EQUIPMENT_CHANGED", 16)
+	W.Advance(2)
+	check(Body("FD Spirit Swap") == before and mac.Status("spiritInnervate") == "ready",
+		"holding the Spirit staff: the macro is left as written, so Alt still swaps back")
+	W.equipped[16], W.bags[0] = "item:mace", { "item:staff", "item:bearmace" }
+	W.Fire("PLAYER_EQUIPMENT_CHANGED", 16)
+	W.Advance(2)
 
 	-- Bags change: the best potion runs out or is too high a level, and the macros follow.
 	W.state.items[241650] = 0
