@@ -97,6 +97,12 @@ decides each pip and the cue itself. Thresholds are on the Powershift settings p
 **Mana bar.** Your mana while shapeshifted, coloured blue, orange under a quarter and red when
 nearly out, with a mark at the cost of one shift back into your form.
 
+**Under your player frame too.** A second mana bar hangs under the energy or rage bar on your player
+frame in Cat and Bear Form, and follows the frame if you move or resize it. It and the HUD mana bar
+are switched on separately on the Mana bar settings page, so you can run both, either or neither.
+The page also sets its height and nudges it up or down, for instance to clear the combo points
+under the frame.
+
 **Let it bleed.** When your Rake or Rip is ticking on an enemy below a health threshold (20% by
 default), "Let it bleed - next target" appears above the target row. The game evaluates the
 target's health; Forever Druid can't see it, so this is "nearly dead and bleeding", not a

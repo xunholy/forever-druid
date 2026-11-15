@@ -11,7 +11,7 @@ do
 	check(ns.profileName == "Default", "uses the Default profile")
 	check(ns.tree == "feral" and ns.role == "feral", ("talent line feral, role feral (got %s/%s)"):format(tostring(ns.tree), tostring(ns.role)))
 	check(ns.KnownSpell("readLeyline") == 1259705, "finds Forever's Read Leyline (1259705)")
-	check(not ns.modules.manabar.bar:IsShown(), "mana bar hidden in caster form")
+	check(not ns.modules.manabar.bar:IsShown() and not ns.modules.manabar.attached.frame:IsShown(), "mana bars hidden in caster form")
 	check(ns.global.lastVersion == ns.VERSION, "records the version for the update notice")
 
 	local reminders = ns.modules.reminders
@@ -48,6 +48,38 @@ do
 	check(manabar.text:GetText() == "<secret text>", "mana text formatted by the client from secret values")
 	check(manabar.marker:IsShown(), "powershift cost marker shown (cost 400 of 4000)")
 	check(manabar.bar._color and #manabar.bar._color == 3, "mana bar coloured through the curve")
+
+	-- The second mana bar, attached under the player frame's power bar.
+	local attached = manabar.attached
+	local point, relativeTo, relativePoint = attached.frame:GetPoint()
+	check(attached.bar:IsShown() and attached.frame:IsShown(), "a second mana bar shows under the player frame in Cat Form")
+	check(point == "TOPLEFT" and relativeTo == W.playerPowerBar and relativePoint == "BOTTOMLEFT" and attached.frame:GetHeight() == 9,
+		"it hangs off the player frame's power bar, 9 high, so it follows the frame")
+	check(attached.text:GetText() == "<secret text>" and attached.bar._color and #attached.bar._color == 3,
+		"same text and colouring as the HUD bar, from secret values")
+	attached.frame:SetWidth(124)
+	manabar:Refresh()
+	check(attached.marker:IsShown(), "and the same powershift marker once it has a width")
+	ns.db.modules.manabar.hud = false
+	manabar:Refresh()
+	check(not manabar.bar:IsShown() and not manabar.anchor:IsShown() and attached.bar:IsShown(), "the HUD bar can be off with the attached one on")
+	ns.db.modules.manabar.hud, ns.db.modules.manabar.attach = true, false
+	manabar:Refresh()
+	check(manabar.bar:IsShown() and not attached.frame:IsShown(), "or the attached one off with the HUD bar on")
+	ns.db.modules.manabar.attach, ns.db.modules.manabar.attachHeight, ns.db.modules.manabar.attachOffset = true, 12, -6
+	manabar:Refresh()
+	check(manabar.bar:IsShown() and attached.bar:IsShown() and attached.frame:GetHeight() == 12
+		and select(5, attached.frame:GetPoint()) == -6, "both on together; height and nudge follow the settings")
+	W.noPlayerFrame = true
+	manabar:Refresh()
+	check(not attached.frame:IsShown() and manabar.bar:IsShown(), "player frame replaced by another addon: no attached bar, HUD bar unaffected")
+	W.noPlayerFrame = nil
+	ns.db.modules.manabar.attachHeight, ns.db.modules.manabar.attachOffset = 9, 0
+	manabar:Refresh()
+	ns.SetModuleEnabled("manabar", false)
+	check(not attached.frame:IsShown() and not manabar.anchor:IsShown(), "turning the part off hides both")
+	ns.SetModuleEnabled("manabar", true)
+	check(attached.frame:IsShown() and manabar.bar:IsShown(), "and on again shows both")
 
 	W.state.power[4] = 3
 	W.Fire("UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")

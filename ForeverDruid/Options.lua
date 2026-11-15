@@ -238,7 +238,7 @@ local MODULE_NOTES = {
 	party = "In a group: your HoTs on each party member with timers, a Rebirth hint when someone is dead, and an Innervate hint when a healer runs low on mana.",
 	powerbar = "Energy in Cat Form and rage in Bear Form.",
 	fsr = "After you spend mana, your normal mana regeneration pauses for five seconds. This bar fills over those five seconds.",
-	manabar = "Your mana while in Cat or Bear Form, with the cost of one shift marked.",
+	manabar = "Your mana while in Cat or Bear Form, with the cost of one shift marked: in the HUD, under your player frame, or both.",
 	combopoints = "Five pips that turn red at five points.",
 	cooldowns = "Cooldowns for what you're doing right now, limited to spells you know.",
 	buffs = "Clearcasting, Tiger's Fury, Barkskin, Enrage and other buffs, with timers.",
@@ -640,6 +640,13 @@ local MODULE_PAGES = {
 		s:Slider(L["Height"], 2, 20, 1, ModuleGetter("fsr", "height"), ModuleSetter("fsr", "height"))
 	end,
 	manabar = function(s)
+		s:Check(L["Show it in the HUD column"], ModuleGetter("manabar", "hud"), ModuleSetter("manabar", "hud"),
+			L["The mana bar with the rest of the HUD under your character."])
+		s:Check(L["Show it under my player frame"], ModuleGetter("manabar", "attach"), ModuleSetter("manabar", "attach"),
+			L["A second mana bar attached under the energy or rage bar on your player frame, in Cat and Bear Form. It follows the frame if you move or resize it. You can have both, either or neither."]) -- luacheck: no max line length
+		s:Slider(L["Player frame bar height"], 4, 20, 1, ModuleGetter("manabar", "attachHeight"), ModuleSetter("manabar", "attachHeight"))
+		s:Slider(L["Player frame bar: nudge up or down"], -30, 30, 1, ModuleGetter("manabar", "attachOffset"), ModuleSetter("manabar", "attachOffset"),
+			L["Moves the attached bar up or down a little, for example to clear the combo points under the frame."])
 		s:Cycle(L["Text"], ns.modules.manabar.TEXT_MODES, ModuleGetter("manabar", "text"), ModuleSetter("manabar", "text"),
 			L["What the bar's text shows: your mana, a percentage, both, or nothing."])
 		s:Check(L["Colour by mana level"], ModuleGetter("manabar", "colorByLevel"), ModuleSetter("manabar", "colorByLevel"),
@@ -650,8 +657,8 @@ local MODULE_PAGES = {
 			L["The bar glides to its new value instead of jumping."])
 		s:Check(L["Show in every form"], ModuleGetter("manabar", "alwaysShow"), ModuleSetter("manabar", "alwaysShow"),
 			L["Also show it in caster form, where the game's own frame already shows mana."])
-		s:Slider(L["Width"], 80, 400, 5, ModuleGetter("manabar", "width"), ModuleSetter("manabar", "width"))
-		s:Slider(L["Height"], 4, 30, 1, ModuleGetter("manabar", "height"), ModuleSetter("manabar", "height"))
+		s:Slider(L["HUD bar width"], 80, 400, 5, ModuleGetter("manabar", "width"), ModuleSetter("manabar", "width"))
+		s:Slider(L["HUD bar height"], 4, 30, 1, ModuleGetter("manabar", "height"), ModuleSetter("manabar", "height"))
 	end,
 	combopoints = function(s)
 		s:Check(L["Only in Cat Form"], ModuleGetter("combopoints", "catOnly"), ModuleSetter("combopoints", "catOnly"),

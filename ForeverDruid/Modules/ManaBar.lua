@@ -1,4 +1,6 @@
--- Mana bar shown while in Cat or Bear Form, where the player frame only shows energy or rage.
+-- Mana bars shown while in Cat or Bear Form, where the player frame only shows energy or rage.
+-- There are two, switched on separately: one in the HUD column, and one attached under the player
+-- frame's own power bar, the way the game does it in versions that have a second power bar.
 --
 -- Forever keeps the player's mana secret at all times, so nothing here does maths on it:
 --   * the bar and "current / max" text take the raw values;
@@ -59,13 +61,9 @@ local function PercentThrough(curve)
 	return pcall(UnitPowerPercent, "player", MANA, false, curve)
 end
 
-function M:Init()
-	local cfg = ns.ModuleConfig("manabar")
-	BuildCurves()
-	local anchor = ns.CreateAnchor("manabar", cfg.width, cfg.height, { "CENTER", "CENTER", 0, -170 }, L["Mana bar"], { fade = true })
-	self.anchor = anchor
-
-	local bar = CreateFrame("StatusBar", nil, anchor)
+-- A mana bar: status bar, text and the powershift marker, filling `parent`.
+local function NewBar(parent, font)
+	local bar = CreateFrame("StatusBar", nil, parent)
 	bar:SetAllPoints()
 	bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
 	bar:SetStatusBarColor(BASE_COLOR[1], BASE_COLOR[2], BASE_COLOR[3])
@@ -81,11 +79,46 @@ function M:Init()
 	marker:SetWidth(2)
 	marker:Hide()
 
-	local text = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	local text = bar:CreateFontString(nil, "OVERLAY", font)
 	text:SetPoint("CENTER")
-
-	self.bar, self.text, self.marker = bar, text, marker
 	bar:Hide()
+	return { frame = parent, bar = bar, text = text, marker = marker }
+end
+
+-- The player frame's own power bar (energy or rage in a form), or nil if another addon replaced
+-- the frame. Only read, to anchor under it.
+local function PlayerPowerBar()
+	local ok, bar = pcall(function()
+		if PlayerFrame_GetManaBar then
+			return PlayerFrame_GetManaBar()
+		end
+		return PlayerFrameManaBar
+	end)
+	if ok and type(bar) == "table" and bar.GetObjectType then
+		return bar
+	end
+	return nil
+end
+M.PlayerPowerBar = PlayerPowerBar
+
+function M:Init()
+	local cfg = ns.ModuleConfig("manabar")
+	BuildCurves()
+	local anchor = ns.CreateAnchor("manabar", cfg.width, cfg.height, { "CENTER", "CENTER", 0, -170 }, L["Mana bar"], { fade = true })
+	self.anchor = anchor
+	self.hud = NewBar(anchor, "GameFontHighlightSmall")
+	self.bar, self.text, self.marker = self.hud.bar, self.hud.text, self.hud.marker
+
+	-- The attached bar is its own frame on UIParent, anchored to the player frame's power bar, so
+	-- it follows that frame when it's moved or scaled and never becomes part of it.
+	local holder = CreateFrame("Frame", "ForeverDruid_manabarAttached", UIParent)
+	holder:Hide()
+	self.attached = NewBar(holder, "GameFontHighlightSmall")
+	holder:SetScript("OnSizeChanged", function()
+		if self.enabled and holder:IsShown() then
+			self:UpdateMarker(self.attached)
+		end
+	end)
 
 	ns.OnUnit("UNIT_POWER_FREQUENT", "player", function(_, _, powerType)
 		if self.enabled and powerType == "MANA" then
@@ -110,6 +143,12 @@ end
 function M:ShouldShow()
 	local cfg = ns.ModuleConfig("manabar")
 	return cfg.alwaysShow or SHAPESHIFTED[ns.form] or ns.db.unlocked
+end
+
+-- The attached bar only makes sense in a form: in caster form the frame above it already shows mana.
+function M:ShouldShowAttached()
+	local cfg = ns.ModuleConfig("manabar")
+	return cfg.attach and (SHAPESHIFTED[ns.form] or ns.db.unlocked) and PlayerPowerBar() ~= nil
 end
 
 -- Fraction of maximum mana one shift into the current form costs, or nil.
@@ -139,20 +178,21 @@ function M.ShiftCostFraction(form)
 	return nil
 end
 
-function M:UpdateMarker()
+function M:UpdateMarker(view)
 	local cfg = ns.ModuleConfig("manabar")
 	local fraction = cfg.shiftMarker and M.ShiftCostFraction(ns.form)
-	if fraction then
-		self.marker:ClearAllPoints()
-		self.marker:SetPoint("TOP", self.bar, "TOPLEFT", fraction * cfg.width, 0)
-		self.marker:SetPoint("BOTTOM", self.bar, "BOTTOMLEFT", fraction * cfg.width, 0)
-		self.marker:Show()
+	local width = view == self.hud and cfg.width or view.frame:GetWidth()
+	if fraction and type(width) == "number" and width > 0 then
+		view.marker:ClearAllPoints()
+		view.marker:SetPoint("TOP", view.bar, "TOPLEFT", fraction * width, 0)
+		view.marker:SetPoint("BOTTOM", view.bar, "BOTTOMLEFT", fraction * width, 0)
+		view.marker:Show()
 	else
-		self.marker:Hide()
+		view.marker:Hide()
 	end
 end
 
-function M:UpdateColor()
+function M:UpdateColor(view)
 	local cfg = ns.ModuleConfig("manabar")
 	if cfg.colorByLevel then
 		local ok, color = PercentThrough(M.colorCurve)
@@ -160,21 +200,21 @@ function M:UpdateColor()
 		-- object (or a failed call) forces the fallback color.
 		if ok and not ns.IsSecret(color) and type(color) == "table" and color.GetRGB then
 			local applied = pcall(function()
-				self.bar:SetStatusBarColor(color:GetRGB())
+				view.bar:SetStatusBarColor(color:GetRGB())
 			end)
 			if applied then
 				return
 			end
 		end
 	end
-	self.bar:SetStatusBarColor(BASE_COLOR[1], BASE_COLOR[2], BASE_COLOR[3])
+	view.bar:SetStatusBarColor(BASE_COLOR[1], BASE_COLOR[2], BASE_COLOR[3])
 end
 
-function M:UpdateText()
+function M:UpdateText(view)
 	local cfg = ns.ModuleConfig("manabar")
 	local mode = cfg.text
 	if mode == "none" then
-		self.text:SetText("")
+		view.text:SetText("")
 		return
 	end
 	local current = UnitPower("player", MANA)
@@ -184,40 +224,66 @@ function M:UpdateText()
 		hasPercent, percent = PercentThrough(M.percentCurve)
 	end
 	if mode == "percent" and hasPercent then
-		self.text:SetFormattedText("%.0f%%", percent)
+		view.text:SetFormattedText("%.0f%%", percent)
 	elseif mode == "both" and hasPercent then
-		self.text:SetFormattedText("%d  (%.0f%%)", current, percent)
+		view.text:SetFormattedText("%d  (%.0f%%)", current, percent)
 	else
 		-- Works for secret values too: the client formats them without exposing them to Lua.
-		self.text:SetFormattedText("%d / %d", current, maximum)
+		view.text:SetFormattedText("%d / %d", current, maximum)
 	end
 end
 
-function M:Update()
-	self.bar:SetMinMaxValues(0, UnitPowerMax("player", MANA))
+local function UpdateView(self, view)
+	view.bar:SetMinMaxValues(0, UnitPowerMax("player", MANA))
 	-- Smooth: the client eases the bar toward the new value (works with the secret value).
 	local smooth = ns.ModuleConfig("manabar").smooth and Enum and Enum.StatusBarInterpolation
 	if smooth then
-		self.bar:SetValue(UnitPower("player", MANA), smooth.ExponentialEaseOut)
+		view.bar:SetValue(UnitPower("player", MANA), smooth.ExponentialEaseOut)
 	else
-		self.bar:SetValue(UnitPower("player", MANA))
+		view.bar:SetValue(UnitPower("player", MANA))
 	end
-	self:UpdateColor()
-	self:UpdateText()
+	self:UpdateColor(view)
+	self:UpdateText(view)
+end
+
+function M:Update()
+	for _, view in ipairs({ self.hud, self.attached }) do
+		if view.bar:IsShown() then
+			UpdateView(self, view)
+		end
+	end
+end
+
+-- Under the player frame's power bar, the same width, following it wherever it goes.
+function M:PlaceAttached()
+	local cfg = ns.ModuleConfig("manabar")
+	local power = PlayerPowerBar()
+	local holder = self.attached.frame
+	if not power then
+		return false
+	end
+	holder:ClearAllPoints()
+	holder:SetPoint("TOPLEFT", power, "BOTTOMLEFT", 0, cfg.attachOffset or 0)
+	holder:SetPoint("TOPRIGHT", power, "BOTTOMRIGHT", 0, cfg.attachOffset or 0)
+	holder:SetHeight(cfg.attachHeight or 9)
+	return true
 end
 
 function M:Refresh()
 	local cfg = ns.ModuleConfig("manabar")
 	self.anchor:SetSize(cfg.width, cfg.height)
 	-- Hide the whole row, not just the bar, so the stack closes up in caster form.
-	local show = self:ShouldShow() and true or false
+	local show = cfg.hud ~= false and self:ShouldShow() and true or false
 	self.anchor:SetShown(show)
-	if show then
-		self:Update()
-		self:UpdateMarker()
-		self.bar:Show()
-	else
-		self.bar:Hide()
+	self.hud.bar:SetShown(show)
+	local attach = self:ShouldShowAttached() and self:PlaceAttached() and true or false
+	self.attached.frame:SetShown(attach)
+	self.attached.bar:SetShown(attach)
+	for _, view in ipairs({ self.hud, self.attached }) do
+		if view.bar:IsShown() then
+			UpdateView(self, view)
+			self:UpdateMarker(view)
+		end
 	end
 end
 
@@ -227,6 +293,8 @@ function M:Enable()
 end
 
 function M:Disable()
-	self.bar:Hide()
+	self.hud.bar:Hide()
 	self.anchor:Hide()
+	self.attached.bar:Hide()
+	self.attached.frame:Hide()
 end

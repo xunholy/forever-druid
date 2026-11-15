@@ -48,7 +48,7 @@ read_globals = {
 	"GetMerchantItemMaxStack", "IsTradeskillTrainer",
 	"UnitThreatSituation", "UnitDetailedThreatSituation", "UnitThreatPercentageOfLead", "UnitAttackSpeed",
 	"IsInGroup", "UnitGroupRolesAssigned", "UnitHealthPercent",
-	"TooltipDataProcessor", "ItemRefTooltip", "GetInventoryItemLink", "GetInventoryItemID", "GetActionText", "UnitInRange", "ATTRIBUTE_NOOP",
+	"TooltipDataProcessor", "ItemRefTooltip", "GetInventoryItemLink", "GetInventoryItemID", "GetActionText", "PlayerFrame_GetManaBar", "PlayerFrameManaBar", "UnitInRange", "ATTRIBUTE_NOOP",
 	"C_NamePlate", "LibStub", "UnitReaction", "UnitIsPlayer", "UnitIsDead", "UnitIsUnit", "UnitClassification",
 	"IsStealthed", "GetRealZoneText",
 	"_G",

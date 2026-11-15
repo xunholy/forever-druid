@@ -709,6 +709,15 @@ function W.ShowItemTooltip(link, tooltip)
 	return lines
 end
 W.itemStats, W.itemSlots, W.equipped = {}, {}, {}
+-- The player frame's power bar; W.noPlayerFrame = true stands for a unit-frame addon having replaced it.
+W.playerPowerBar = CreateFrame("StatusBar", nil, UIParent)
+W.playerPowerBar:SetSize(124, 10)
+function PlayerFrame_GetManaBar()
+	if W.noPlayerFrame then
+		error("PlayerFrame is gone")
+	end
+	return W.playerPowerBar
+end
 function GetInventoryItemLink(_, slot)
 	return W.equipped[slot]
 end
