@@ -203,7 +203,10 @@ ns.defaults = {
 	-- changesOnly: when comparing with an equipped item, leave out the lines that are the same on both.
 	tooltips = { enabled = true, compare = true, changesOnly = true },
 	preview = true, -- sample icons while unlocked
-	macros = { manage = false, enabled = {} }, -- enabled[key] = true/false; unset follows the macro's default
+	-- enabled[key] = true/false (unset follows the macro's default). place = where FD macros go,
+	-- "account" (the 120 general slots, seen by every character) or "character" (this character's
+	-- 30); places[key] overrides it for one macro.
+	macros = { manage = false, enabled = {}, place = "account", places = {} },
 	ranks = { auto = true, keep = {} },
 	role = "auto", -- caster-form role: auto (from talents), healer, balance or feral
 	restock = { enabled = false, seeds = 5, thornroot = 10 }, -- buys reagents at vendors when on -- keep[lower-case spell name] = true: leave its rank alone

@@ -539,23 +539,42 @@ function EditMacro(index, name, icon, body)
 	SortMacros()
 	return GetMacroIndexByName(m.name)
 end
+-- Deleting a macro empties the action buttons that held it, as in the client.
 function DeleteMacro(index)
 	GuardMacro("DeleteMacro")
 	local m, list, i = MacroLookup(index)
 	if m then
 		table.remove(list, i)
+		for slot, action in pairs(W.actions) do
+			if action.kind == "macro" and action.name == m.name then
+				W.actions[slot] = nil
+			end
+		end
 	end
 end
 function PickupMacro(index)
 	local m = MacroLookup(index)
 	W.pickedMacro = m and m.name
+	W.cursorItem = m and { kind = "macro", id = index, name = m.name } or nil
 end
-function W.CharacterMacro(name)
-	for _, m in ipairs(W.macros.character) do
-		if m.name == name then
-			return m
+-- A macro by name wherever it is, and every macro there is.
+function W.Macro(name)
+	for _, list in ipairs({ W.macros.account, W.macros.character }) do
+		for _, m in ipairs(list) do
+			if m.name == name then
+				return m, list == W.macros.account and "account" or "character"
+			end
 		end
 	end
+end
+function W.AllMacros()
+	local all = {}
+	for _, list in ipairs({ W.macros.account, W.macros.character }) do
+		for _, m in ipairs(list) do
+			all[#all + 1] = m
+		end
+	end
+	return all
 end
 
 -- Secure state drivers: "[form:N] name; ...; default" evaluated against the current form, running
@@ -1258,6 +1277,10 @@ function GetActionInfo(slot)
 	if a then
 		return a.kind, a.id
 	end
+end
+function GetActionText(slot)
+	local a = W.actions[slot]
+	return a and a.kind == "macro" and a.name or nil
 end
 function GetCursorInfo()
 	return W.cursorItem and W.cursorItem.kind or nil
