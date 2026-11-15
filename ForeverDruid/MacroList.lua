@@ -10,6 +10,7 @@ ns.macros = M
 
 local ICON = 134400 -- question mark: with #showtooltip the macro shows its spell's icon
 local MAX_CHARACTER_MACROS = (Constants and Constants.MacroConsts and Constants.MacroConsts.MAX_CHARACTER_MACROS) or 30
+local MAX_ACCOUNT_MACROS = (Constants and Constants.MacroConsts and Constants.MacroConsts.MAX_ACCOUNT_MACROS) or 120
 
 local function S(key)
 	return ns.SpellName(key)
@@ -597,4 +598,4 @@ M.GROUPS = {
 }
 M.BY_KEY = BY_KEY
 
-M.ICON, M.MAX_CHARACTER_MACROS, M.SpellName = ICON, MAX_CHARACTER_MACROS, S
+M.ICON, M.MAX_CHARACTER_MACROS, M.MAX_ACCOUNT_MACROS, M.SpellName = ICON, MAX_CHARACTER_MACROS, MAX_ACCOUNT_MACROS, S

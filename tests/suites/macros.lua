@@ -8,23 +8,23 @@ do
 	login(W)
 	W.Advance(5)
 	local mac = ns.macros
-	check(#W.macros.character == 0, "off by default: no macros made at login")
+	check(#W.AllMacros() == 0, "off by default: no macros made at login")
 
 	W.Slash("macros on")
 	local names = {}
-	for _, m in ipairs(W.macros.character) do
+	for _, m in ipairs(W.AllMacros()) do
 		names[#names + 1] = m.name
 	end
 	table.sort(names)
 	check(table.concat(names, ",") == "FD Barkskin,FD Bear Form,FD Cat Form,FD Innervate,FD Mark,FD Powershift,FD Prowl,FD Rebirth,FD Reshift,FD Thorns",
 		"only macros whose spells are known: " .. table.concat(names, ","))
-	check(#W.macros.account == 0, "nothing in the account-wide slots")
-	local mark = W.CharacterMacro("FD Mark")
+	check(#W.macros.account == 10 and #W.macros.character == 0, "they go in the account's general slots by default, none in the character's")
+	local mark = W.Macro("FD Mark")
 	check(mark.body:find("/cast [@mouseover,help,nodead][help,nodead][@player] Mark of the Wild", 1, true), "Mark macro body uses the spell name")
-	check(W.CharacterMacro("FD Cat Form").body:find("/cast !Cat Form", 1, true), "FD Cat Form uses !Cat Form")
-	check(W.CharacterMacro("FD Ravage Opener") == nil, "the Ravage opener waits for Ravage")
+	check(W.Macro("FD Cat Form").body:find("/cast !Cat Form", 1, true), "FD Cat Form uses !Cat Form")
+	check(W.Macro("FD Ravage Opener") == nil, "the Ravage opener waits for Ravage")
 	-- No macro may rely on a form change taking effect within the same key press.
-	for _, m in ipairs(W.macros.character) do
+	for _, m in ipairs(W.AllMacros()) do
 		local body = m.body
 		check(#body <= 255, m.name .. " fits the macro limit")
 		if body:find("/cancelform", 1, true) then
@@ -34,13 +34,13 @@ do
 			check(body:find("nostealth", 1, true) ~= nil, m.name .. ": never drops your form while prowling")
 		end
 	end
-	local cat = W.CharacterMacro("FD Cat Form").body
+	local cat = W.Macro("FD Cat Form").body
 	check(not cat:find("/cancelform", 1, true) and cat:find("/cast !Cat Form", 1, true),
 		"FD Cat Form only shifts in: it never takes you out of Cat Form")
-	local prowl = W.CharacterMacro("FD Prowl").body
+	local prowl = W.Macro("FD Prowl").body
 	check(prowl:find("/cast [noform:1] !Cat Form; Prowl", 1, true),
 		"FD Prowl: Cat Form first, then Prowl as a toggle, using your stance-bar number for Cat (" .. prowl:gsub("\n", " | ") .. ")")
-	local power = W.CharacterMacro("FD Powershift").body
+	local power = W.Macro("FD Powershift").body
 	check(power:find("/cancelform [form:1,nostealth]", 1, true) and power:find("/stopmacro [form:1]", 1, true),
 		"FD Powershift leaves and re-enters Cat Form, safely in one or two presses")
 	check(mac.Status("mark") == "ready" and mac.Status("rejuv") == "needs", "status: ready / needs a spell")
@@ -49,7 +49,7 @@ do
 	table.insert(W.state.spellbook, { 774, "Rejuvenation" })
 	W.Fire("SPELLS_CHANGED")
 	W.Advance(3)
-	local rejuv = W.CharacterMacro("FD Rejuvenation")
+	local rejuv = W.Macro("FD Rejuvenation")
 	check(rejuv and rejuv.body:find("/cancelform [form:1/2/3,nostealth]\n/stopmacro [form:1/2/3]\n/cast", 1, true),
 		"learning Rejuvenation creates FD Rejuv (drops your form, then heals)")
 
@@ -58,26 +58,26 @@ do
 	W.state.spellbook = {}
 	W.Fire("SPELLS_CHANGED")
 	W.Advance(3)
-	check(W.CharacterMacro("FD Mark") ~= nil and W.CharacterMacro("FD Rejuvenation") ~= nil, "a momentarily empty spellbook deletes nothing")
+	check(W.Macro("FD Mark") ~= nil and W.Macro("FD Rejuvenation") ~= nil, "a momentarily empty spellbook deletes nothing")
 	W.state.spellbook = saved
 	W.Fire("SPELLS_CHANGED")
 	W.Advance(3)
 
 	-- Your edits are yours.
-	W.CharacterMacro("FD Mark").body = "/cast Mark of the Wild\n/say buffed!"
+	W.Macro("FD Mark").body = "/cast Mark of the Wild\n/say buffed!"
 	mac.Sync()
-	check(W.CharacterMacro("FD Mark").body:find("/say buffed!", 1, true), "an edited macro isn't overwritten")
+	check(W.Macro("FD Mark").body:find("/say buffed!", 1, true), "an edited macro isn't overwritten")
 	check(mac.Status("mark") == "edited", "status: edited")
 	mac.SetWanted("mark", false)
-	check(W.CharacterMacro("FD Mark") ~= nil, "unticking an edited macro doesn't delete it")
+	check(W.Macro("FD Mark") ~= nil, "unticking an edited macro doesn't delete it")
 	mac.SetWanted("mark", true)
 
 	mac.SetWanted("thorns", false)
-	check(W.CharacterMacro("FD Thorns") == nil, "unticking deletes ForeverDruid's own macro")
+	check(W.Macro("FD Thorns") == nil, "unticking deletes ForeverDruid's own macro")
 	mac.SetWanted("thorns", true)
-	check(W.CharacterMacro("FD Thorns") ~= nil, "ticking brings it back")
+	check(W.Macro("FD Thorns") ~= nil, "ticking brings it back")
 
-	check(mac.Restore() == 1 and not W.CharacterMacro("FD Mark").body:find("/say", 1, true), "restore puts ForeverDruid's text back")
+	check(mac.Restore() == 1 and not W.Macro("FD Mark").body:find("/say", 1, true), "restore puts ForeverDruid's text back")
 	check(mac.Status("mark") == "ready", "and it's managed again")
 
 	-- Combat: no macro changes, applied when the fight ends.
@@ -85,11 +85,11 @@ do
 	W.state.inCombat = true
 	mac.SetWanted("thorns", false)
 	W.Advance(2)
-	check(W.CharacterMacro("FD Thorns") ~= nil and #W.blocked == 0, "no macro changes during combat")
+	check(W.Macro("FD Thorns") ~= nil and #W.blocked == 0, "no macro changes during combat")
 	W.state.inCombat = false
 	W.Fire("PLAYER_REGEN_ENABLED")
 	W.Advance(2)
-	check(W.CharacterMacro("FD Thorns") == nil, "applied as the fight ends")
+	check(W.Macro("FD Thorns") == nil, "applied as the fight ends")
 	mac.SetWanted("thorns", true)
 
 	mac.PickUp("mark")
@@ -100,12 +100,12 @@ do
 	table.insert(W.state.spellbook, { 8936, "Regrowth" })
 	W.Fire("SPELLS_CHANGED")
 	W.Advance(3)
-	check(W.CharacterMacro("FD Regrowth").body:find("/y heals", 1, true), "a same-named macro of yours is left alone")
+	check(W.Macro("FD Regrowth").body:find("/y heals", 1, true), "a same-named macro of yours is left alone")
 
 	W.Slash("macros")
 	W.Slash("macros off")
 	local left = {}
-	for _, m in ipairs(W.macros.character) do
+	for _, m in ipairs(W.AllMacros()) do
 		left[#left + 1] = m.name
 	end
 	check(table.concat(left, ",") == "FD Regrowth", "turning management off removes only ForeverDruid's macros (" .. table.concat(left, ",") .. ")")
@@ -118,9 +118,13 @@ do
 		W2.macros.character[i] = { name = ("Mine %02d"):format(i), icon = 1, body = "" }
 	end
 	login(W2)
-	ns2.db.macros.manage = true
+	ns2.db.macros.manage, ns2.db.macros.place = true, "character"
 	local _, result = ns2.macros.Sync()
-	check(result.full and #W2.macros.character == 30, "no free character slots: reported, nothing broken")
+	check(result.full and #W2.macros.character == 30 and #W2.macros.account == 0,
+		"set to character slots with none free: reported, nothing broken, nothing put in account slots unasked")
+	ns2.db.macros.place = "account"
+	_, result = ns2.macros.Sync()
+	check(not result.full and #W2.macros.account == 10, "set to account slots: they all fit")
 	noErrors(W2, "no errors")
 
 	-- Profiles are shared: a warlock on a profile with macros on gets none.
@@ -130,7 +134,7 @@ do
 	end)
 	login(W3)
 	W3.Advance(5)
-	check(#W3.macros.character == 0, "no druid macros on other classes")
+	check(#W3.AllMacros() == 0, "no druid macros on other classes")
 	noErrors(W3, "no errors")
 end
 
@@ -150,7 +154,7 @@ do
 	W.Advance(5)
 	check(not labels(ns.modules.reminders.active)["Bear Form"], "level 40 with Dire Bear Form: no Bear Form quest reminder")
 	ns.macros.SetManaged(true)
-	local bear = W.CharacterMacro("FD Bear Form")
+	local bear = W.Macro("FD Bear Form")
 	check(bear and bear.body:find("/cast !Dire Bear Form", 1, true), "bear powershift uses Dire Bear Form once you have it")
 
 	-- Restore never touches a macro ForeverDruid didn't write.
@@ -160,7 +164,7 @@ do
 	W.Fire("SPELLS_CHANGED")
 	W.Advance(3)
 	ns.macros.Restore()
-	check(W.CharacterMacro("FD Rejuv").body:find("/s mine", 1, true), "restore leaves your own same-named macro alone")
+	check(W.Macro("FD Rejuv").body:find("/s mine", 1, true), "restore leaves your own same-named macro alone")
 	W.Slash("macros restore")
 	check(#W.popups == 1, "/fd macros restore asks first")
 	W.popups = {}
@@ -251,15 +255,16 @@ do
 	login(W)
 	W.Advance(5)
 	local mac = ns.macros
+	ns.db.macros.place = "character" -- this scenario is about the 30-slot limit
 	W.Slash("macros on")
 	W.Advance(2)
 	local function Body(name)
-		local m = W.CharacterMacro(name)
+		local m = W.Macro(name)
 		return m and m.body or ""
 	end
 	-- The house rules, for every FD macro.
 	local function HouseRules()
-		for _, m in ipairs(W.macros.character) do
+		for _, m in ipairs(W.AllMacros()) do
 			local body = m.body
 			check(#body <= 255, m.name .. " fits the macro limit")
 			local cancelAt = body:find("/cancelform", 1, true)
@@ -279,7 +284,7 @@ do
 		"FD Primal Bite", "FD Swipe", "FD Berserk", "FD Insect Swarm", "FD Soothe Animal" }
 	local none = true
 	for _, name in ipairs(NEW) do
-		none = none and W.CharacterMacro(name) == nil
+		none = none and W.Macro(name) == nil
 	end
 	check(none, "the new macros start off, so they don't fill your macro slots")
 	check(mac.IsTicked("rejuv") and not mac.IsTicked("growl"), "existing macros stay on, new ones are off until ticked")
@@ -311,7 +316,7 @@ do
 	-- Item macros wait for the item and say so.
 	mac.SetWanted("bearPotion", true)
 	local status, text = mac.Status("bearPotion"), ns.MacroStatusText("bearPotion")
-	check(status == "needs" and text:find("healing potion", 1, true) and W.CharacterMacro("FD Survival") == nil,
+	check(status == "needs" and text:find("healing potion", 1, true) and W.Macro("FD Survival") == nil,
 		"no potion in your bags: 'needs a healing potion', nothing created (" .. text .. ")")
 
 	-- Bags: two potions (Forever's Discolored one heals more), a Healthstone, a Spirit staff, a bear mace.
@@ -331,9 +336,9 @@ do
 	end
 	W.Advance(2)
 	check(#W.macros.character == 30 and mac.lastSync.full, "ticking everything fills the 30 slots and says so, nothing breaks")
-	local slots = mac.Slots()
-	check(slots.used == 30 and slots.free == 0 and slots.ours == 30 and slots.waiting > 0,
-		"slot count: 30 of 30 used, with ticked macros left waiting (" .. slots.waiting .. ")")
+	local slots = mac.Slots().character
+	check(slots.used == 30 and slots.free == 0 and slots.ours == 30 and slots.waiting > 0 and mac.Slots().account.used == 0,
+		"slot count: 30 of 30 character slots used, with ticked macros left waiting (" .. slots.waiting .. ")")
 	local waitingKey
 	for _, def in ipairs(mac.LIST) do
 		if mac.Status(def.key) == "full" then
@@ -342,7 +347,8 @@ do
 	end
 	check(waitingKey ~= nil and ns.MacroStatusText(waitingKey):find("no free macro slot", 1, true),
 		"a ticked macro with nowhere to go says 'no free macro slot'")
-	check(ns.MacroSlotsText():find("30 of 30 used", 1, true) and ns.MacroSlotsText():find("have no slot to go in", 1, true),
+	check(ns.MacroSlotsText():find("30 of 30 used", 1, true) and ns.MacroSlotsText():find("have no slot there", 1, true)
+		and ns.MacroSlotsText():find("0 of 120 used", 1, true),
 		"the Macros page says the slots are full and how many are waiting")
 	local grouped, twice = {}, {}
 	for _, group in ipairs(mac.GROUPS) do
@@ -372,7 +378,7 @@ do
 	W.Advance(2)
 	local missing = {}
 	for _, name in ipairs(NEW) do
-		if not W.CharacterMacro(name) then
+		if not W.Macro(name) then
 			missing[#missing + 1] = name
 		end
 	end
@@ -449,6 +455,16 @@ do
 
 	HouseRules()
 	check(#W.macros.character <= 30, "within the 30 character macro slots")
+	-- Moving everything to the account's slots makes room for all 45.
+	for _, def in ipairs(mac.LIST) do
+		mac.SetWanted(def.key, true)
+	end
+	mac.SetPlaceForAll("account")
+	W.Advance(2)
+	local all = mac.Slots()
+	check(all.account.ours == 42 and all.character.ours == 0 and all.account.waiting == 0 and not mac.lastSync.full,
+		"in the account's slots every macro whose spells are known fits: 42, more than a character's 30")
+	HouseRules()
 	noErrors(W, "no Lua errors or blocked actions")
 end
 
@@ -464,17 +480,17 @@ do
 	login(W)
 	W.Advance(5)
 	ns.macros.SetManaged(true)
-	local prowl = W.CharacterMacro("FD Prowl").body
+	local prowl = W.Macro("FD Prowl").body
 	check(prowl:find("[noform:3] !Cat Form; Prowl", 1, true), "FD Prowl uses Cat = 3")
-	local power = W.CharacterMacro("FD Powershift").body
+	local power = W.Macro("FD Powershift").body
 	check(power:find("[form:3,nostealth]", 1, true) and power:find("/stopmacro [form:3]", 1, true), "FD Powershift uses Cat = 3")
-	local faerie = W.CharacterMacro("FD Faerie Fire")
+	local faerie = W.Macro("FD Faerie Fire")
 	check(faerie == nil or not faerie.body:find("form:2", 1, true), "Aquatic Form (2) never counts as Cat or Bear")
 	-- Learning Travel Form adds a 4th form: macros are rebuilt and Cat stays 3.
 	W.state.forms[4] = 783
 	W.Fire("UPDATE_SHAPESHIFT_FORMS")
 	W.Advance(3)
-	check(W.CharacterMacro("FD Prowl").body:find("[noform:3]", 1, true), "still Cat = 3 after learning another form")
+	check(W.Macro("FD Prowl").body:find("[noform:3]", 1, true), "still Cat = 3 after learning another form")
 	noErrors(W, "no errors")
 end
 
@@ -495,13 +511,13 @@ do
 	end)
 	login(W)
 	W.Advance(5)
-	local cat = W.CharacterMacro("FD Cat Form")
+	local cat = W.Macro("FD Cat Form")
 	check(cat and not cat.body:find("/cancelform", 1, true) and cat.body:find("/cast !Cat Form", 1, true)
-		and W.CharacterMacro("FD Shift Cat") == nil,
+		and W.Macro("FD Shift Cat") == nil,
 		"an old FD Shift Cat is renamed FD Cat Form and rewritten to the fixed version")
 	check(ns.macros.Status("shiftCat") == "ready", "and counts as ForeverDruid's, not 'edited by you'")
 	local catMacros = 0
-	for _, m in ipairs(W.macros.character) do
+	for _, m in ipairs(W.AllMacros()) do
 		if m.body:find("!Cat Form", 1, true) and m.name:find("^FD") and not m.name:find("Prowl")
 			and not m.name:find("Powershift") then
 			catMacros = catMacros + 1
@@ -519,10 +535,10 @@ do
 	end)
 	login(W2)
 	W2.Advance(5)
-	check(W2.CharacterMacro("FD Shift Bear").body == edited and W2.CharacterMacro("FD Bear Form") == nil
+	check(W2.Macro("FD Shift Bear").body == edited and W2.Macro("FD Bear Form") == nil
 		and ns2.macros.Status("shiftBear") == "edited",
 		"an FD macro you edited keeps its old name and your text, with no duplicate under the new name")
-	check(W.CharacterMacro("Power Cat").body == old .. "\n", "your own macros (Power Cat) are never touched")
+	check(W.Macro("Power Cat").body == old .. "\n", "your own macros (Power Cat) are never touched")
 	noErrors(W, "no errors")
 end
 
@@ -539,7 +555,7 @@ do
 	W.Advance(5)
 	ns.macros.SetManaged(true)
 	W.Advance(2)
-	local reshiftMacro = W.CharacterMacro("FD Reshift")
+	local reshiftMacro = W.Macro("FD Reshift")
 	check(reshiftMacro and reshiftMacro.body:find("/click ForeverDruidReshift", 1, true) and reshiftMacro.icon == 132115,
 		"FD Reshift clicks ForeverDruid's reshift button, with the Cat Form icon")
 	local button = _G.ForeverDruidReshift
@@ -560,7 +576,7 @@ do
 	check(at(0) == "/cast !Bear Form", "and back into Bear after a second press")
 	check(at(2) == "/cast !Bear Form", "Aquatic or another form: back into your last Cat or Bear form")
 
-	local bearRejuv = W.CharacterMacro("FD Bear Rejuv").body
+	local bearRejuv = W.Macro("FD Bear Rejuv").body
 	check(bearRejuv:find("/cancelform [form:1]", 1, true) and bearRejuv:find("/stopmacro [form:1]", 1, true),
 		"FD Bear Rejuv drops Bear Form (Bear = 1), stopping if still shifted")
 	check(bearRejuv:find("/castsequence [@mouseover,help,nodead][@player] reset=8 Rejuvenation, Bear Form", 1, true),
@@ -580,4 +596,97 @@ do
 	W.Advance(3)
 	check(at(3):find("/cast !Cat Form", 1, true), "still right after learning Travel Form")
 	noErrors(W, "no errors or blocked actions")
+end
+
+---------------------------------------------------------------------------
+do
+	section("macros: account or character slots, your choice per macro, moved without losing their buttons")
+	-- A character from 0.8.0: FD macros in its own slots, two on action buttons, one edited, one of
+	-- the player's own.
+	local catBody, markBody = "#showtooltip Cat Form\n/cast !Cat Form", "#showtooltip Thorns\n/say mine"
+	local W, ns = fresh(function(W0)
+		W0.macros.character = {
+			{ name = "FD Cat Form", icon = 134400, body = catBody },
+			{ name = "FD Thorns", icon = 134400, body = markBody },
+			{ name = "Power Cat", icon = 134400, body = "/cast !Cat Form" },
+		}
+		W0.actions[5] = { kind = "macro", id = 121, name = "FD Cat Form" }
+		W0.actions[77] = { kind = "macro", id = 121, name = "FD Cat Form" }
+		W0.actions[6] = { kind = "macro", id = 123, name = "Power Cat" }
+		ForeverDruidDB = { profiles = { Default = { macros = { manage = true, enabled = {} } } }, chars = {},
+			macroBodies = { ["Testdruid - Testrealm"] = { shiftCat = catBody, thorns = "#showtooltip Thorns\n/cast Thorns" } } }
+	end)
+	login(W)
+	W.Advance(5)
+	local mac = ns.macros
+	local cat, catPlace = W.Macro("FD Cat Form")
+	check(cat and catPlace == "account" and mac.lastSync.moved == 1, "an FD macro from before moves to the account's slots")
+	check(W.actions[5] and W.actions[5].name == "FD Cat Form" and W.actions[77] and W.actions[77].name == "FD Cat Form"
+		and mac.lastSync.buttons == 2, "and is put back on both action buttons that held it")
+	check(select(2, W.Macro("FD Thorns")) == "character" and W.Macro("FD Thorns").body == markBody and mac.Status("thorns") == "edited",
+		"an FD macro you edited stays where it is, untouched")
+	check(select(2, W.Macro("Power Cat")) == "character" and W.actions[6].name == "Power Cat", "your own macros and their buttons are left alone")
+	check(ForeverDruidDB.macroBodiesAccount.shiftCat ~= nil and ForeverDruidDB.macroBodies["Testdruid - Testrealm"].shiftCat == nil,
+		"the record of what was written moves with it")
+	check(select(2, W.Macro("FD Mark")) == "account", "new macros are made in the account's slots")
+
+	-- One macro back to this character.
+	mac.SetPlace("shiftCat", "character")
+	check(select(2, W.Macro("FD Cat Form")) == "character" and W.actions[5].name == "FD Cat Form"
+		and mac.Place("shiftCat") == "character" and mac.Place("mark") == "account",
+		"one macro can be set to character slots; it moves and keeps its button")
+	check(mac.Status("shiftCat") == "ready", "and still counts as Forever Druid's")
+	local said = table.concat(W.printed, "\n")
+	check(said:find("macros moved: 1, put back on 2 action buttons", 1, true), "moving says what it did")
+
+	-- Everything to the character, then back.
+	mac.SetPlaceForAll("character")
+	local inAccount = 0
+	for _, m in ipairs(W.macros.account) do
+		inAccount = inAccount + (m.name:find("^FD ") and 1 or 0)
+	end
+	check(inAccount == 0 and mac.Place("mark") == "character" and select(2, W.Macro("FD Mark")) == "character",
+		"'put them all in this character's slots' moves every FD macro")
+	mac.SetPlaceForAll("account")
+	check(select(2, W.Macro("FD Cat Form")) == "account" and W.actions[77].name == "FD Cat Form", "and back again, buttons intact")
+
+	-- Nowhere to go: it stays put and says so.
+	for i = #W.macros.character + 1, 30 do
+		W.macros.character[i] = { name = ("Mine %02d"):format(i), icon = 1, body = "" }
+	end
+	mac.SetPlace("shiftCat", "character")
+	check(select(2, W.Macro("FD Cat Form")) == "account" and mac.lastSync.full and W.actions[5].name == "FD Cat Form",
+		"moving into full slots: the macro stays where it was, with its buttons")
+	mac.SetPlace("shiftCat", "account")
+
+	-- In combat nothing moves; it happens when the fight ends.
+	W.Fire("PLAYER_REGEN_DISABLED")
+	W.state.inCombat = true
+	while #W.macros.character > 3 do
+		table.remove(W.macros.character)
+	end
+	mac.SetPlace("mark", "character")
+	check(select(2, W.Macro("FD Mark")) == "account" and #W.blocked == 0, "no moves during combat")
+	W.state.inCombat = false
+	W.Fire("PLAYER_REGEN_ENABLED")
+	W.Advance(2)
+	check(select(2, W.Macro("FD Mark")) == "character", "the move happens when the fight ends")
+	check(W.ShowOptionsPanel(), "the Macros page builds with the place buttons")
+	noErrors(W, "no errors or blocked actions")
+
+	-- A second druid on the account: the shared macros are its to update, not 'edited by you'.
+	local shared = { macroBodiesAccount = ForeverDruidDB.macroBodiesAccount, account = W.macros.account }
+	local W2, ns2 = fresh(function(W0)
+		W0.macros.account = shared.account
+		W0.state.forms = { 5487, 1066, 768 } -- this druid's Cat Form is form 3
+		W0.state.extraNames[1066] = "Aquatic Form"
+		W0.RebuildNames()
+		ForeverDruidDB = { profiles = { Default = { macros = { manage = true, enabled = {} } } }, chars = {},
+			macroBodiesAccount = shared.macroBodiesAccount }
+	end)
+	login(W2)
+	W2.Advance(5)
+	check(ns2.macros.Status("prowl") == "ready" and W2.Macro("FD Prowl").body:find("[noform:3] !Cat Form", 1, true),
+		"another druid on the account takes over the shared macros and fits them to its own stance bar")
+	noErrors(W2, "no errors")
 end

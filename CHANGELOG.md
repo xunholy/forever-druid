@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.0
+
+**New**
+- FD macros go in the account's 120 general macro slots by default, so all of them fit. Existing
+  FD macros are moved there and put back on the action buttons that held them. Macros you edited
+  stay where they are.
+- The Macros page has a button on each macro to keep it in the account's slots or this character's
+  own 30, a setting to move them all, and a slot count for both.
+- Account macros are shared: every character on the account sees them, and another druid keeps
+  them up to date for its own forms when it logs in.
+
 ## 0.8.0
 
 **New**

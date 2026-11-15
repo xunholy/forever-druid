@@ -754,17 +754,27 @@ local MACRO_STATUS = {
 }
 
 -- "Macro slots: 28 of 30 used (18 Forever Druid's)", in red with what's waiting when they're full.
+local PLACE_LABEL = { account = "Account", character = "Character" }
+
+-- "Account macros: 21 of 120 used (19 Forever Druid's)" and the same for this character, in red
+-- with what's waiting when a place is full.
 function ns.MacroSlotsText()
-	local s = ns.macros.Slots()
-	local text = L["Character macro slots: %d of %d used, %d of them Forever Druid's."]:format(s.used, s.max, s.ours)
-	if s.free > 0 then
-		return text
+	local slots = ns.macros.Slots()
+	local lines = {}
+	for _, place in ipairs({ "account", "character" }) do
+		local s = slots[place]
+		local text = L[place == "account" and "Account macros (every character sees these): %d of %d used, %d of them Forever Druid's."
+			or "This character's macros: %d of %d used, %d of them Forever Druid's."]:format(s.used, s.max, s.ours)
+		if s.free <= 0 then
+			text = "|cffff5555" .. text
+			if s.waiting > 0 then
+				text = text .. " " .. L["%d ticked macros have no slot there: move them, untick some, or delete macros in /macro."]:format(s.waiting)
+			end
+			text = text .. "|r"
+		end
+		lines[#lines + 1] = text
 	end
-	text = "|cffff5555" .. text .. "|r"
-	if s.waiting > 0 then
-		text = text .. "\n|cffff5555" .. L["%d ticked macros have no slot to go in: untick some, or delete macros of your own in /macro."]:format(s.waiting) .. "|r" -- luacheck: no max line length
-	end
-	return text
+	return table.concat(lines, "\n")
 end
 
 function ns.MacroStatusText(key)
@@ -778,7 +788,7 @@ end
 
 local function MacrosPage()
 	local panel, b = NewPage(L["Macros"], L["Macros"],
-		L["Forever Druid can create druid macros in your character's own macro slots and keep them up to date as you learn spells. It only touches macros named \"FD ...\", and leaves alone any you've edited."]) -- luacheck: no max line length
+		L["Forever Druid can create druid macros and keep them up to date as you learn spells. Tick the ones you want, and choose for each whether it goes in the account's 120 general macro slots or this character's own 30. It only touches macros named \"FD ...\", and leaves alone any you've edited."]) -- luacheck: no max line length
 	b:Check(L["Create and update my druid macros"], function()
 		return ns.db.macros.manage
 	end, function(value)
@@ -786,12 +796,20 @@ local function MacrosPage()
 		b:Refresh()
 	end, L["Turning this off deletes the FD macros Forever Druid made (not ones you've edited)."])
 	b:Note(L["Click Pick up, then click an action bar slot to place a macro. Unticking a macro deletes it, unless you've edited it."])
-	-- The game gives each character 30 macro slots, and there are more FD macros than that.
+	b:Cycle(L["Put them all in"], { "account", "character" }, function()
+		return ns.db.macros.place == "character" and "character" or "account"
+	end, function(value)
+		ns.macros.SetPlaceForAll(value)
+		b:Refresh()
+	end, L["Account: the 120 general macro slots. Every character on the account sees those, and there's room for all the FD macros. Character: this character's own 30 slots. Changing it moves the macros Forever Druid made and puts them back on your action bars; the button on each row moves just that one."], -- luacheck: no max line length
+		function(value)
+			return L[value == "character" and "this character's slots" or "the account's slots"]
+		end)
 	local slots = b.content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	slots:SetPoint("TOPLEFT", 16, b.y - 4)
 	slots:SetWidth(560)
 	slots:SetJustifyH("LEFT")
-	b.y = b.y - 40
+	b.y = b.y - 44
 	panel.slots = slots
 	b.refreshers[#b.refreshers + 1] = function()
 		slots:SetText(ns.MacroSlotsText())
@@ -805,8 +823,18 @@ local function MacrosPage()
 		end, L[def.desc])
 		local status = b.content:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 		status:SetPoint("LEFT", check, "LEFT", 150, 0)
+		status:SetWidth(190)
+		status:SetJustifyH("LEFT")
+		local place = CreateFrame("Button", nil, b.content, "UIPanelButtonTemplate")
+		place:SetSize(86, 20)
+		place:SetPoint("LEFT", check, "LEFT", 348, 0)
+		place:SetScript("OnClick", function()
+			ns.macros.SetPlace(def.key, ns.macros.Place(def.key) == "account" and "character" or "account")
+			b:Refresh()
+		end)
+		Tip(place, def.name, L["Where this macro goes: the account's general slots or this character's own. Click to move it; it stays on your action bars."])
 		local pick = CreateFrame("Button", nil, b.content, "UIPanelButtonTemplate")
-		pick:SetSize(90, 20)
+		pick:SetSize(76, 20)
 		pick:SetPoint("LEFT", check, "LEFT", 440, 0)
 		pick:SetText(L["Pick up"])
 		pick:SetScript("OnClick", function()
@@ -815,6 +843,7 @@ local function MacrosPage()
 		b.refreshers[#b.refreshers + 1] = function()
 			local text, state = ns.MacroStatusText(def.key)
 			status:SetText(text)
+			place:SetText(L[PLACE_LABEL[ns.macros.Place(def.key)]])
 			pick:SetEnabled(state == "ready" or state == "edited")
 		end
 	end

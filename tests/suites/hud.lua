@@ -611,13 +611,13 @@ do
 
 	-- New macros.
 	ns.macros.SetManaged(true)
-	local faerie = W.CharacterMacro("FD Faerie Fire")
+	local faerie = W.Macro("FD Faerie Fire")
 	check(faerie and faerie.body:find("[@mouseover,harm,nodead][] Faerie Fire", 1, true), "FD Faerie: mouseover Faerie Fire")
 	check(not faerie.body:find("[form,", 1, true), "FD Faerie never uses a bare [form] (Moonkin or Travel would pick the Feral spell)")
-	local swift = W.CharacterMacro("FD Swift Heal")
+	local swift = W.Macro("FD Swift Heal")
 	check(swift and swift.body:find("/cast Nature's Swiftness", 1, true) and swift.body:find("Healing Touch", 1, true),
 		"FD Swift Heal: Nature's Swiftness into Healing Touch")
-	check(W.CharacterMacro("FD Barkskin") and #swift.body <= 255, "FD Barkskin created; bodies fit the macro limit")
+	check(W.Macro("FD Barkskin") and #swift.body <= 255, "FD Barkskin created; bodies fit the macro limit")
 	check(W.ShowOptionsPanel(), "settings with Alerts and Party pages show")
 	noErrors(W, "no errors or blocked actions")
 end

@@ -255,7 +255,7 @@ reagent to the amounts you set, only what you can afford.
 ## Macros
 
 Turn on **Create and update my druid macros** on the Macros settings page, in the quick menu, or
-with `/fd macros on`. Forever Druid writes "FD ..." macros into your character's own macro slots
+with `/fd macros on`. Forever Druid writes "FD ..." macros into your macro slots
 for the spells you know, and adds more as you learn them:
 
 Each is named "FD " plus the spell it casts, in full where that fits the game's 16-character limit
@@ -279,11 +279,23 @@ for what the button is for: FD Survival, FD Travel, FD Ravage Opener.
 | FD Barkskin | Barkskin in any form (Forever lets you cast it shifted) |
 | FD Swift Heal | Nature's Swiftness into an instant Healing Touch |
 
-These start off, so they don't fill your 30 character macro slots (all of them together would need
-45). Tick the ones you want, or pick a play style under "How do you play?" and it ticks the ones
-that suit it. The Macros page groups them (Healing, Forms and travel, Cat Form, Bear Form and so
-on) and shows how many of your 30 slots are used; when they're full it turns red and each macro
-still waiting says "no free macro slot".
+These start off. Tick the ones you want, or pick a play style under "How do you play?" and it ticks
+the ones that suit it. The Macros page groups them (Healing, Forms and travel, Cat Form, Bear Form
+and so on).
+
+**Account or character slots.** The game has 120 general macro slots shared by every character on
+the account, and 30 more for each character. FD macros go in the account's slots unless you say
+otherwise, because all 45 fit there. **Put them all in** switches every FD macro between the two,
+and the button on each row (Account or Character) moves just that one. A moved macro is put back
+on the action buttons it was on. Things to know:
+
+- Account macros show up in the macro window of every character, including ones that aren't
+  druids. Use the character slots if you'd rather they didn't.
+- If you have two druids, they share the account macros; each updates them for its own forms and
+  bags when it logs in.
+- The page shows how many slots are used in each place. A full one turns red, and each macro still
+  waiting says "no free macro slot".
+- Macros you've edited are never moved.
 
 | Macro | Does |
 |---|---|

@@ -8,6 +8,10 @@ local L = ns.L
 ---------------------------------------------------------------------------
 
 ns.RELEASE_NOTES = {
+	{ version = "0.9.0", notes = {
+		"FD macros now go in your account's 120 general macro slots, so there's room for all of them. The ones you already had were moved and are still on your action bars.", -- luacheck: no max line length
+		"On the Macros page, each macro has a button to keep it in the account's slots or this character's own, and one setting moves them all.", -- luacheck: no max line length
+	} },
 	{ version = "0.8.0", notes = {
 		"24 new macros, off until you tick them on the Macros page (or pick a play style): Growl, Bash and Feral Charge from any form, Maul woven into Lacerate, Primal Bite and Swipe, Berserk with Tiger's Fury, Dash, a Pounce opener, one-button travel forms, Moonkin Form, Hurricane at your cursor, mouseover Moonfire, Insect Swarm, Soothe Animal and Wild Growth, Heal or Wrath, poison and curse cleansing, a Bear Form survival button, Healthstone then potion, Spirit-weapon Innervate, a Bear weapon swap, both trinkets and next target. The potion and weapon macros pick the best one from your bags.", -- luacheck: no max line length
 		"Better macros you already have: Shift for Swiftmend on Rejuvenation and Gift of the Wild on Mark, Revive out of combat on Rebirth, Shift for your focus on Roots and Hibernate, Prowl gets you off your mount, and the Ravage opener carries on with Shred. Barkskin no longer drops your form, and buffs and heals no longer drop Moonkin Form or Tree of Life where Forever still lets you cast them.", -- luacheck: no max line length

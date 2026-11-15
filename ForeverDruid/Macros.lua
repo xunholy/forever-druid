@@ -1,8 +1,10 @@
 -- Creates the druid macros in MacroList.lua and keeps them up to date.
 --
 -- Only macros named "FD ..." are ever touched, and only ones ForeverDruid wrote itself: the body
--- it last wrote is remembered per character, and a macro whose text no longer matches (you edited
--- it) is left alone. Macros go in the character's own slots, so other characters never see them.
+-- it last wrote is remembered, and a macro whose text no longer matches (you edited it) is left
+-- alone. Each macro goes where you choose: the account's 120 general slots (every character on
+-- the account sees those) or this character's own 30. Changing the choice moves the macro and puts
+-- it back on the action buttons it was on.
 --
 -- Nothing is deleted because a spell seems unknown (the spellbook can be empty for a moment at
 -- login); a macro is only removed when you untick it or turn macro management off.
@@ -11,7 +13,8 @@ local _, ns = ...
 local L = ns.L
 local M = ns.macros
 local BY_KEY, FormIndex, S = M.BY_KEY, M.FormIndex, M.SpellName
-local ICON, MAX_CHARACTER_MACROS = M.ICON, M.MAX_CHARACTER_MACROS
+local ICON, MAX_CHARACTER_MACROS, MAX_ACCOUNT_MACROS = M.ICON, M.MAX_CHARACTER_MACROS, M.MAX_ACCOUNT_MACROS
+local MAX_ACTION_SLOTS = 180
 
 ---------------------------------------------------------------------------
 -- State
@@ -21,8 +24,10 @@ local function Config()
 	return ns.db.macros
 end
 
--- Bodies ForeverDruid last wrote, per character: global.macroBodies[charKey][key] = body.
-local function Written()
+-- Bodies ForeverDruid last wrote. Character macros: global.macroBodies[charKey][key] = body.
+-- Account macros are shared, so their record is too: global.macroBodiesAccount[key] = body. Any
+-- druid on the account then keeps them up to date for itself when it logs in.
+local function CharacterRecords()
 	ns.global.macroBodies = ns.global.macroBodies or {}
 	local mine = ns.global.macroBodies[ns.charKey]
 	if not mine then
@@ -30,6 +35,47 @@ local function Written()
 		ns.global.macroBodies[ns.charKey] = mine
 	end
 	return mine
+end
+
+local function AccountRecords()
+	ns.global.macroBodiesAccount = ns.global.macroBodiesAccount or {}
+	return ns.global.macroBodiesAccount
+end
+
+local function Recorded(key)
+	return AccountRecords()[key] or CharacterRecords()[key]
+end
+
+-- body = nil forgets it.
+local function Record(key, body, place)
+	AccountRecords()[key], CharacterRecords()[key] = nil, nil
+	if body then
+		(place == "account" and AccountRecords() or CharacterRecords())[key] = body
+	end
+end
+
+-- Where you want a macro: your choice for it, otherwise the default for all of them.
+function M.Place(key)
+	local cfg = Config()
+	local own = cfg.places and cfg.places[key]
+	if own == "account" or own == "character" then
+		return own
+	end
+	return cfg.place == "character" and "character" or "account"
+end
+
+-- Where a macro is: account macros are numbered 1-120, character macros after that.
+local function PlaceOf(index)
+	return index <= MAX_ACCOUNT_MACROS and "account" or "character"
+end
+M.PlaceOf = PlaceOf
+
+local function SlotsFree(place)
+	local account, character = GetNumMacros()
+	if place == "account" then
+		return MAX_ACCOUNT_MACROS - (tonumber(account) or 0)
+	end
+	return MAX_CHARACTER_MACROS - (tonumber(character) or 0)
 end
 
 -- Ticked in the settings: your choice if you made one, otherwise the macro's default.
@@ -102,7 +148,7 @@ local function Existing(def)
 		local _, _, body = GetMacroInfo(index)
 		return index, body
 	end
-	if not Written()[def.key] then
+	if not Recorded(def.key) then
 		return nil
 	end
 	for _, name in ipairs(def.renamedFrom or {}) do
@@ -120,7 +166,7 @@ end
 function M.Status(key)
 	local def = BY_KEY[key]
 	local index, body = Existing(def)
-	local written = Written()[key]
+	local written = Recorded(key)
 	if index and written and not Same(body, written) then
 		return "edited"
 	end
@@ -130,7 +176,7 @@ function M.Status(key)
 	if index then
 		return "ready"
 	end
-	if M.HasSpells(def) and (not def.ready or def.ready()) and M.Slots().free <= 0 then
+	if M.HasSpells(def) and (not def.ready or def.ready()) and GetNumMacros and SlotsFree(M.Place(key)) <= 0 then
 		return "full"
 	end
 	local has, missing = M.HasSpells(def)
@@ -153,24 +199,74 @@ end
 M.lastSync = { created = 0, updated = 0, removed = 0, skipped = 0, full = false }
 local pending = false
 
-local function CharacterSlotsFree()
-	local _, perCharacter = GetNumMacros()
-	return MAX_CHARACTER_MACROS - (tonumber(perCharacter) or 0)
-end
-
--- Character macro slots: how many are used, how many are free, how many of the used ones are FD
--- macros, and how many ticked macros are ready but have no slot to go in.
+-- Macro slots, for each place: { max, used, free, ours (FD macros there), waiting (ticked and
+-- ready, but that place is full) }.
 function M.Slots()
-	local free = GetNumMacros and CharacterSlotsFree() or MAX_CHARACTER_MACROS
-	local ours, waiting = 0, 0
+	local out = {}
+	for _, place in ipairs({ "account", "character" }) do
+		local max = place == "account" and MAX_ACCOUNT_MACROS or MAX_CHARACTER_MACROS
+		local free = GetNumMacros and SlotsFree(place) or max
+		out[place] = { max = max, used = max - free, free = free, ours = 0, waiting = 0 }
+	end
 	for _, def in ipairs(M.LIST) do
-		if Existing(def) then
-			ours = ours + 1
-		elseif free <= 0 and M.IsWanted(def.key) and M.HasSpells(def) and (not def.ready or def.ready()) then
-			waiting = waiting + 1
+		local index = Existing(def)
+		if index then
+			local at = out[PlaceOf(index)]
+			at.ours = at.ours + 1
+		else
+			local want = out[M.Place(def.key)]
+			if want.free <= 0 and M.IsWanted(def.key) and M.HasSpells(def) and (not def.ready or def.ready()) then
+				want.waiting = want.waiting + 1
+			end
 		end
 	end
-	return { max = MAX_CHARACTER_MACROS, used = MAX_CHARACTER_MACROS - free, free = free, ours = ours, waiting = waiting }
+	return out
+end
+
+-- Action bar slots holding a macro by this name.
+local function ButtonsWith(name)
+	local slots = {}
+	local textOf = (C_ActionBar and C_ActionBar.GetActionText) or GetActionText
+	if not (GetActionInfo and textOf) then
+		return slots
+	end
+	for slot = 1, MAX_ACTION_SLOTS do
+		local kind = ns.SafeReadable(GetActionInfo, slot)
+		if kind == "macro" and ns.SafeReadable(textOf, slot) == name then
+			slots[#slots + 1] = slot
+		end
+	end
+	return slots
+end
+
+-- Moves an FD macro between the account and character slots. The game can't move a macro, so it
+-- is deleted and made again, then put back on every action button that held it. Returns the new
+-- index and how many buttons were refilled; if the game refuses the new one, the old is restored.
+local function Move(def, index, body, place)
+	local buttons = ButtonsWith(def.name)
+	local _, icon = GetMacroInfo(index)
+	local from = PlaceOf(index)
+	body = Norm(body)
+	DeleteMacro(index)
+	local function Make(where)
+		local ok, made = pcall(CreateMacro, def.name, icon or def.icon or ICON, body, where == "character")
+		return ok and type(made) == "number" and made > 0 and made or nil
+	end
+	local created = Make(place)
+	if not created then
+		created, place = Make(from), from -- the game refused: put it back where it was
+	end
+	local refilled = 0
+	if created and PickupMacro and PlaceAction and ClearCursor then
+		for _, slot in ipairs(buttons) do
+			ClearCursor()
+			PickupMacro(created)
+			PlaceAction(slot)
+			ClearCursor()
+			refilled = refilled + 1
+		end
+	end
+	return created, place, refilled
 end
 
 -- Brings the FD macros in line with the settings. Out of combat only (the client refuses macro
@@ -184,36 +280,48 @@ function M.Sync()
 		return false
 	end
 	pending = false
-	local written = Written()
-	local result = { created = 0, updated = 0, removed = 0, skipped = 0, full = false }
+	local result = { created = 0, updated = 0, removed = 0, skipped = 0, moved = 0, buttons = 0, full = false }
 	local function One(def)
 		local index, current, oldName = Existing(def)
-		local ours = index and written[def.key] and Same(current, written[def.key])
+		local record = Recorded(def.key)
+		local ours = index and record and Same(current, record)
 		if oldName and ours then
 			-- Renamed: same slot, new name (EditMacro returns the slot it ends up in).
 			index = EditMacro(index, def.name, nil, current) or index
 			result.updated = result.updated + 1
 		end
-		if index and written[def.key] and not ours then
+		if index and record and not ours then
 			result.skipped = result.skipped + 1 -- you edited it: hands off
 		elseif M.IsWanted(def.key) then
+			local place = M.Place(def.key)
+			if ours and PlaceOf(index) ~= place then
+				if SlotsFree(place) > 0 then
+					local now, refilled
+					index, now, refilled = Move(def, index, current, place)
+					Record(def.key, Norm(current), now)
+					result.moved = result.moved + 1
+					result.buttons = result.buttons + refilled
+				else
+					result.full = true
+				end
+			end
 			local body = Body(def)
 			if body then
 				if not index then
-					if CharacterSlotsFree() > 0 then
-						local created = CreateMacro(def.name, def.icon or ICON, body, true)
+					if SlotsFree(place) > 0 then
+						local created = CreateMacro(def.name, def.icon or ICON, body, place == "character")
 						if type(created) == "number" and created > 0 then
-							written[def.key] = body
+							Record(def.key, body, place)
 							result.created = result.created + 1
 						end
 					else
 						result.full = true
 					end
 				elseif Same(current, body) then
-					written[def.key] = body -- adopt an identical macro (e.g. after a reinstall)
+					Record(def.key, body, PlaceOf(index)) -- adopt an identical macro (e.g. after a reinstall)
 				elseif ours then
 					EditMacro(index, nil, nil, body)
-					written[def.key] = body
+					Record(def.key, body, PlaceOf(index))
 					result.updated = result.updated + 1
 				else
 					result.skipped = result.skipped + 1 -- a macro of yours already has this name
@@ -221,7 +329,7 @@ function M.Sync()
 			end
 		elseif ours then
 			DeleteMacro(index)
-			written[def.key] = nil
+			Record(def.key, nil)
 			result.removed = result.removed + 1
 		end
 	end
@@ -264,13 +372,47 @@ function M.SetWanted(key, on)
 	M.Sync()
 end
 
+local function SyncAndSayMoves()
+	if InCombatLockdown() then
+		pending = true
+		ns.Print(L["macros will update when the fight ends"])
+		return
+	end
+	local _, result = M.Sync()
+	if result and result.moved > 0 then
+		ns.Print(L["macros moved: %d, put back on %d action buttons"]:format(result.moved, result.buttons))
+	end
+	if result and result.full then
+		ns.Print(L["no free macro slots there: delete one in /macro to make room"])
+	end
+end
+
+-- One macro to the account or character slots.
+function M.SetPlace(key, place)
+	local cfg = Config()
+	cfg.places = cfg.places or {}
+	cfg.places[key] = place == "character" and "character" or "account"
+	SyncAndSayMoves()
+end
+
+-- All of them, and the default for ones made later.
+function M.SetPlaceForAll(place)
+	local cfg = Config()
+	cfg.place = place == "character" and "character" or "account"
+	cfg.places = {}
+	SyncAndSayMoves()
+end
+
 function M.Report(result)
 	if not result then
 		return
 	end
 	ns.Print(("%s: %d %s, %d %s, %d %s"):format(L["macros"], result.created, L["created"], result.updated, L["updated"], result.removed, L["removed"]))
+	if result.moved and result.moved > 0 then
+		ns.Print(L["macros moved: %d, put back on %d action buttons"]:format(result.moved, result.buttons))
+	end
 	if result.full then
-		ns.Print(L["no free character macro slots: delete one in /macro to make room"])
+		ns.Print(L["no free macro slots there: delete one in /macro to make room"])
 	end
 	if result.skipped > 0 then
 		ns.Print(L["left alone because you edited them:"] .. " " .. result.skipped)
@@ -283,14 +425,14 @@ function M.Restore()
 		ns.Print(L["can't change macros during combat"])
 		return 0
 	end
-	local written, restored = Written(), 0
+	local restored = 0
 	for _, def in ipairs(M.LIST) do
 		local index, current = Existing(def)
 		-- Only macros ForeverDruid wrote: a macro of yours that shares a name is never touched.
-		local body = index and written[def.key] and M.IsWanted(def.key) and Body(def)
+		local body = index and Recorded(def.key) and M.IsWanted(def.key) and Body(def)
 		if body and not Same(current, body) then
 			EditMacro(index, nil, nil, body)
-			written[def.key] = body
+			Record(def.key, body, PlaceOf(index))
 			restored = restored + 1
 		end
 	end

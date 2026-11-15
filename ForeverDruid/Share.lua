@@ -362,9 +362,13 @@ function ns.SanitizeProfile(raw)
 	local mine = ns.db or ns.defaults
 	profile.restock = profile.restock or {}
 	profile.restock.enabled = mine.restock and mine.restock.enabled or false
-	profile.macros = { manage = mine.macros and mine.macros.manage or false, enabled = {} }
+	profile.macros = { manage = mine.macros and mine.macros.manage or false, enabled = {}, places = {},
+		place = mine.macros and mine.macros.place or "account" }
 	for key, value in pairs(mine.macros and mine.macros.enabled or {}) do
 		profile.macros.enabled[key] = value
+	end
+	for key, value in pairs(mine.macros and mine.macros.places or {}) do
+		profile.macros.places[key] = value
 	end
 	profile.ranks.auto = mine.ranks and mine.ranks.auto
 	if profile.ranks.auto == nil then
