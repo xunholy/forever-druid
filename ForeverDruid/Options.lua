@@ -644,6 +644,8 @@ local MODULE_PAGES = {
 			L["The mana bar with the rest of the HUD under your character."])
 		s:Check(L["Show it under my player frame"], ModuleGetter("manabar", "attach"), ModuleSetter("manabar", "attach"),
 			L["A second mana bar attached under the energy or rage bar on your player frame, in Cat and Bear Form. It follows the frame if you move or resize it. You can have both, either or neither."]) -- luacheck: no max line length
+		s:Check(L["Blend it into the player frame"], ModuleGetter("manabar", "attachBlend"), ModuleSetter("manabar", "attachBlend"),
+			L["Uses the player frame's own art for a second power bar, so the mana bar sits inside the frame's border like the bars above it. Untick for a plain bar hanging under the frame, whose height you can set."]) -- luacheck: no max line length
 		s:Slider(L["Player frame bar height"], 4, 20, 1, ModuleGetter("manabar", "attachHeight"), ModuleSetter("manabar", "attachHeight"))
 		s:Slider(L["Player frame bar: nudge up or down"], -30, 30, 1, ModuleGetter("manabar", "attachOffset"), ModuleSetter("manabar", "attachOffset"),
 			L["Moves the attached bar up or down a little, for example to clear the combo points under the frame."])

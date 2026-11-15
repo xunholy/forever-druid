@@ -49,35 +49,78 @@ do
 	check(manabar.marker:IsShown(), "powershift cost marker shown (cost 400 of 4000)")
 	check(manabar.bar._color and #manabar.bar._color == 3, "mana bar coloured through the curve")
 
-	-- The second mana bar, attached under the player frame's power bar.
+	-- The second mana bar, attached to the player frame and blended into its art.
 	local attached = manabar.attached
-	local point, relativeTo, relativePoint = attached.frame:GetPoint()
-	check(attached.bar:IsShown() and attached.frame:IsShown(), "a second mana bar shows under the player frame in Cat Form")
-	check(point == "TOPLEFT" and relativeTo == W.playerPowerBar and relativePoint == "BOTTOMLEFT" and attached.frame:GetHeight() == 9,
-		"it hangs off the player frame's power bar, 9 high, so it follows the frame")
-	check(attached.text:GetText() == "<secret text>" and attached.bar._color and #attached.bar._color == 3,
-		"same text and colouring as the HUD bar, from secret values")
-	attached.frame:SetWidth(124)
+	local art = W.playerFrame.PlayerFrameContainer
+	local main = W.playerFrame.PlayerFrameContent.PlayerFrameContentMain
+	local point, relativeTo, relativePoint, x, y = attached.frame:GetPoint()
+	check(attached.bar:IsShown() and attached.frame:IsShown(), "a second mana bar shows on the player frame in Cat Form")
+	check(point == "TOPLEFT" and relativeTo == main and relativePoint == "TOPLEFT" and x == 85 and y == -73
+		and attached.frame:GetWidth() == 124 and attached.frame:GetHeight() == 9,
+		"blended: it sits in the slot Blizzard's art leaves under the power bar (85,-73, 124x9)")
+	check(not art.FrameTexture:IsShown() and art.AlternatePowerFrameTexture:IsShown(),
+		"and the player frame switches to its art with that slot, so the border runs round the bar")
+	check(rawget(art.FrameFlash, "_atlas") == "UI-HUD-UnitFrame-Player-PortraitOn-ClassResource-InCombat"
+		and rawget(W.playerPowerBar.ManaBarMask, "_atlas") == "Unit_BarMask"
+		and rawget(attached.bar, "_barTexture") == "UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana-Status",
+		"with the matching combat glow, power bar mask and mana fill")
+	check(attached.text:GetText() == "<secret text>" and attached.bar._color and #attached.bar._color == 3 and attached.marker:IsShown(),
+		"same text, colouring and powershift marker as the HUD bar, from secret values")
+	PlayerFrame_ToPlayerArt()
+	check(not art.FrameTexture:IsShown() and art.AlternatePowerFrameTexture:IsShown(), "Blizzard redrawing the frame art doesn't undo it")
+
+	-- Leaving the form gives the frame its plain art back.
+	W.state.form = 0
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.1)
+	check(not attached.frame:IsShown() and art.FrameTexture:IsShown() and not art.AlternatePowerFrameTexture:IsShown()
+		and rawget(art.FrameFlash, "_atlas") == "UI-HUD-UnitFrame-Player-PortraitOn-InCombat"
+		and rawget(W.playerPowerBar.ManaBarMask, "_atlas") == "UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana-Mask",
+		"back in caster form: bar gone and the player frame's own art, glow and mask restored")
+	W.state.form = 1
+	W.Fire("UPDATE_SHAPESHIFT_FORM")
+	W.Advance(0.1)
+
+	-- Plain: a bar hanging under the frame, for anyone who prefers it or whose frame art differs.
+	ns.db.modules.manabar.attachBlend = false
 	manabar:Refresh()
-	check(attached.marker:IsShown(), "and the same powershift marker once it has a width")
+	point, relativeTo, relativePoint = attached.frame:GetPoint()
+	check(point == "TOPLEFT" and relativeTo == W.playerPowerBar and relativePoint == "BOTTOMLEFT" and attached.frame:GetHeight() == 9
+		and art.FrameTexture:IsShown() and not art.AlternatePowerFrameTexture:IsShown()
+		and rawget(attached.bar, "_barTexture") == "Interface\\TargetingFrame\\UI-StatusBar",
+		"blend off: it hangs off the power bar instead and the frame keeps its plain art")
+	ns.db.modules.manabar.attachHeight, ns.db.modules.manabar.attachOffset = 12, -6
+	manabar:Refresh()
+	check(attached.frame:GetHeight() == 12 and select(5, attached.frame:GetPoint()) == -6, "plain bar: height and nudge follow the settings")
+	ns.db.modules.manabar.attachBlend, ns.db.modules.manabar.attachHeight = true, 9
+	manabar:Refresh()
+	check(select(5, attached.frame:GetPoint()) == -79 and art.AlternatePowerFrameTexture:IsShown(), "blended again; the nudge still applies")
+	ns.db.modules.manabar.attachOffset = 0
+
 	ns.db.modules.manabar.hud = false
 	manabar:Refresh()
 	check(not manabar.bar:IsShown() and not manabar.anchor:IsShown() and attached.bar:IsShown(), "the HUD bar can be off with the attached one on")
 	ns.db.modules.manabar.hud, ns.db.modules.manabar.attach = true, false
 	manabar:Refresh()
-	check(manabar.bar:IsShown() and not attached.frame:IsShown(), "or the attached one off with the HUD bar on")
-	ns.db.modules.manabar.attach, ns.db.modules.manabar.attachHeight, ns.db.modules.manabar.attachOffset = true, 12, -6
+	check(manabar.bar:IsShown() and not attached.frame:IsShown() and art.FrameTexture:IsShown(),
+		"or the attached one off with the HUD bar on, and the frame art plain again")
+	ns.db.modules.manabar.attach = true
 	manabar:Refresh()
-	check(manabar.bar:IsShown() and attached.bar:IsShown() and attached.frame:GetHeight() == 12
-		and select(5, attached.frame:GetPoint()) == -6, "both on together; height and nudge follow the settings")
+	check(manabar.bar:IsShown() and attached.bar:IsShown(), "both on together")
+	W.playerFrame.state = "vehicle"
+	art.FrameTexture:Hide()
+	manabar:Refresh()
+	check(not art.FrameTexture:IsShown() and not art.AlternatePowerFrameTexture:IsShown(), "in a vehicle the game's vehicle art is left alone")
+	W.playerFrame.state = "player"
+	art.FrameTexture:Show()
 	W.noPlayerFrame = true
 	manabar:Refresh()
 	check(not attached.frame:IsShown() and manabar.bar:IsShown(), "player frame replaced by another addon: no attached bar, HUD bar unaffected")
 	W.noPlayerFrame = nil
-	ns.db.modules.manabar.attachHeight, ns.db.modules.manabar.attachOffset = 9, 0
 	manabar:Refresh()
 	ns.SetModuleEnabled("manabar", false)
-	check(not attached.frame:IsShown() and not manabar.anchor:IsShown(), "turning the part off hides both")
+	check(not attached.frame:IsShown() and not manabar.anchor:IsShown() and art.FrameTexture:IsShown()
+		and not art.AlternatePowerFrameTexture:IsShown(), "turning the part off hides both and restores the frame art")
 	ns.SetModuleEnabled("manabar", true)
 	check(attached.frame:IsShown() and manabar.bar:IsShown(), "and on again shows both")
 

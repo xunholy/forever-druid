@@ -101,6 +101,65 @@ local function PlayerPowerBar()
 end
 M.PlayerPowerBar = PlayerPowerBar
 
+---------------------------------------------------------------------------
+-- Blending the attached bar into the player frame
+--
+-- Forever's player frame carries the art Blizzard uses in other versions for a second power bar:
+-- a frame texture with a slot under the power bar (hidden by default), a matching combat glow and
+-- a rounded mask. With "blend" on, the attached bar goes in that slot at Blizzard's own position
+-- and the frame swaps to that art, so the bar looks built in. Only textures are shown, hidden or
+-- re-skinned, never the frame's protected parts, and everything is put back when the bar hides.
+---------------------------------------------------------------------------
+
+local SLOT = { x = 85, y = -73, width = 124, height = 9 } -- PlayerFrameAlternatePowerBarBaseTemplate
+local ART = {
+	bar = "UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana-Status", -- the colourable mana fill
+	barMask = "UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana-Mask",
+	glow = "UI-HUD-UnitFrame-Player-PortraitOn-InCombat",
+	glowWithSlot = "UI-HUD-UnitFrame-Player-PortraitOn-ClassResource-InCombat",
+	powerMask = "UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana-Mask",
+	powerMaskWithSlot = "Unit_BarMask", -- the power bar is no longer the rounded bottom bar
+}
+
+-- The pieces of the player frame the blend needs, or nil if any is missing (another addon's frame).
+local function FrameParts()
+	local ok, parts = pcall(function()
+		local container = PlayerFrame.PlayerFrameContainer
+		local main = PlayerFrame.PlayerFrameContent.PlayerFrameContentMain
+		if not (container.FrameTexture and container.AlternatePowerFrameTexture and main) then
+			return nil
+		end
+		return { plain = container.FrameTexture, withSlot = container.AlternatePowerFrameTexture, glow = container.FrameFlash,
+			main = main, powerMask = main.ManaBarArea and main.ManaBarArea.ManaBar and main.ManaBarArea.ManaBar.ManaBarMask }
+	end)
+	return ok and parts or nil
+end
+
+-- Swaps the player frame between its plain art and the art with a slot for the attached bar.
+-- Returns true if the frame is now showing the slot.
+function M:SetFrameArt(withSlot)
+	local parts = FrameParts()
+	if not parts then
+		self.artOn = false
+		return false
+	end
+	local inVehicle = PlayerFrame.state == "vehicle" -- Blizzard shows its vehicle art then: leave it
+	local ok = pcall(function()
+		if not inVehicle then
+			parts.plain:SetShown(not withSlot)
+		end
+		parts.withSlot:SetShown(withSlot and not inVehicle)
+		if parts.glow and parts.glow.SetAtlas then
+			parts.glow:SetAtlas(withSlot and ART.glowWithSlot or ART.glow, true)
+		end
+		if parts.powerMask and parts.powerMask.SetAtlas then
+			parts.powerMask:SetAtlas(withSlot and ART.powerMaskWithSlot or ART.powerMask, true)
+		end
+	end)
+	self.artOn = ok and withSlot and not inVehicle or false
+	return self.artOn
+end
+
 function M:Init()
 	local cfg = ns.ModuleConfig("manabar")
 	BuildCurves()
@@ -119,6 +178,21 @@ function M:Init()
 			self:UpdateMarker(self.attached)
 		end
 	end)
+	-- Rounded ends for the blended look; only added to the fill while blending.
+	local mask = holder.CreateMaskTexture and holder:CreateMaskTexture()
+	if mask then
+		mask:SetAtlas(ART.barMask, true)
+		mask:SetPoint("TOPLEFT", holder, "TOPLEFT", -2, 3)
+	end
+	self.attached.mask = mask
+	-- Blizzard redraws the frame art when you leave a vehicle or the frame resets; put ours back.
+	if hooksecurefunc and PlayerFrame_ToPlayerArt then
+		hooksecurefunc("PlayerFrame_ToPlayerArt", function()
+			if self.enabled and self.artOn then
+				self:SetFrameArt(true)
+			end
+		end)
+	end
 
 	ns.OnUnit("UNIT_POWER_FREQUENT", "player", function(_, _, powerType)
 		if self.enabled and powerType == "MANA" then
@@ -254,18 +328,44 @@ function M:Update()
 	end
 end
 
--- Under the player frame's power bar, the same width, following it wherever it goes.
+-- Blended: in the slot Blizzard's art leaves under the power bar. Plain: under the player frame's
+-- power bar, the same width. Either way it is anchored to the frame, so it follows it.
 function M:PlaceAttached()
 	local cfg = ns.ModuleConfig("manabar")
 	local power = PlayerPowerBar()
-	local holder = self.attached.frame
+	local view = self.attached
+	local holder = view.frame
 	if not power then
 		return false
 	end
+	local parts = cfg.attachBlend and FrameParts()
 	holder:ClearAllPoints()
-	holder:SetPoint("TOPLEFT", power, "BOTTOMLEFT", 0, cfg.attachOffset or 0)
-	holder:SetPoint("TOPRIGHT", power, "BOTTOMRIGHT", 0, cfg.attachOffset or 0)
-	holder:SetHeight(cfg.attachHeight or 9)
+	local fill = view.bar.GetStatusBarTexture and view.bar:GetStatusBarTexture()
+	if parts and self:SetFrameArt(true) then
+		holder:SetPoint("TOPLEFT", parts.main, "TOPLEFT", SLOT.x, SLOT.y + (cfg.attachOffset or 0))
+		holder:SetSize(SLOT.width, SLOT.height)
+		view.bar:SetStatusBarTexture(ART.bar)
+		fill = view.bar.GetStatusBarTexture and view.bar:GetStatusBarTexture()
+		if view.mask and fill and fill.AddMaskTexture and not view.masked then
+			fill:AddMaskTexture(view.mask)
+			view.masked = true
+		end
+		view.blended = true
+	else
+		holder:SetPoint("TOPLEFT", power, "BOTTOMLEFT", 0, cfg.attachOffset or 0)
+		holder:SetPoint("TOPRIGHT", power, "BOTTOMRIGHT", 0, cfg.attachOffset or 0)
+		holder:SetHeight(cfg.attachHeight or 9)
+		if view.blended then
+			view.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+			if view.mask and fill and fill.RemoveMaskTexture and view.masked then
+				fill:RemoveMaskTexture(view.mask)
+			end
+			view.masked, view.blended = false, false
+		end
+		if self.artOn then
+			self:SetFrameArt(false)
+		end
+	end
 	return true
 end
 
@@ -277,6 +377,9 @@ function M:Refresh()
 	self.anchor:SetShown(show)
 	self.hud.bar:SetShown(show)
 	local attach = self:ShouldShowAttached() and self:PlaceAttached() and true or false
+	if not attach and self.artOn then
+		self:SetFrameArt(false) -- the bar is going: give the frame its plain art back
+	end
 	self.attached.frame:SetShown(attach)
 	self.attached.bar:SetShown(attach)
 	for _, view in ipairs({ self.hud, self.attached }) do
@@ -297,4 +400,7 @@ function M:Disable()
 	self.anchor:Hide()
 	self.attached.bar:Hide()
 	self.attached.frame:Hide()
+	if self.artOn then
+		self:SetFrameArt(false)
+	end
 end

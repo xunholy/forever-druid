@@ -8,8 +8,9 @@
   stay where they are.
 - The Macros page has a button on each macro to keep it in the account's slots or this character's
   own 30, a setting to move them all, and a slot count for both.
-- A second mana bar attached under your player frame's energy or rage bar in Cat and Bear Form.
-  It follows the frame when you move or resize it. The HUD mana bar and this one are switched on
+- A second mana bar on your player frame, under the energy or rage bar in Cat and Bear Form. It
+  uses the frame's own art for a second power bar, so it sits inside the border like the bars
+  above it, and follows the frame when you move or resize it. The HUD mana bar and this one are switched on
   separately, so you can have both, either or neither.
 - Account macros are shared: every character on the account sees them, and another druid keeps
   them up to date for its own forms when it logs in.
