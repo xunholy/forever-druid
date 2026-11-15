@@ -9,6 +9,7 @@ local L = ns.L
 
 ns.RELEASE_NOTES = {
 	{ version = "0.9.0", notes = {
+		"A second mana bar now sits under your player frame's energy or rage bar in Cat and Bear Form. Keep it, the HUD one, or both: the switches are on the Mana bar settings page.", -- luacheck: no max line length
 		"FD macros now go in your account's 120 general macro slots, so there's room for all of them. The ones you already had were moved and are still on your action bars.", -- luacheck: no max line length
 		"On the Macros page, each macro has a button to keep it in the account's slots or this character's own, and one setting moves them all.", -- luacheck: no max line length
 	} },

@@ -335,6 +335,12 @@ end
 function Frame:SetTexture(t)
 	self._texture = t
 end
+function Frame:SetAtlas(atlas)
+	self._atlas = atlas
+end
+function Frame:SetStatusBarTexture(t)
+	self._barTexture = t
+end
 function Frame:SetChecked(v)
 	self._checked = v
 end
@@ -709,6 +715,44 @@ function W.ShowItemTooltip(link, tooltip)
 	return lines
 end
 W.itemStats, W.itemSlots, W.equipped = {}, {}, {}
+-- The player frame, as far as the attached mana bar reads it: the plain frame art, the hidden art
+-- with a slot for a second power bar, the combat glow, and the power bar with its mask.
+-- W.noPlayerFrame = true stands for a unit-frame addon having replaced it.
+W.playerPowerBar = CreateFrame("StatusBar", nil, UIParent)
+W.playerPowerBar:SetSize(124, 10)
+W.playerPowerBar.ManaBarMask = CreateFrame("Frame", nil, W.playerPowerBar)
+local function Art(shown)
+	local t = CreateFrame("Frame", nil, UIParent)
+	rawset(t, "_shown", shown)
+	return t
+end
+local realPlayerFrame = {
+	state = "player",
+	PlayerFrameContainer = { FrameTexture = Art(true), AlternatePowerFrameTexture = Art(false), FrameFlash = Art(false) },
+	PlayerFrameContent = { PlayerFrameContentMain = CreateFrame("Frame", nil, UIParent) },
+}
+realPlayerFrame.PlayerFrameContent.PlayerFrameContentMain.ManaBarArea = { ManaBar = W.playerPowerBar }
+W.playerFrame = realPlayerFrame
+PlayerFrame = setmetatable({}, { __index = function(_, key)
+	if W.noPlayerFrame then
+		return nil
+	end
+	return realPlayerFrame[key]
+end, __newindex = function(_, key, value)
+	realPlayerFrame[key] = value
+end })
+function PlayerFrame_GetManaBar()
+	if W.noPlayerFrame then
+		error("PlayerFrame is gone")
+	end
+	return W.playerPowerBar
+end
+-- Blizzard's own redraw of the frame art (leaving a vehicle, a frame reset): back to the plain art.
+function PlayerFrame_ToPlayerArt()
+	local c = realPlayerFrame.PlayerFrameContainer
+	c.FrameTexture:Show()
+	c.AlternatePowerFrameTexture:Hide()
+end
 function GetInventoryItemLink(_, slot)
 	return W.equipped[slot]
 end

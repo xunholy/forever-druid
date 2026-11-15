@@ -218,6 +218,10 @@ ns.defaults = {
 		manabar = {
 			enabled = true, scale = 1, width = 160, height = 10,
 			alwaysShow = false, text = "value", colorByLevel = true, shiftMarker = true, smooth = true,
+			-- Two bars, switched on separately: hud = in the HUD column, attach = under the player
+			-- frame's power bar (attachHeight tall, nudged attachOffset pixels up or down).
+			-- attachBlend = sit in the slot of the player frame's own second-power-bar art.
+			hud = true, attach = true, attachBlend = true, attachHeight = 9, attachOffset = 0,
 		},
 		powerbar = { enabled = true, scale = 1, width = 160, height = 12, text = true, smooth = true },
 		fsr = { enabled = true, scale = 1, width = 160, height = 4, casterOnly = false },
