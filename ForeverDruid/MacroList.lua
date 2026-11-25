@@ -455,6 +455,43 @@ M.LIST = {
 			local after = ns.IsCastable("frenziedRegeneration") and ("; " .. S("frenziedRegeneration")) or ""
 			return ("#showtooltip item:%d\n/use item:%d\n/cast [noform:%s] !%s%s"):format(potion, potion, bear, S(ns.BearFormKey()), after)
 		end },
+	{ key = "bearWall", name = "FD Bear Wall", default = false,
+		needs = { { "direBearForm", "bearForm" }, "enrage", "frenziedRegeneration" },
+		desc = "Your Bear Form defences on one key: Bear Form if you're not in it, then Enrage with Frenzied Regeneration, then Barkskin once you know it. Bear Form, Frenzied Regeneration and Barkskin each use the global cooldown, so keep pressing: each press casts the next one that's ready. Enrage goes with the heal, which turns its rage into health. Hold Shift in caster form to put Rejuvenation on yourself first; in a form Shift does nothing, so it never costs you the form.", -- luacheck: no max line length
+		body = function()
+			local bear = Forms("bear")
+			if not bear then
+				return nil
+			end
+			-- Not a /castsequence: that would stall on the heal's cooldown and never reach Barkskin.
+			local barkskin = ns.IsCastable("barkskin") and ("\n/cast %s"):format(S("barkskin")) or ""
+			-- Shift is a choice, not a step: a /castsequence would stall on a failed Rejuvenation.
+			local rejuv = ns.IsCastable("rejuvenation")
+				and ("/cast [mod:shift,noform,@player] %s\n/stopmacro [mod:shift,noform]\n"):format(S("rejuvenation")) or ""
+			return ("#showtooltip %s\n" .. rejuv .. "/cast [noform:%s] !%s\n/stopmacro [noform:%s]\n/cast %s\n/cast %s%s"):format(
+				S("frenziedRegeneration"), bear, S(ns.BearFormKey()), bear, S("enrage"), S("frenziedRegeneration"), barkskin)
+		end },
+	{ key = "bearEngage", name = "FD Bear Engage", default = false,
+		needs = { { "direBearForm", "bearForm" }, "enrage", { "feralCharge", "bash" } },
+		desc = "Open a fight as a bear: Bear Form if you're not in it, then Enrage for rage and Feral Charge from range or Bash up close, on the enemy under your mouse or your target. A macro can't measure distance, so it tries both: Feral Charge only works from 8 to 25 yards and Bash only in melee, so whichever fits your distance is the one that casts.", -- luacheck: no max line length
+		body = function()
+			local bear = Forms("bear")
+			if not bear then
+				return nil
+			end
+			local charge, bash = ns.IsCastable("feralCharge"), ns.IsCastable("bash")
+			local lines = { ("#showtooltip %s"):format(S(charge and "feralCharge" or "bash")),
+				("/cast [noform:%s] !%s"):format(bear, S(ns.BearFormKey())), ("/stopmacro [noform:%s]"):format(bear),
+				"/startattack", "/cast " .. S("enrage") }
+			-- Feral Charge first: it has no global cooldown, so a failed try costs nothing.
+			if charge then
+				lines[#lines + 1] = "/cast [@mouseover,harm,nodead][] " .. S("feralCharge")
+			end
+			if bash then
+				lines[#lines + 1] = "/cast [@mouseover,harm,nodead][] " .. S("bash")
+			end
+			return table.concat(lines, "\n")
+		end },
 	{ key = "stonePotion", name = "FD Healthstone", renamedFrom = { "FD Stone Potion" }, needs = {}, default = false,
 		desc = "Your best Healthstone, then your best healing potion on the next press (back to the Healthstone when combat ends). Works in any form. Picks both from your bags.", -- luacheck: no max line length
 		ready = function()
@@ -591,7 +628,7 @@ M.GROUPS = {
 	{ label = "Forms and travel", keys = { "shiftCat", "shiftBear", "moonkin", "travel", "powershift", "reshift" } },
 	{ label = "Cat Form", keys = { "claw", "prowl", "opener", "pounce", "dash", "berserk" } },
 	{ label = "Bear Form", keys = { "maul", "lacerate", "primalBite", "swipe", "growl", "bash", "feralCharge", "bearRejuv",
-		"bearPotion", "bearWeapon" } },
+		"bearPotion", "bearWall", "bearEngage", "bearWeapon" } },
 	{ label = "Balance and crowd control", keys = { "faerie", "moonfire", "insectSwarm", "hurricane", "healWrath", "roots",
 		"hibernate", "sootheAnimal" } },
 	{ label = "Any form", keys = { "stonePotion", "trinkets", "nextTarget" } },

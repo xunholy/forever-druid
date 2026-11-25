@@ -293,7 +293,7 @@ and so on).
 
 **Account or character slots.** The game has 120 general macro slots shared by every character on
 the account, and 30 more for each character. FD macros go in the account's slots unless you say
-otherwise, because all 45 fit there. **Put them all in** switches every FD macro between the two,
+otherwise, because all 47 fit there. **Put them all in** switches every FD macro between the two,
 and the button on each row (Account or Character) moves just that one. A moved macro is put back
 on the action buttons it was on. Things to know:
 
@@ -313,6 +313,8 @@ on the action buttons it was on. Things to know:
 | FD Berserk | Berserk, plus Tiger's Fury in Cat Form, in one press; shifts you into Cat Form first if you're in neither form |
 | FD Feral Charge | Feral Charge your mouseover or target. Forever's version charges in Bear Form and leaps behind the target in Cat Form; from anything else it shifts you into Bear Form |
 | FD Survival | Your best healing potion, Bear Form if you're not in it, then Frenzied Regeneration. Potions work in forms on Forever, so you stay a bear |
+| FD Bear Wall | Your Bear Form defences on one key: Bear Form if you're not in it, then Enrage with Frenzied Regeneration, then Barkskin (from level 44). Three of those use the global cooldown, so keep pressing and each press casts the next one that's ready. Hold Shift in caster form for Rejuvenation on yourself first |
+| FD Bear Engage | Opens a fight as a bear: Bear Form if you're not in it, then Enrage for rage and Feral Charge from 8 to 25 yards or Bash in melee, whichever fits your distance |
 | FD Bear Weapon | Equips the weapon in your bags with the most Bear attack power and shifts into Bear Form. Hold Alt and press again to put your usual weapon back |
 | FD Dash | Into Cat Form if you're not in it, then Dash |
 | FD Pounce Opener | The stun opener: Cat Form, Prowl, Pounce, then Rake |

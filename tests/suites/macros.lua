@@ -281,7 +281,7 @@ do
 	local NEW = { "FD Growl", "FD Maul Lacerate", "FD Feral Charge", "FD Dash", "FD Pounce Opener", "FD Moonkin Form",
 		"FD Hurricane", "FD Wild Growth", "FD Spirit Swap", "FD Survival", "FD Healthstone", "FD Trinkets",
 		"FD Next Target", "FD Heal or Wrath", "FD Moonfire", "FD Cleanse", "FD Bash", "FD Travel", "FD Bear Weapon",
-		"FD Primal Bite", "FD Swipe", "FD Berserk", "FD Insect Swarm", "FD Soothe Animal" }
+		"FD Primal Bite", "FD Swipe", "FD Berserk", "FD Insect Swarm", "FD Soothe Animal", "FD Bear Wall", "FD Bear Engage" }
 	local none = true
 	for _, name in ipairs(NEW) do
 		none = none and W.Macro(name) == nil
@@ -400,6 +400,13 @@ do
 	check(Body("FD Survival"):find("/use item:241650\n/cast [noform:2] !Bear Form; Frenzied Regeneration", 1, true)
 		and not Body("FD Survival"):find("cancelform", 1, true),
 		"FD Survival: the best potion without leaving Bear Form, then Frenzied Regeneration")
+	check(Body("FD Bear Wall") == "#showtooltip Frenzied Regeneration\n/cast [mod:shift,noform,@player] Rejuvenation\n"
+		.. "/stopmacro [mod:shift,noform]\n/cast [noform:2] !Bear Form\n/stopmacro [noform:2]\n"
+		.. "/cast Enrage\n/cast Frenzied Regeneration\n/cast Barkskin",
+		"FD Bear Wall: Bear Form, Shift for Rejuvenation in caster form, then Enrage with Frenzied Regeneration, then Barkskin (" .. tostring(Body("FD Bear Wall")):gsub("\n", " | ") .. ")")
+	check(Body("FD Bear Engage") == "#showtooltip Feral Charge\n/cast [noform:2] !Bear Form\n/stopmacro [noform:2]\n/startattack\n"
+		.. "/cast Enrage\n/cast [@mouseover,harm,nodead][] Feral Charge\n/cast [@mouseover,harm,nodead][] Bash",
+		"FD Bear Engage: Bear Form, Enrage, then Feral Charge from range or Bash in melee (" .. tostring(Body("FD Bear Engage")):gsub("\n", " | ") .. ")")
 	check(Body("FD Healthstone"):find("/castsequence reset=combat item:5509, item:241650", 1, true)
 		and not Body("FD Healthstone"):find("cancelform", 1, true), "FD Healthstone: Healthstone, then the best potion, in any form")
 	check(Body("FD Next Target"):find("/startattack [harm,nodead,nostealth]", 1, true), "FD Next Target never breaks Prowl")
@@ -455,15 +462,15 @@ do
 
 	HouseRules()
 	check(#W.macros.character <= 30, "within the 30 character macro slots")
-	-- Moving everything to the account's slots makes room for all 45.
+	-- Moving everything to the account's slots makes room for all 47.
 	for _, def in ipairs(mac.LIST) do
 		mac.SetWanted(def.key, true)
 	end
 	mac.SetPlaceForAll("account")
 	W.Advance(2)
 	local all = mac.Slots()
-	check(all.account.ours == 42 and all.character.ours == 0 and all.account.waiting == 0 and not mac.lastSync.full,
-		"in the account's slots every macro whose spells are known fits: 42, more than a character's 30")
+	check(all.account.ours == 44 and all.character.ours == 0 and all.account.waiting == 0 and not mac.lastSync.full,
+		"in the account's slots every macro whose spells are known fits: 44, more than a character's 30")
 	HouseRules()
 	noErrors(W, "no Lua errors or blocked actions")
 end

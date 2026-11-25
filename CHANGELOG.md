@@ -12,6 +12,11 @@
   uses the frame's own art for a second power bar, so it sits inside the border like the bars
   above it, and follows the frame when you move or resize it. The HUD mana bar and this one are switched on
   separately, so you can have both, either or neither.
+- FD Bear Wall, off until you tick it: Bear Form if you're not in it, then Enrage with Frenzied
+  Regeneration, then Barkskin once you know it, one per press. Shift in caster form casts
+  Rejuvenation on yourself first.
+- FD Bear Engage, off until you tick it: Bear Form, Enrage, then Feral Charge from range or Bash
+  up close.
 - Account macros are shared: every character on the account sees them, and another druid keeps
   them up to date for its own forms when it logs in.
 
